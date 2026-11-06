@@ -209,7 +209,8 @@
 .dialog-foot .cv-inv-copy{margin-right:auto}
 
 /* ---- the chip, placed by the shell ---- */
-.cv-chip{--on-call:#e8eaed;position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;max-width:min(440px,calc(100vw - 24px));height:48px;padding:0 6px 0 16px;border-radius:var(--r-pill);background:var(--call-bg);color:var(--on-call);box-shadow:var(--shadow-3);animation:cv-rise var(--t-slow) var(--ease-out)}
+.cv-chip{--on-call:#e8eaed;position:fixed;left:calc(var(--rail-w) + var(--chat-w) + 40px);bottom:24px;z-index:80;display:flex;align-items:center;gap:10px;max-width:380px;height:48px;padding:0 6px 0 16px;border-radius:var(--r-pill);background:var(--call-bg);color:var(--on-call);box-shadow:var(--shadow-3);animation:rise var(--t-slow) var(--ease-out)}
+.app.rail-min .cv-chip{left:calc(var(--rail-w-min) + var(--chat-w) + 40px)}
 .cv-chip.writing{padding-right:16px}
 .cv-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none;animation:cv-dot 2s var(--ease) infinite}
 .cv-chip-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;font-size:13px}
@@ -217,7 +218,8 @@
 .cv-chip-back{height:36px;padding:0 14px;border-radius:var(--r-pill);background:#8ab4f8;color:#202124;font-weight:500;font-size:13px;flex:none}
 .cv-chip-end{width:44px;height:36px;border-radius:var(--r-pill);background:#ea4335;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .cv-chip :focus-visible{outline:2px solid var(--on-call);outline-offset:2px}
-@media (max-width:899px){.cv-chip{bottom:76px}}
+/* never on the composer: over the right pane on a wide window, above the bottom bar on a phone */
+@media (max-width:899px){.app .cv-chip,.app.rail-min .cv-chip{left:50%;bottom:76px;max-width:calc(100vw - 24px);transform:translateX(-50%);animation-name:cv-rise}}
 
 /* ---- guest ---- */
 .cv-guest{height:100dvh;display:flex;flex-direction:column;background:var(--panel);overflow:auto}
