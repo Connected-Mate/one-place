@@ -10,7 +10,7 @@ const [file, png] = process.argv.slice(2)
 const r = spawnSync(ffmpegPath, ['-hide_banner', '-loglevel', 'error', '-i', file, '-af', 'pan=mono|c0=0.5*c0+0.5*c1', '-ar', '48000', '-f', 'f32le', '-'], { maxBuffer: 1 << 30 })
 const s = new Float32Array(r.stdout.buffer, r.stdout.byteOffset, r.stdout.length / 4)
 const db = (x) => (20 * Math.log10(Math.max(x, 1e-6))).toFixed(1).padStart(6)
-const marks = [[0, 'hello'], [2, 'spend'], [4, 'gmail'], [6, 'chaos'], [10, 'designed'], [12, 'merge'], [14.5, 'w1'], [15.5, 'home'], [18.5, 'w2'], [19.5, 'type'], [22, 'answer'], [24, 'block'], [25.5, 'w3'], [26.5, 'priv'], [29.5, 'w4'], [30.5, 'call maya'], [32.2, 'call tom'], [34.65, 'call karim'], [35.85, 'call wow'], [38.73, 'call lea'], [43.5, 'w5'], [44.5, 'tabs'], [47.5, 'every'], [49, 'people'], [51.5, 'hey'], [53.5, 'hire'], [56, 'end'], [60, '']]
+const marks = [...Array(14).keys()].map((i) => [i * 5, String(i * 5) + 's'])
 for (let i = 0; i < marks.length - 1; i++) {
   const a = Math.floor(marks[i][0] * 48000), b = Math.min(s.length, Math.floor(marks[i + 1][0] * 48000))
   let p = 0, e = 0; for (let j = a; j < b; j++) { p = Math.max(p, Math.abs(s[j])); e += s[j] * s[j] }

@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 import ffmpegPath from 'ffmpeg-static'
 import { chromium } from '../node_modules/playwright/index.mjs'
 import { callTimes } from './capture/call-cuts.mjs'
+import { timeline } from './film/timeline.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const SCRATCH = process.env.FILM_SCRATCH ?? '/private/tmp/claude-502/-Users-0104389S/a60853bb-6655-4d82-acf6-a5c639d40492/scratchpad/film'
@@ -25,6 +26,7 @@ const FORMAT = arg('format', '16x9'), FPS = +arg('fps', 30), SAMPLES = +arg('sam
 const pwDir = join(homedir(), 'Library/Caches/ms-playwright')
 const executablePath = join(pwDir, readdirSync(pwDir).find((d) => /^chromium-\d+/.test(d)), 'chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing')
 const W = FORMAT === '16x9' ? 1920 : 1080, H = 1080
+const DSF = +arg('scale', 2) // 2 = true 4K: every vector, type and footage crop is drawn at 3840 or 2160, nothing is upscaled
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2' }
 function serve() {
@@ -47,11 +49,11 @@ const frameCounts = () => {
 }
 async function openPage(port) {
   const browser = await chromium.launch({ executablePath, headless: true, args: ['--force-color-profile=srgb', '--font-render-hinting=none', '--disable-lcd-text', '--disable-gpu-vsync'] })
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 })
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: DSF })
   const page = await ctx.newPage()
   page.on('pageerror', (e) => console.error('PAGE ERROR', e.message))
   page.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) console.error('CONSOLE', m.text()) })
-  await page.addInitScript(([c, t]) => { window.__FRAMES = c; window.__CALL = t }, [frameCounts(), { wide: callTimes(SCRATCH, 'callwide'), square: callTimes(SCRATCH, 'callsquare') }])
+  await page.addInitScript(([c, t, l]) => { window.__FRAMES = c; window.__CALL = t; window.__TIMELINE = l }, [frameCounts(), (() => { try { return { wide: callTimes(SCRATCH, 'callwide'), square: callTimes(SCRATCH, 'callsquare') } } catch { return null } })(), timeline(SCRATCH)])
   await page.goto(`http://127.0.0.1:${port}/film/film.html?format=${FORMAT}`, { waitUntil: 'load' })
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => window.__ready())
@@ -60,7 +62,7 @@ async function openPage(port) {
   return { browser, page }
 }
 const cdpShot = async (page, client, type = 'jpeg') => {
-  const { data } = await client.send('Page.captureScreenshot', { format: type, quality: 97, captureBeyondViewport: false, clip: { x: 0, y: 0, width: W, height: H, scale: 1 }, fromSurface: true })
+  const { data } = await client.send('Page.captureScreenshot', { format: type, quality: 97, captureBeyondViewport: false, clip: { x: 0, y: 0, width: W, height: H, scale: DSF }, fromSurface: true })
   return Buffer.from(data, 'base64')
 }
 async function chunk(port, a, b, file, idx) {
@@ -77,7 +79,7 @@ async function chunkOnce(port, a, b, file, idx) {
   const ff = spawn(ffmpegPath, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS * SAMPLES), '-c:v', 'mjpeg', '-i', '-',
     '-vf', `tmix=frames=${SAMPLES}:weights=${Array(SAMPLES).fill(1).join(' ')},select='not(mod(n+1\\,${SAMPLES}))',setpts=N/(${FPS}*TB),scale=in_range=full:out_range=tv:out_color_matrix=bt709:flags=lanczos+accurate_rnd+full_chroma_int,format=yuv420p`,
     '-r', String(FPS),
-    '-c:v', 'libx264', '-preset', 'medium', '-crf', arg('crf', '13'), '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv', '-x264-params', 'keyint=60:bframes=2', file], { stdio: ['pipe', 'inherit', 'inherit'] })
+    '-c:v', 'libx264', '-preset', 'medium', '-crf', arg('crf', '14'), '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv', '-x264-params', 'keyint=60:bframes=2', file], { stdio: ['pipe', 'inherit', 'inherit'] })
   let dead = null
   const closed = new Promise((r) => ff.on('close', r))
   ff.on('close', (c) => { dead = c === 0 ? null : new Error('ffmpeg exit ' + c) })

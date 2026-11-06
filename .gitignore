@@ -29,4 +29,5 @@ dist-ssr
 video/node_modules
 video/out
 video/captures
-video/audio/mix.wav
+video/audio/mix*.wav
+video/audio/music-custom.*

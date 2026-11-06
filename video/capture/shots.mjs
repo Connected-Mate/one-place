@@ -5,11 +5,12 @@
  */
 // The footage of the film: real interactions in the real app. Usage: node shots.mjs home type answer block private tabs callwide callsquare
 import { open } from './lib.mjs'
-import { LEA_LINE, LEA_TAIL } from './call-cuts.mjs'
+import { END_LINE, END_TAIL, HANGUP_SECONDS } from './call-cuts.mjs'
 const FILM_CSS = `:root{--bg:#fff!important}body{background:#fff!important}*{scrollbar-width:none!important}*::-webkit-scrollbar{display:none!important}.cv-quiet{display:none!important}`
 
+const PREVIEW = !!process.env.FILM_PREVIEW
 async function start({ project = 'Aurora launch', dsf = 3, width, height, name }) {
-  const s = await open({ dsf, name, width, height, css: FILM_CSS })
+  const s = await open({ dsf: PREVIEW ? 1 : dsf, name, width, height, css: FILM_CSS })
   await s.skip(2500)
   await s.page.getByRole('button', { name: 'Step in' }).click()
   await s.skip(700)
@@ -23,22 +24,26 @@ const ask = async (s, q, cps) => {
 }
 
 const SHOTS = {
-  async home() {
-    const s = await start({ project: null, name: 'home' })
-    s.shot('home', { x: 290, y: 150, width: 770, height: 360 })
-    await s.setCursor(1040, 500); await s.hideCursor()
-    await s.rec_(300)
-    await s.setCursor(1040, 500)
-    const tick = s.page.locator('.hm-tick:visible').first()
-    await s.pressAt(tick, { ms: 1100 })
-    await s.rec_(500)
-    await s.moveTo(900, 600, 900)
-    await s.rec_(800)
+  // One chat: people talking, a message written and sent, the column alive.
+  async chat() {
+    const s = await start({ dsf: 5, name: 'chat' })
+    s.shot('chat', { x: 262, y: 52, width: 430, height: 888 })
+    await s.rec_(200)
+    await s.setCursor(560, 780)
+    await s.moveTo(470, 905, 600)
+    await s.page.locator('textarea:visible').first().click()
+    await s.rec_(150)
+    await s.hideCursor()
+    await s.type('@Maya is the firmware good for the pilot run?', { cps: 24 })
+    await s.rec_(200)
+    await s.page.keyboard.press('Enter')
+    await s.rec_(4200)
     s.meta(); await s.close()
   },
+  // Tag the AI: the composer, alone and huge
   async type() {
-    const s = await start({ dsf: 4, name: 'type' })
-    await s.page.addStyleTag({ content: '[role=log]{visibility:hidden!important}' }) // the composer alone, floating
+    const s = await start({ dsf: 8, name: 'type' })
+    await s.page.addStyleTag({ content: '[role=log]{visibility:hidden!important}' })
     await s.page.locator('textarea:visible').first().click()
     s.shot('type', { x: 262, y: 800, width: 430, height: 140 })
     await s.rec_(250)
@@ -56,77 +61,110 @@ const SHOTS = {
     s.meta(); await s.close()
   },
   async answer() {
-    const s = await start({ name: 'answer' })
+    const s = await start({ dsf: 5, name: 'answer' })
     await ask(s, 'where do we stand?')
     s.shot('answer', { x: 262, y: 104, width: 430, height: 770 })
     await s.rec_(7000)
     s.meta(); await s.close()
   },
+  // A block arrives on the bento board, in the gradient
   async block() {
-    const s = await start({ name: 'block' })
+    const s = await start({ dsf: 6, name: 'block' })
     await ask(s, 'build a preorder tracker by region')
     s.shot('block', { x: 262, y: 52, width: 1242, height: 888 })
     await s.rec_(6500)
     s.meta(); await s.close()
   },
-  async private() {
-    const s = await start({ name: 'private' })
-    s.shot('private', { x: 262, y: 104, width: 430, height: 830 })
-    const msg = s.page.getByText('Ran firmware').first()
-    const bm = await msg.boundingBox()
-    await s.setCursor(560, 720); await s.hideCursor()
+  // Your docs, your tools: a doc, then a sheet, opening in the pane. Open in Sheets is right there.
+  async docs() {
+    const s = await start({ dsf: 4, name: 'docs' })
+    s.shot('docs', { x: 704, y: 52, width: 800, height: 888 })
+    await s.setCursor(1100, 600); await s.hideCursor()
     await s.rec_(150)
-    await s.setCursor(560, 720)
-    await s.moveTo(bm.x + 240, bm.y + 30, 650)
-    await s.rec_(150)
-    const buttons = s.page.locator('[aria-label="Reply privately"]')
-    const idx = await buttons.evaluateAll((a, y) => { let best = 0, d = 1e9; a.forEach((e, i) => { const q = Math.abs(e.getBoundingClientRect().y - y); if (q < d) { d = q; best = i } }); return best }, bm.y)
-    await s.pressAt(buttons.nth(idx), { ms: 450 })
-    await s.rec_(350)
-    await s.hideCursor()
-    await s.page.locator('textarea:visible').first().click()
-    await s.type('Between us: can we hold the date?', { cps: 24 })
-    await s.rec_(180)
-    await s.page.keyboard.press('Enter')
-    await s.rec_(2500)
-    s.meta(); await s.close()
+    await s.setCursor(1100, 700)
+    const files = () => s.page.locator('[role=tab]:visible', { hasText: 'Files' }).first()
+    const row = (t) => s.page.locator('.rp-view :visible, main :visible').getByText(t, { exact: true }).last()
+    await s.pressAt(files(), { ms: 480 })
+    await s.rec_(300)
+    await s.pressAt(s.page.getByText('Launch brief', { exact: true }).filter({ visible: true }).last(), { ms: 450 })
+    await s.rec_(1200)
+    await s.pressAt(files(), { ms: 450 })
+    await s.rec_(300)
+    await s.pressAt(s.page.getByText('Budget', { exact: true }).filter({ visible: true }).last(), { ms: 450 })
+    await s.rec_(800)
+    const openIn = s.page.locator('[title^="Open in"]:visible').first()
+    const bo = await openIn.boundingBox()
+    await s.moveTo(bo.x + bo.width / 2, bo.y + bo.height / 2, 550)
+    await s.rec_(900)
+    s.meta({ openIn: bo }); await s.close()
   },
-  async tabs() {
-    const s = await start({ name: 'tabs' })
-    await ask(s, 'build a preorder tracker by region')
-    s.shot('tabs', { x: 704, y: 52, width: 800, height: 888 })
-    await s.rec_(3400)
-    const tab = s.page.locator('[role=tab]:visible', { hasText: 'Preorder by region' }).first()
-    const b = await tab.boundingBox()
-    await s.setCursor(b.x - 60, b.y + 150)
-    await s.pressAt(tab, { ms: 650 })
-    await s.rec_(1800)
-    s.meta(); await s.close()
-  },
-  async callwide() { await call('callwide', 2300, 1040) },
+  async callwide() { await call('callwide', 1700, 860) },
   async callsquare() { await call('callsquare', 1512, 949) },
+  // Your project: the bento board, and everything around it
+  async overview() {
+    const s = await start({ dsf: 3, name: 'overview' })
+    s.shot('overview', { x: 0, y: 52, width: 1512, height: 897 })
+    await s.setCursor(1200, 880); await s.hideCursor()
+    await s.rec_(150)
+    await s.setCursor(1200, 880)
+    await s.moveTo(1010, 610, 700)
+    await s.moveTo(1100, 610, 450) // over the board: the lamp turns, the tiles respond
+    await s.moveTo(1370, 420, 700)
+    await s.rec_(1700)
+    s.meta(); await s.close()
+  },
+  async home() {
+    const s = await start({ project: null, dsf: 3, name: 'home' })
+    s.shot('home', { x: 0, y: 52, width: 1090, height: 660 })
+    await s.setCursor(150, 380); await s.hideCursor()
+    await s.rec_(200)
+    await s.setCursor(150, 380)
+    await s.moveTo(120, 260, 500)
+    await s.rec_(150)
+    const tick = s.page.locator('.hm-tick:visible').first()
+    await s.pressAt(tick, { ms: 800 })
+    await s.rec_(500)
+    await s.moveTo(950, 600, 800)
+    await s.rec_(500)
+    s.meta(); await s.close()
+  },
 }
+
+// Built on the fly: a mini-app Gemini made. Waits for the final UI: the shot is written against it when the commit is known.
+SHOTS.mini = async () => { console.log('mini: not captured yet, waiting for the final UI') }
 
 async function call(name, width, height) {
   const s = await start({ dsf: 3, name, width, height })
-  await s.page.addStyleTag({ content: '.cv-captions,.cv-caption,.cv-cc{display:none!important}' }) // the film sets its own larger captions
+  await s.page.addStyleTag({ content: '.cv-captions{display:none!important}' }) // the film sets its own larger captions
   await s.page.locator('button[aria-label="Start a call"]:visible').first().click()
   await s.tick(2)
   const b = await s.page.locator('.cv-stage:visible').first().boundingBox()
-  const box = { x: Math.floor(b.x), y: Math.floor(b.y), width: Math.ceil(b.width), height: Math.ceil(b.height) }
+  const chat = await s.page.locator('textarea:visible').first().boundingBox()
+  // chat at left, call at right: the whole project, nothing but the rail and the top bar left out
+  const left = 258
+  const box = { x: left, y: 52, width: width - left, height: height - 52 }
   s.shot(name, box)
   const t0 = await s.page.evaluate(() => Date.now())
-  // Record until Léa has said her line, however long the app's opening has become.
   let heardAt = null
-  for (let sec = 0; sec < 120; sec++) {
+  for (let sec = 0; sec < 150; sec++) {
     await s.rec_(1000)
-    const p = (await s.plays()).find((x) => x.src.includes(LEA_LINE))
+    const p = (await s.plays()).find((x) => x.src.includes(END_LINE))
     if (p && heardAt === null) heardAt = p.at
-    if (heardAt !== null && (await s.page.evaluate(() => Date.now())) - heardAt > LEA_TAIL * 1000) break
+    if (heardAt !== null && (await s.page.evaluate(() => Date.now())) - heardAt > END_TAIL * 1000) break
   }
-  if (heardAt === null) console.error(`WARNING ${name}: ${LEA_LINE} never played`)
+  if (heardAt === null) console.error(`WARNING ${name}: ${END_LINE} never played`)
+  // Hang up with the real button: Gemini's summary lands in the chat, to-dos on the board
+  const hangTime = (await s.page.evaluate(() => Date.now()) - t0) / 1000
+  const hang = s.page.locator('[aria-label*="Leave" i]:visible, [aria-label*="Hang" i]:visible, [aria-label*="End call" i]:visible').first()
+  const bh = await hang.boundingBox()
+  await s.setCursor(bh.x + 200, bh.y - 120)
+  await s.pressAt(hang, { ms: 550 })
+  const clicked = (await s.page.evaluate(() => Date.now()) - t0) / 1000
+  await s.hideCursor()
+  await s.rec_(HANGUP_SECONDS * 1000)
   const plays = (await s.plays()).filter((p) => /voice\//.test(p.src)).map((p) => ({ file: p.src.split('/').pop(), at: (p.at - t0) / 1000 }))
-  s.meta({ plays }); console.log(JSON.stringify(plays)); await s.close()
+  const cams = [] 
+  s.meta({ plays, hangTime, clicked, stage: b, box, cams }); console.log(JSON.stringify(plays)); await s.close()
 }
 
 const list = process.argv.slice(2)

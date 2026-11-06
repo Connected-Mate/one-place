@@ -34,7 +34,8 @@ const rng = (seed) => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let x = M
 /* ---------- dom ---------- */
 const el = (tag, cls, parent, style) => { const e = document.createElement(tag); if (cls) e.className = cls; if (style) for (const [k, v] of Object.entries(style)) { if (k.startsWith('--')) e.style.setProperty(k, v); else e.style[k] = v } if (parent) parent.appendChild(e); return e }
 const APPS = [['gmail', 'Gmail'], ['chat', 'Chat'], ['calendar', 'Calendar'], ['meet', 'Meet'], ['docs', 'Docs'], ['sheets', 'Sheets'], ['slides', 'Slides'], ['drive', 'Drive'], ['tasks', 'Tasks'], ['keep', 'Keep']]
-const icon = (n) => n === 'tasks' ? '/workspace/tasks.png' : `/workspace/${n}.svg`
+const GEMINI_ICON = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset=".28" stop-color="#4285f4"/><stop offset=".5" stop-color="#9b72cb"/><stop offset=".72" stop-color="#d96570"/></linearGradient></defs><path fill="url(#g)" d="M12 0C12.6 6.6 17.4 11.4 24 12 17.4 12.6 12.6 17.4 12 24 11.4 17.4 6.6 12.6 0 12 6.6 11.4 11.4 6.6 12 0Z"/></svg>')}`
+const icon = (n) => n === 'gemini' ? GEMINI_ICON : n === 'tasks' ? '/workspace/tasks.png' : `/workspace/${n}.svg`
 const pending = new Set()
 const whenLoaded = (img) => { if (!img.complete) pending.add(new Promise((r) => { img.onload = img.onerror = r })) }
 const imgEl = (src, parent, style, cls) => { const i = el('img', cls, parent, style); i.decoding = 'sync'; i.src = src; whenLoaded(i); return i }
@@ -143,7 +144,7 @@ function featherMask({ l = 0, r = 0, t = 0, b = 0 }) {
   const lin = (dir, a, z) => `linear-gradient(to ${dir}, transparent 0, #000 ${a}px, #000 calc(100% - ${z}px), transparent 100%)`
   return [lin('right', l, r), lin('bottom', t, b)].join(',')
 }
-const dsfOf = { home: 3, type: 4, answer: 3, block: 3, private: 3, tabs: 3, callwide: 3, callsquare: 3 }
+const dsfOf = { home: 3, type: 8, answer: 5, block: 6, docs: 4, callwide: 3, callsquare: 3, chat: 5, overview: 3 }
 const frameJobs = []
 function setFootage(f, ft, cam) {
   const idx = Math.max(0, Math.min((window.__FRAMES?.[f.shot] ?? 1e9) - 1, Math.floor(ft * 30 + 1e-6)))
@@ -182,17 +183,12 @@ function statement(name, start, end, wide, square, { mode = 'words', stagger = .
   }, opts)
 }
 
-const T = window.__T = { // the edit, on a 120 bpm grid
-  hello: [0, 2], spend: [2, 4], gmail: [4, 6], chaos: [6, 10], designed: [10, 12], merge: [12, 14.5],
-  w1: [14.5, 15.5], home: [15.5, 18.5], w2: [18.5, 19.5], type: [19.5, 22], answer: [22, 24], block: [24, 25.5], w3: [25.5, 26.5], priv: [26.5, 29.5],
-  w4: [29.5, 30.5], call: [30.5, 43.5], w5: [43.5, 44.5], tabs: [44.5, 47.5],
-  every: [47.5, 49], people: [49, 51.5], hey: [51.5, 53.5], hire: [53.5, 56], end: [56, 60],
-}
+const T = window.__T = window.__TIMELINE // the edit, see film/timeline.mjs
 window.__DURATION = T.end[1]
 
 /* -- Hello -- */
 statement('hello', ...T.hello, [['Hello Google.']], [['Hello'], ['Google.']], { mode: 'type', t0: .3, cps: 15, carets: ['#4285f4'], opts: { noIn: true } })
-statement('spend', ...T.spend, [['You’re spending'], [{ t: '$200B', blue: true }, ' on AI.']], [['You’re spending'], [{ t: '$200B', blue: true }, ' on AI.']], {})
+statement('spent', ...T.spent, [['Last quarter, you spent'], [{ t: '$51B', blue: true }, ' to build AI.']], [['Last quarter,'], ['you spent'], [{ t: '$51B', blue: true }, ' to build AI.']], { stagger: .13, size: WIDE ? 168 : 138 })
 statement('gmail', ...T.gmail, [['And we still'], ['work in ', { i: 'gmail' }, ' Gmail.']], [['And we still'], ['work in ', { i: 'gmail' }], ['Gmail.']], { stagger: .11 })
 
 /* -- The chaos: an endless thread, tabs piling up, every app shouting -- */
@@ -286,7 +282,7 @@ statement('gmail', ...T.gmail, [['And we still'], ['work in ', { i: 'gmail' }, '
   }, { noOut: true })
 }
 
-statement('designed', ...T.designed, [['So I designed'], [{ t: 'what’s next.', blue: true }]], [['So I designed'], [{ t: 'what’s next.', blue: true }]], { opts: { noIn: true }, t0: .25, stagger: .17 })
+statement('first', ...T.first, [['Maybe there’s something'], [{ t: 'to do first.', blue: true }]], [['Maybe there’s'], ['something'], [{ t: 'to do first.', blue: true }]], { opts: { noIn: true }, t0: .3, stagger: .2, size: WIDE ? 160 : 132 })
 
 /* -- The merge, as in the welcome dialog -- */
 {
@@ -316,7 +312,7 @@ statement('designed', ...T.designed, [['So I designed'], [{ t: 'what’s next.',
     const m = window.__logo(s.layer, WIDE ? 240 : 230, { position: 'absolute', left: '50%', top: '50%' })
     mark = m.svg; paths = m.ps
     name = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: '50%', textAlign: 'center', fontSize: (WIDE ? 104 : 96) + 'px', fontWeight: 500, whiteSpace: 'nowrap' })
-    name.textContent = 'One Place'
+    name.textContent = 'One place.'
   }, (s, t) => {
     const lt = t - s.start
     const MERGE = 1.1 // the row is read, then it folds into the mark, on the downbeat
@@ -341,45 +337,101 @@ statement('designed', ...T.designed, [['So I designed'], [{ t: 'what’s next.',
 
 /* -- The word wheel between product moments -- */
 const WHEEL = [
-  { wide: 'One place', sq: ['One place'] },
-  { wide: 'One AI', sq: ['One AI'] },
-  { wide: 'Private, in context', sq: ['Private,', 'in context'] },
-  { wide: 'Every call, right here', sq: ['Every call,', 'right here'] },
-  { wide: 'Built on the fly', sq: ['Built', 'on the fly'] },
-  { wide: 'One place', sq: ['One place'] },
+  { wide: ['One chat.'], sq: ['One chat.'] },
+  { wide: ['Tag the AI.', 'It works for you.'], sq: ['Tag the AI.', 'It works', 'for you.'] },
+  { wide: ['Built on the fly.'], sq: ['Built', 'on the fly.'] },
+  { wide: ['Your docs. Your tools.', 'Connected.'], sq: ['Your docs.', 'Your tools.', 'Connected.'] },
+  { wide: ['Your calls.', 'Right there.'], sq: ['Your calls.', 'Right there.'] },
+  { wide: ['Your project.', 'End to end.'], sq: ['Your project.', 'End to end.'] },
 ]
-function wheel(name, [start, end], index) {
+function wheel(name, [start, end], index, extra) {
   let items = []
-  const fs = WIDE ? 150 : 124
-  const lh = fs * 1.2
-  const heights = WHEEL.map((w) => (WIDE ? 1 : w.sq.length) * lh + (WIDE ? fs * .34 : fs * .36))
-  const posOf = (i) => { let y = 0; const k = Math.floor(i); for (let j = 0; j < k; j++) y += heights[j % 6]; return y + heights[k % 6] * (i - k) }
+  const fs = WIDE ? 140 : 122
+  const lh = fs * 1.16
+  const L = WHEEL.length
+  const lines = (i) => (WIDE ? WHEEL[((i % L) + L) % L].wide : WHEEL[((i % L) + L) % L].sq)
+  const height = (i) => lines(i).length * lh + fs * .42
+  const posOf = (x) => { const k = Math.floor(x); let y = 0; for (let j = 0; j < k; j++) y += height(j); return y + height(k) * (x - k) }
   segment(name, start, end, (s) => {
-    for (let i = -3; i <= 9; i++) {
-      const w = WHEEL[(i + 6) % 6]
-      const e = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: '50%', textAlign: 'center', fontSize: fs + 'px', lineHeight: 1.2, whiteSpace: 'nowrap' })
-      ;(WIDE ? [w.wide] : w.sq).forEach((l) => { const d = el('div', '', e); d.textContent = l })
+    for (let i = 0; i <= 9; i++) {
+      const e = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: '50%', textAlign: 'center', fontSize: fs + 'px', lineHeight: 1.16, whiteSpace: 'nowrap', zIndex: 5 })
+      lines(i).forEach((l) => { const d = el('div', '', e); d.textContent = l })
       items.push({ e, i })
     }
+    extra?.build?.(s)
   }, (s, t) => {
     const lt = t - s.start
-    const roll = lerp(index - .9, index, emph(prog(lt, .0, .62)))
-    const center = posOf(roll + 12) + heights[index] / 2 - 0
+    const at = index + L // room on both sides of the list
+    const roll = lerp(at - .9, at, emph(prog(lt, 0, .62)))
+    const center = posOf(at) // of its top: the item is centered once it has settled
     items.forEach(({ e, i }) => {
-      const y = posOf(i + 12) - posOf(roll + 12) - (((WIDE ? 1 : WHEEL[(i + 6) % 6].sq.length) * lh) / 2)
-      const dist = Math.abs(i - roll)
+      // i is drawn at its position in the list around the current one
+      const j = at - 4 + i
+      const y = posOf(j) - posOf(roll) - lines(j).length * lh / 2
+      const dist = Math.abs(j - roll)
       const on = 1 - clamp(dist / .55)
-      e.style.color = on > .5 ? '#4285f4' : '#bdc1c6'
-      if (on > 0 && on < 1) e.style.color = `rgb(${lerp(189, 66, on)},${lerp(193, 133, on)},${lerp(198, 244, on)})`
+      e.textContent = ''
+      lines(j).forEach((l) => { const d = el('div', '', e); d.textContent = l })
+      e.style.color = `rgb(${lerp(189, 66, on)},${lerp(193, 133, on)},${lerp(198, 244, on)})`
       e.style.opacity = clamp(1.05 - Math.max(0, dist - .4) * .62)
       const blur = Math.min(14, dist * 9)
       e.style.filter = blur < .05 ? 'none' : `blur(${blur}px)`
       e.style.transform = `translateY(${y}px) scale(${lerp(.86, 1, on)})`
     })
     s.layer.style.transform = `translateY(${travel(s, t)}px)`
+    extra?.update?.(s, t)
   }, { noIn: true })
 }
-wheel('w1', T.w1, 0); wheel('w2', T.w2, 1); wheel('w3', T.w3, 2); wheel('w4', T.w4, 3); wheel('w5', T.w5, 4)
+
+/* -- Not a dozen agents: a cloud of little bots, gone in a breath -- */
+const BOT = (hue) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect x="8" y="14" width="32" height="26" rx="9" fill="${hue}"/><rect x="22.5" y="6" width="3" height="9" rx="1.5" fill="${hue}"/><circle cx="24" cy="6" r="3" fill="${hue}"/><rect x="3" y="22" width="4" height="10" rx="2" fill="${hue}"/><rect x="41" y="22" width="4" height="10" rx="2" fill="${hue}"/><circle cx="18" cy="26" r="3.6" fill="#fff"/><circle cx="30" cy="26" r="3.6" fill="#fff"/><rect x="17" y="33" width="14" height="2.8" rx="1.4" fill="#fff"/></svg>`)}`
+{
+  let bots = []
+  const HUES = ['#9aa0a6', '#80868b', '#bdc1c6', '#aeb4bb']
+  const r = rng(77)
+  statement('agents', ...T.agents, [['Not a dozen agents.']], [['Not a dozen'], ['agents.']], { t0: .12, size: WIDE ? 150 : 132, opts: { noOut: true }, extra: {
+    build: (s) => {
+      const n = 44
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 * 3 + r() * .5, ring = .55 + r() * .6
+        const x = Math.cos(a) * W * .48 * ring, y = Math.sin(a) * H * .46 * ring
+        if (Math.abs(y) < (WIDE ? 130 : 210) && Math.abs(x) < (WIDE ? 760 : 470)) continue // the line stays readable
+        const d = lerp(46, 104, r())
+        const e = imgEl(BOT(HUES[i % 4]), s.layer, { position: 'absolute', left: W / 2 + 'px', top: H / 2 + 'px', width: d + 'px', height: d + 'px' })
+        bots.push({ e, x, y, d, at: .35 + r() * 1.0, rot: (r() - .5) * 24, off: r() })
+      }
+    },
+    update: (s, t) => {
+      const lt = t - s.start, gone = T.agents[1] - T.agents[0] - .75
+      bots.forEach((b) => {
+        const u = emph(prog(lt, b.at, b.at + .45))
+        const v = acc(prog(lt, gone + b.off * .18, gone + b.off * .18 + .42))
+        const k = 1 + v * 1.1
+        b.e.style.opacity = prog(lt, b.at, b.at + .08) * (1 - v)
+        b.e.style.transform = `translate(${b.x * k - b.d / 2}px,${b.y * k - b.d / 2 + Math.sin((t + b.off * 9) * 1.5) * 6}px) rotate(${b.rot + v * 60 * (b.off - .5)}deg) scale(${lerp(.3, 1, u) * (1 - v * .6)})`
+      })
+    },
+  } })
+}
+
+wheel('w1', T.w1, 0); wheel('w2', T.w2, 1)
+if (T.wf) wheel('wf', T.wf, 2)
+{ // the tools flow in around the words, and fall into the product
+  let items = []
+  wheel('w3', T.w3, 3, {
+    build: (s) => { APPS.forEach(([a], i) => { const d = WIDE ? 118 : 96; const e = el('div', '', s.layer, { position: 'absolute', left: W / 2 + 'px', top: H / 2 + 'px', width: d + 'px', height: d + 'px', borderRadius: d * .24 + 'px', background: '#fff', boxShadow: '0 18px 50px rgba(66,133,244,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }); imgEl(icon(a), e, { width: d * .6 + 'px', height: d * .6 + 'px' }); const ang = (i / 10) * Math.PI * 2 + (WIDE ? .3 : .3); items.push({ e, d, ang, i }) }) },
+    update: (s, t) => {
+      const lt = t - s.start
+      items.forEach(({ e, d, ang, i }) => {
+        const u = emph(prog(lt, .1 + i * .04, .85 + i * .04))
+        const rx = (WIDE ? W * .46 : W * .43) * lerp(1.7, 1, u), ry = (WIDE ? H * .41 : H * .43) * lerp(1.7, 1, u)
+        e.style.transform = `translate(${Math.cos(ang) * rx - d / 2}px,${Math.sin(ang) * ry - d / 2}px)`
+        e.style.opacity = prog(lt, .1 + i * .04, .2 + i * .04)
+      })
+    },
+  })
+}
+wheel('w4', T.w4, 4); wheel('w5', T.w5, 5)
 
 /* -- Product moments, from the real app -- */
 function shot(name, [start, end], source, spec, { glow = null, fromT = 0, rate = 1, opts = {}, after } = {}) {
@@ -403,65 +455,62 @@ function shot(name, [start, end], source, spec, { glow = null, fromT = 0, rate =
 window.__shot = shot
 window.__seg = segment
 
-/* -- Product moments: framing per format -- */
+/* -- Product moments: real recordings, framing per format -- */
 const r = (x, y, w, h) => ({ x, y, w, h })
-// Home: what needs you
-shot('home', T.home, 'home', WIDE
-  ? { rect: r(150, 150, 1620, 780), radius: 44, tilt: [3.4, -5, 0, 1.8], cam: (t) => ({ x: track(t, [[0, 400], [3, 360]]), y: track(t, [[0, 186], [3, 182]]), zoom: track(t, [[0, 2.08], [3, 2.22]]) }) }
-  : { rect: r(50, 250, 980, 600), radius: 40, tilt: [3, -4, 0, 1.6], feather: { r: 90 }, cam: (t) => ({ x: track(t, [[0, 256], [3, 248]]), y: track(t, [[0, 158], [3, 160]]), zoom: track(t, [[0, 1.9], [3, 2.0]]) }) },
-{ fromT: .55 })
-// One AI: the composer, alone, huge. The pill runs off frame like the real ads.
+// One chat: the conversation, a message written, a real answer
+shot('chat', T.chat, 'chat', WIDE
+  ? { rect: r(420, 0, 1075, 1080), shadow: false, feather: { t: 120, b: 80 }, cam: (t) => ({ x: 215, y: track(t, [[0, 640], [3, 680]]), zoom: 2.5 }) }
+  : { rect: r(30, 0, 1020, 1080), shadow: false, feather: { t: 110, b: 70 }, cam: (t) => ({ x: 215, y: track(t, [[0, 640], [3, 665]]), zoom: 2.37 }) },
+{ fromT: .85, rate: 1.8 })
+// Tag the AI: the composer, alone, huge
 shot('type', T.type, 'type', WIDE
-  ? { rect: r(0, 230, 1920, 620), shadow: false, feather: { t: 60 }, cam: (t) => ({ x: track(t, [[0, 215], [1.7, 215], [2.5, 300]]), y: track(t, [[0, 73], [2.5, 92]]), zoom: track(t, [[0, 4.3], [1.7, 4.3], [2.5, 5.4]]) }) }
-  : { rect: r(0, 290, 1080, 500), shadow: false, feather: { t: 50 }, cam: (t) => ({ x: track(t, [[0, 170], [1, 170], [1.9, 262], [2.5, 268]]), y: track(t, [[0, 80], [2.5, 98]]), zoom: track(t, [[0, 3.3], [2.5, 3.5]]) }) },
-{ fromT: .2 })
+  ? { rect: r(0, 230, 1920, 620), shadow: false, feather: { t: 60 }, cam: (t) => ({ x: track(t, [[0, 215], [1.5, 215], [2.3, 290]]), y: track(t, [[0, 73], [2.3, 90]]), zoom: track(t, [[0, 4.2], [1.5, 4.2], [2.3, 4.9]]) }) }
+  : { rect: r(0, 290, 1080, 500), shadow: false, feather: { t: 50 }, cam: (t) => ({ x: track(t, [[0, 170], [1, 170], [1.8, 262], [2.3, 268]]), y: track(t, [[0, 80], [2.3, 98]]), zoom: track(t, [[0, 3.3], [2.3, 3.5]]) }) },
+{ fromT: .4 })
 // The answer streams; Gemini at work lights the edge of the frame
 shot('answer', T.answer, 'answer', WIDE
-  ? { rect: r(420, 0, 1080, 1080), shadow: false, feather: { t: 130, b: 130 }, cam: (t) => ({ x: 215, y: track(t, [[0, 570], [2, 590]]), zoom: 2.5 }) }
-  : { rect: r(30, 0, 1020, 1080), shadow: false, feather: { t: 110, b: 110 }, cam: (t) => ({ x: 215, y: track(t, [[0, 570], [2, 590]]), zoom: 2.37 }) },
-{ fromT: .85, rate: 1.7, glow: [[0, 0], [.35, .72], [1.5, .72], [2, .25]] })
-// ...and a block lands on the board: the answer and the block, two floating pieces of the same screen
+  ? { rect: r(420, 0, 1080, 1080), shadow: false, feather: { t: 130, b: 130 }, cam: (t) => ({ x: 215, y: track(t, [[0, 570], [1.8, 590]]), zoom: 2.5 }) }
+  : { rect: r(30, 0, 1020, 1080), shadow: false, feather: { t: 110, b: 110 }, cam: (t) => ({ x: 215, y: track(t, [[0, 570], [1.8, 590]]), zoom: 2.37 }) },
+{ fromT: .85, rate: 1.9, glow: [[0, 0], [.3, .72], [1.3, .72], [1.8, .25]] })
+// ...and a block lands on the board in the gradient, with the answer floating beside it
 {
+  const BOX = window.__BLOCKBOX
   let reply
-  const R = WIDE ? r(120, 66, 800, 360) : r(40, 150, 780, 350)
+  const R = WIDE ? r(90, 150, 800, 360) : r(40, 90, 780, 350)
   const Z = WIDE ? 1.95 : 1.9
+  // the new tile with its gradient ring, and the board around it (positions from the capture, see block frames)
   shot('block', T.block, 'block', WIDE
-    ? { rect: r(180, 480, 1560, 507), radius: 44, tilt: [2.2, -2.6, 0, 1.2], cam: (t) => ({ x: 840, y: 755, zoom: track(t, [[0, 1.95], [1.5, 1.99]]) }) }
-    : { rect: r(40, 545, 1000, 325), radius: 40, tilt: [2, -2.4, 0, 1], cam: (t) => ({ x: 840, y: 755, zoom: track(t, [[0, 1.25], [1.5, 1.28]]) }) },
+    ? { rect: r(760, 300, 1060, 680), radius: 44, tilt: [2, -3, 0, 1.2], cam: (t) => ({ x: 1060, y: 580, zoom: track(t, [[0, 2.8], [1.6, 2.9]]) }) }
+    : { rect: r(220, 450, 820, 560), radius: 40, tilt: [2, -3, 0, 1], cam: (t) => ({ x: 1090, y: 580, zoom: track(t, [[0, 2.55], [1.6, 2.62]]) }) },
   { fromT: 1.0, glow: [[0, .35], [.5, 0]], after: {
     build: (s) => { reply = footage(s.layer.querySelector('.wrap3d'), 'block', { rect: R, radius: 36, shadow: true }) },
-    update: (s, t) => { const lt = t - s.start; setFootage(reply, 1.0 + lt, { x: 205, y: 714, zoom: Z }); const u = emph(prog(lt, .05, .6)); reply.sh.style.transform = `translateY(${(1 - u) * 90}px) rotateX(${2.2}deg) rotateY(${-2.6}deg)`; reply.sh.style.zIndex = 3 },
+    update: (s, t) => { const lt = t - s.start; setFootage(reply, 1.0 + lt, { x: 205, y: 714, zoom: Z }); const u = emph(prog(lt, .05, .6)); reply.sh.style.transform = `translateY(${(1 - u) * 90}px) rotateX(2.2deg) rotateY(-2.6deg)`; reply.sh.style.zIndex = 3 },
   } })
 }
-// Private, in context
-shot('private', T.priv, 'private', WIDE
-  ? { rect: r(420, 0, 1080, 1080), shadow: false, feather: { t: 130, b: 130 }, cam: (t) => ({ x: 215, y: track(t, [[0, 380], [1.4, 460], [3, 610]]), zoom: 2.5 }) }
-  : { rect: r(30, 0, 1020, 1080), shadow: false, feather: { t: 110, b: 110 }, cam: (t) => ({ x: 215, y: track(t, [[0, 380], [1.4, 460], [3, 610]]), zoom: 2.37 }) },
-{ fromT: .6, rate: 1.7 })
+// Your docs, your tools: a doc and a sheet open right in the pane, Open in Sheets is there
+shot('docs', T.docs, 'docs', WIDE
+  ? { rect: r(160, 40, 1600, 1000), radius: 44, tilt: [1.6, -2.2, 0, 1], cam: (t) => ({ x: 400, y: 250, zoom: 2 }) }
+  : { rect: r(40, 130, 1000, 820), radius: 40, tilt: [1.4, -2, 0, .8], cam: (t) => ({ x: 400, y: 328, zoom: 1.25 }) },
+{ fromT: .45, rate: 1.62 })
 
-// Every call, right here: an edit on the real timeline, with the real voices
-const CALLT = window.__CALL ? window.__CALL[WIDE ? 'wide' : 'square'] : { src: [6.35, 19.95, 22.9, 30.3], chorus: 31, lea: 33.18, leaEnd: 37.75 }
+// Your calls. Right there: chat at left, call at right, in the project. The idea, not a scene.
+const CALLT = window.__CALL ? window.__CALL[WIDE ? 'wide' : 'square'] : { camLine: 8.2, chorus: 45.6, hang: 49.8, clip: { width: 1442, height: 808 } }
 window.__CALLCUTS = [
   // film offset, length, source start (from the capture, see capture/call-cuts.mjs), caption
-  { at: 0, len: 1.7, src: CALLT.src[0], cap: 'No link, no waiting room?', who: 'Maya' },
-  { at: 1.7, len: 2.45, src: CALLT.src[1], cap: 'Can you guys hear me?', who: 'Tom', cap2: 'Yes.', cap2at: 1.55 },
-  { at: 4.15, len: 1.2, src: CALLT.src[2], cap: 'Sorry, sorry.', who: 'Karim' },
-  { at: 5.35, len: 7.65, src: CALLT.src[3], cap: null },
+  { at: 0, len: 3.1, src: CALLT.camLine - .1, rate: 1, cap: 'Hold on, let me turn my camera on.' },
+  { at: 3.1, len: 2.2, src: CALLT.chorus - .4, rate: 1, cap: 'Wow.   Whoa.   Oh, that’s so good.', capAt: .35, peak: true },
+  { at: 5.3, len: 2.5, src: CALLT.hang - .4, rate: 1.7, cap: 'Hang up. The summary and the to-dos are already there.', capAt: .55 },
 ]
 {
   const SRC = WIDE ? 'callwide' : 'callsquare'
-  const SIZE = WIDE ? { w: 1588, h: 936 } : { w: 800, h: 845 }
-  const RECT = WIDE ? r(90, 27, 1740, 1026) : r(67, 40, 946, 1000)
+  const SIZE = { w: CALLT.clip.width, h: CALLT.clip.height }
+  const RECT = WIDE ? r(59, 35, 1802, 1010) : r(38, 165, 1004, 718)
   const FIT = Math.min(RECT.w / SIZE.w, RECT.h / SIZE.h)
-  let f, wrap, subs, subIn, note
-  // captions of the last cut: the moment everyone says it at once
-  const c0 = CALLT.src[3]
-  const LAST = [[CALLT.chorus - c0 + .05, CALLT.lea - c0 - .28, 'Wow.   Whoa.   Oh, that’s so good.'], [CALLT.lea - c0 - .18, CALLT.leaEnd - c0 + .1, 'Okay, it’s the first time I’ve wanted to come to a meeting.']]
+  let f, wrap, subs, subIn
   segment('call', ...T.call, (s) => {
     wrap = el('div', 'wrap3d', s.layer)
-    f = footage(wrap, SRC, { rect: RECT, radius: 40, shadow: true })
-    f.sh.style.boxShadow = '0 40px 120px rgba(31,41,55,.24),0 10px 40px rgba(66,133,244,.10)'
-    subs = el('div', 'subs', s.layer, { bottom: (WIDE ? 100 : 104) + 'px', fontSize: (WIDE ? 42 : 40) + 'px' })
+    f = footage(wrap, SRC, { rect: RECT, radius: 32, shadow: true })
+    subs = el('div', 'subs', s.layer, { fontSize: (WIDE ? 42 : 38) + 'px', zIndex: 5 })
     subIn = el('span', '', subs)
   }, (s, t) => {
     const lt = t - s.start
@@ -469,51 +518,30 @@ window.__CALLCUTS = [
     const cuts = window.__CALLCUTS
     const c = cuts.find((x) => lt < x.at + x.len) ?? cuts[cuts.length - 1]
     const ct = lt - c.at
-    let cam
-    const i = cuts.indexOf(c)
-    if (WIDE) {
-      if (i === 0) cam = { x: 1192, y: track(ct, [[0, 430], [1.7, 420]]), zoom: track(ct, [[0, 2.2], [1.7, 2.3]]) } // Maya, just arrived
-      else if (i === 1) cam = { x: 794, y: 468, zoom: FIT } // everyone, Tom asks
-      else if (i === 2) cam = { x: 1324, y: 690, zoom: track(ct, [[0, 3.3], [1.3, 3.4]]) } // Karim, late
-      else cam = { x: 794, y: 468, zoom: FIT } // the wow: the whole room, the card itself grows, no name gets cut
-    } else {
-      if (i === 0) cam = { x: 598, y: 330, zoom: track(ct, [[0, 2.5], [1.7, 2.6]]) }
-      else if (i === 1) cam = { x: 400, y: 422.5, zoom: FIT }
-      else if (i === 2) cam = { x: 666, y: 610, zoom: track(ct, [[0, 3.55], [1.3, 3.65]]) }
-      else cam = { x: 400, y: 422.5, zoom: FIT }
-    }
-    const hw = RECT.w / 2 / cam.zoom, hh = RECT.h / 2 / cam.zoom
-    cam.x = clamp(cam.x, hw, SIZE.w - hw); cam.y = clamp(cam.y, hh, SIZE.h - hh)
-    setFootage(f, c.src + ct, cam)
-    // the push: the floating card grows slowly towards the viewer
-    const grow = i === 1 ? track(ct, [[0, .965], [c.len, 1]], (u) => u) : i === 3 ? track(ct, [[0, .9], [c.len, 1]], smooth) : 1
+    setFootage(f, c.src + ct * c.rate, { x: SIZE.w / 2, y: SIZE.h / 2, zoom: FIT })
+    const grow = lerp(.975, 1, smooth(prog(lt, 0, 7.8)))
     f.sh.style.transform = `scale(${grow})`
-    // captions sit on the card, above its controls, however large the card is at that moment
-    subs.style.bottom = (H - (RECT.y + RECT.h / 2 + RECT.h / 2 * grow) + (i === 0 || i === 2 ? 34 : (WIDE ? 62 : 70)) * grow) + 'px'
-    let txt = null
-    if (c.cap) { txt = c.cap; if (c.cap2 && ct >= c.cap2at) txt = c.cap2 }
-    else for (const [a, b, q] of LAST) if (ct >= a && ct < b) txt = q
-    subs.style.display = txt ? 'flex' : 'none'
-    if (txt) { subIn.textContent = txt }
+    subs.style.bottom = (WIDE ? 100 : 130) + 'px'
+    const shown = c.cap && ct >= (c.capAt ?? 0) && ct < c.len - .05
+    subs.style.display = shown ? 'flex' : 'none'
+    if (shown) subIn.textContent = c.cap
     subIn.style.whiteSpace = 'pre-wrap'
-    // the emotional peak gets bigger words, on the same beat as the voices
-    const peak = i === 3 && ct >= LAST[0][0] && ct < LAST[0][1]
-    const pop = peak ? emph(prog(ct, LAST[0][0], LAST[0][0] + .35)) : 1
-    subIn.style.fontSize = peak ? (WIDE ? '1.32em' : '1.14em') : '1em'
-    subIn.style.transform = peak ? `scale(${lerp(.86, 1, pop)})` : 'none'
-    subIn.style.fontWeight = peak ? 500 : 400
+    const pop = c.peak ? emph(prog(ct, c.capAt, c.capAt + .35)) : 1
+    subIn.style.fontSize = c.peak ? (WIDE ? '1.32em' : '1.14em') : '1em'
+    subIn.style.transform = c.peak ? `scale(${lerp(.86, 1, pop)})` : 'none'
+    subIn.style.fontWeight = c.peak ? 500 : 400
   })
 }
 
-// Built on the fly: the tab row floats alone, then opens into what Gemini just made
-{
-  const openT = 1.45
-  const hAt = (t, h0, h1) => track(t, [[0, h0], [openT, h0], [openT + .6, h1]], std)
-  shot('tabs', T.tabs, 'tabs', WIDE
-    ? { rect: r(100, 450, 1720, 180), radius: 44, tilt: [2.2, -3, 0, 1.2], rectAt: (t) => { const h = hAt(t, 150, 780); return r(100, 540 - h / 2, 1720, h) }, cam: (t) => ({ x: track(t, [[0, 500], [openT, 560], [openT + .6, 400]], std), y: track(t, [[0, 20], [openT, 20], [openT + .6, 177]], std), zoom: track(t, [[0, 3.1], [openT, 3.1], [openT + .6, 2.15], [3, 2.24]], std) }) }
-    : { rect: r(40, 450, 1000, 180), radius: 40, tilt: [2, -2.6, 0, 1], rectAt: (t) => { const h = hAt(t, 118, 600); return r(40, 540 - h / 2, 1000, h) }, cam: (t) => ({ x: track(t, [[0, 500], [openT, 570], [openT + .6, 370]], std), y: track(t, [[0, 20], [openT, 20], [openT + .6, 222]], std), zoom: track(t, [[0, 2.6], [openT, 2.6], [openT + .6, 1.35], [3, 1.4]], std) }) },
-  { fromT: 1.0, rate: 1.75 })
-}
+// Your project, end to end: the whole board, then what needs you
+shot('overview', T.overview, 'overview', WIDE
+  ? { rect: r(70, 40, 1780, 1000), radius: 40, tilt: [1.4, -1.8, 0, 1], cam: (t) => ({ x: 756, y: track(t, [[0, 440], [2, 448]]), zoom: track(t, [[0, 1.18], [2, 1.2]]) }) }
+  : { rect: r(30, 40, 1020, 1000), radius: 40, tilt: [1.2, -1.6, 0, .8], cam: (t) => ({ x: 1104, y: track(t, [[0, 440], [2, 450]]), zoom: track(t, [[0, 1.27], [2, 1.3]]) }) },
+{ fromT: .4, rate: 1.3 })
+shot('home', T.home, 'home', WIDE
+  ? { rect: r(70, 50, 1780, 980), radius: 40, tilt: [1.4, 1.8, 0, 1], cam: (t) => ({ x: 545, y: track(t, [[0, 300], [2, 306]]), zoom: track(t, [[0, 1.66], [2, 1.7]]) }) }
+  : { rect: r(30, 170, 1020, 740), radius: 40, tilt: [1.2, 1.6, 0, .8], cam: (t) => ({ x: 378, y: 274, zoom: track(t, [[0, 1.35], [2, 1.4]]) }) },
+{ fromT: .9, rate: 1.4 })
 
 /* -- The turn: AI everywhere, a sparkle in every corner. Each sparkle becomes a person. -- */
 {
@@ -556,6 +584,13 @@ window.__CALLCUTS = [
         })
       },
     } })
+}
+
+/* -- Only you -- */
+{
+  const gem = { i: 'gemini' }
+  statement('only1', ...T.only1, [['No one else has'], [{ i: 'gmail' }, ' Gmail, ', { i: 'docs' }, ' Docs,'], [{ i: 'meet' }, ' Meet and ', gem, ' Gemini.']], [['No one else has'], [{ i: 'gmail' }, ' Gmail, ', { i: 'docs' }, ' Docs,'], [{ i: 'meet' }, ' Meet and'], [gem, ' Gemini.']], { t0: .05, stagger: .1, size: WIDE ? 128 : 104 })
+  statement('only2', ...T.only2, [['Only ', { t: 'you', blue: true }, ' can do this.']], [['Only ', { t: 'you', blue: true }], ['can do this.']], { t0: .08, stagger: .16, size: WIDE ? 170 : 146 })
 }
 
 /* -- The ask -- */

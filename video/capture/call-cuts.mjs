@@ -8,20 +8,16 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ANCHORS = [
-  { key: 'open-aurora-0', offset: 4.07 }, // Maya: No link, no waiting room?
-  { key: 'open-aurora-4', offset: -.13 }, // Tom: Can you guys hear me? Maya: Yes.
-  { key: 'open-aurora-6', offset: -.02 }, // Karim: Sorry, sorry.
-  { key: 'open-aurora-7', offset: -.70 }, // Gemini's note, the chorus, then Léa
-]
-export const LEA_LINE = 'open-aurora-10'
-export const LEA_TAIL = 5.5 // recorded after her line starts
+// New script (app 6103fbc): Maya's second line is the camera, chorus, Léa, Maya's "let's start".
+export const END_LINE = 'open-aurora-11' // the chorus is over and Léa has started
+export const END_TAIL = 1.0
+export const HANGUP_SECONDS = 7
 
 /** Source times for the film, from a capture's meta.json. Refuses to guess when a line is missing. */
 export function callTimes(scratch, shot = 'callwide') {
-  const { plays } = JSON.parse(readFileSync(join(scratch, 'cap', shot, 'meta.json'), 'utf8'))
-  const at = (k) => { const p = plays.find((x) => x.file === k + '.mp3'); if (!p) throw new Error(`call edit: the line ${k} is not in the capture. The script changed: update capture/call-cuts.mjs`); return p.at }
-  const chorus = at('open-aurora-7'), lea = at(LEA_LINE)
-  const src = ANCHORS.map((a) => at(a.key) + a.offset)
-  return { src, chorus, lea, leaEnd: lea + 4.57 }
+  const meta = JSON.parse(readFileSync(join(scratch, 'cap', shot, 'meta.json'), 'utf8'))
+  const at = (k) => { const p = meta.plays.find((x) => x.file === k + '.mp3'); if (!p) throw new Error(`call edit: the line ${k} is not in the capture. The script changed: update capture/call-cuts.mjs`); return p.at }
+  const camLine = at('open-aurora-1') // "Hold on, let me turn my camera on."
+  const chorus = at('open-aurora-8') // Wow. Whoa. Oh, that's so good.
+  return { camLine, chorus, hang: meta.clicked, frames: meta.frames, clip: meta.clip }
 }
