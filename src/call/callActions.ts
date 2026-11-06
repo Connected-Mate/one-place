@@ -1,2 +1,352 @@
-export function startCall(_projectId: string) {}
-export function endCall() {}
+// The call's life cycle: everything that must survive the stage being unmounted
+// (switching project, reload) lives here, not in a component.
+import { create } from 'zustand'
+import { people } from '../data/seed'
+import type { Block, CallState, CallSummaryMessage, MeetingMessage, Message, PaneView, Person, Project, ProjectScript, Todo, Txt } from '../data/types'
+import { tx } from '../i18n'
+import { GEMINI_ID, personById, roleIn, uid, useStore } from '../store'
+
+const FIRST_JOIN_MS = 900
+const JOIN_STEP_MS = 1700
+const INVITE_JOIN_MS = 2200
+const WRITEUP_MS = 2400
+const SAVED_KEY = 'one-place-call'
+const OWN_LIVE_PREFIX = 'mcall-'
+const WRITEUP_PREFIX = 'call-writeup-'
+
+/** State of the call that only the call module needs. */
+interface CallUi {
+  hand: boolean
+  captionLine: number
+  pendingInvites: { name: string; email: string }[]
+  writingUp: number
+}
+export const useCallUi = create<CallUi>(() => ({ hand: false, captionLine: 0, pendingInvites: [], writingUp: 0 }))
+
+let callTimers: ReturnType<typeof setTimeout>[] = []
+const clearCallTimers = () => { callTimers.forEach(clearTimeout); callTimers = [] }
+
+const both = (v: Txt, fn: (text: string, lang: 'fr' | 'en') => string): Txt => ({ fr: fn(tx(v, 'fr'), 'fr'), en: fn(tx(v, 'en'), 'en') })
+const projectById = (id: string) => useStore.getState().projects.find((p) => p.id === id)
+const isHuman = (id: string) => personById(id).role !== 'ai'
+
+/** The project's script, or sensible words when a project (a new one, say) has none. */
+export function scriptFor(project: Project, viewerId: string): Pick<ProjectScript, 'callTitle' | 'captions' | 'callSummary'> {
+  if (project.script) return project.script
+  const others = project.memberIds.filter((id) => id !== viewerId && isHuman(id)).slice(0, 2)
+  const captions: ProjectScript['captions'] = []
+  if (others[0]) captions.push({ who: others[0], text: { fr: 'Bonjour à tous, je vous entends bien.', en: 'Hi everyone, I can hear you fine.' } })
+  if (others[1]) captions.push({ who: others[1], text: { fr: 'Parfait. On fait un point rapide sur la suite ?', en: 'Great. Shall we do a quick check on next steps?' } })
+  return {
+    callTitle: both(project.name, (name, lang) => (lang === 'fr' ? `Appel : ${name}` : `Call: ${name}`)),
+    captions,
+    callSummary: {
+      summary: { fr: 'Appel court, sans décision formelle.', en: 'A short call, with no formal decision.' },
+      decisions: [],
+      todos: [{ text: { fr: 'Partager les prochaines étapes dans le chat', en: 'Share the next steps in the chat' }, assigneeId: project.ownerId }],
+    },
+  }
+}
+
+const liveMeetingOf = (project: Project | undefined): MeetingMessage | undefined =>
+  project?.messages.slice().reverse().find((m): m is MeetingMessage => m.kind === 'meeting' && !!m.live && !m.ended)
+
+/** Who is expected to join: the team, plus anyone who speaks in the script. */
+export const expectedIds = (project: Project, viewerId: string, captions: { who: string }[]) =>
+  [...new Set([...project.memberIds, ...captions.map((c) => c.who)])].filter((id) => id !== viewerId && isHuman(id))
+
+function setPaneFor(projectId: string, view: PaneView) {
+  const s = useStore.getState()
+  if (s.activeProjectId === projectId) s.setPane(view)
+  else useStore.setState({ panes: { ...s.panes, [projectId]: view } })
+}
+function openCallPane(projectId: string) {
+  const s = useStore.getState()
+  if (s.activeProjectId !== projectId) s.selectProject(projectId)
+  useStore.getState().setPane({ type: 'call' })
+}
+
+function scheduleJoins(ids: string[], startedAt: number) {
+  ids.forEach((id, i) => {
+    callTimers.push(setTimeout(() => {
+      const { call, patchCall } = useStore.getState()
+      if (!call || call.startedAt !== startedAt || call.participantIds.includes(id)) return
+      patchCall({ participantIds: [...call.participantIds, id] })
+    }, FIRST_JOIN_MS + i * JOIN_STEP_MS))
+  })
+}
+
+export function startCall(projectId: string) {
+  const s = useStore.getState()
+  const project = projectById(projectId)
+  if (!project || roleIn(project, s.viewerId) === 'guest') return
+  if (s.call?.projectId === projectId) { // already running here: rejoin, nothing else
+    openCallPane(projectId)
+    s.markTour('call')
+    return
+  }
+  if (s.call) endCall() // running elsewhere: that call gets its one summary, then we move on
+
+  const now = Date.now()
+  const script = scriptFor(project, s.viewerId)
+  const existing = liveMeetingOf(project)
+  const title = existing?.title ?? script.callTitle
+  const expected = expectedIds(project, s.viewerId, script.captions)
+  useCallUi.setState({ hand: false, captionLine: 0, pendingInvites: [] })
+  s.setCall({ projectId, title, startedAt: now, participantIds: [s.viewerId], guests: [], mic: true, cam: true, captions: true, sharing: false })
+  openCallPane(projectId)
+  if (!existing) {
+    const message: MeetingMessage = {
+      id: uid(OWN_LIVE_PREFIX), kind: 'meeting', authorId: s.viewerId, at: now, visibility: { type: 'all' },
+      title, start: now, durationMin: 0, attendeeIds: [s.viewerId, ...expected], live: true,
+    }
+    s.push(projectId, message)
+  }
+  s.markTour('call')
+  scheduleJoins(expected, now)
+}
+
+/** Bring the view back to the running call, wherever the user went. */
+export function returnToCall() {
+  const { call } = useStore.getState()
+  if (call) openCallPane(call.projectId)
+}
+
+export function endCall() {
+  const s = useStore.getState()
+  const call = s.call
+  if (!call) return // second click on hang-up: nothing left to do
+  clearCallTimers()
+  s.setCall(null)
+  useCallUi.setState({ hand: false, captionLine: 0, pendingInvites: [] })
+  if (s.panes[call.projectId]?.type === 'call') setPaneFor(call.projectId, { type: 'board' })
+
+  const project = projectById(call.projectId)
+  const meeting = liveMeetingOf(project)
+  if (!meeting) return
+  s.patch(call.projectId, meeting.id, {
+    live: false, ended: true,
+    durationMin: Math.max(1, Math.round((Date.now() - call.startedAt) / 60000)),
+    attendeeIds: call.participantIds,
+    guestEmails: call.guests.map((g) => g.email),
+  } as Partial<Message>)
+  const writeupId = WRITEUP_PREFIX + meeting.id
+  s.push(call.projectId, {
+    id: writeupId, kind: 'system', authorId: GEMINI_ID, at: Date.now(), visibility: { type: 'all' }, streaming: true, icon: 'auto_awesome',
+    text: { fr: 'Gemini rédige le compte rendu de l’appel…', en: 'Gemini is writing up the call…' },
+  })
+  useCallUi.setState((u) => ({ writingUp: u.writingUp + 1 }))
+  // Not a call timer: the write-up must arrive even if another call starts meanwhile.
+  setTimeout(() => {
+    useCallUi.setState((u) => ({ writingUp: Math.max(0, u.writingUp - 1) }))
+    finishWriteup(call.projectId, meeting.id)
+  }, WRITEUP_MS)
+}
+
+function firstTodoBlockId(projectId: string): string {
+  const s = useStore.getState()
+  const found = projectById(projectId)?.blocks.find((b) => b.type === 'todo')
+  if (found) return found.id
+  const id = uid('b')
+  s.addBlock(projectId, { id, type: 'todo', title: { fr: 'À faire', en: 'To do' }, span: 1, todos: [] })
+  return id
+}
+
+/** Gemini's fresh "where things stand" reflects what the call just decided. */
+function refreshBoardSummary(projectId: string, title: Txt, summary: Txt, decisions: Txt[], todoCount: number) {
+  const s = useStore.getState()
+  const patch = {
+    text: both(summary, (text, lang) => {
+      const name = tx(title, lang)
+      return lang === 'fr' ? `Après « ${name} » : ${text}` : `After "${name}": ${text}`
+    }),
+    bullets: [
+      ...decisions.slice(0, 3),
+      ...(todoCount ? [{
+        fr: todoCount > 1 ? `${todoCount} tâches ajoutées à la liste` : '1 tâche ajoutée à la liste',
+        en: todoCount > 1 ? `${todoCount} to-dos added to the list` : '1 to-do added to the list',
+      }] : []),
+    ],
+    updatedAt: Date.now(),
+  }
+  const blocks = projectById(projectId)?.blocks ?? []
+  const existing = blocks.find((b) => b.type === 'summary')
+  if (existing) {
+    s.patchBlock(projectId, existing.id, { ...patch, fresh: true } as Partial<Block>)
+    setTimeout(() => useStore.getState().patchBlock(projectId, existing.id, { fresh: false }), 1800)
+    return
+  }
+  const id = uid('b')
+  s.addBlock(projectId, { id, type: 'summary', title: { fr: 'Où on en est', en: 'Where things stand' }, span: 3, ...patch })
+  s.moveBlock(projectId, id, -blocks.length)
+}
+
+function finishWriteup(projectId: string, meetingId: string) {
+  const s = useStore.getState()
+  const project = projectById(projectId)
+  const writeupId = WRITEUP_PREFIX + meetingId
+  const writeup = project?.messages.find((m) => m.id === writeupId)
+  const meeting = project?.messages.find((m): m is MeetingMessage => m.id === meetingId && m.kind === 'meeting')
+  if (!project || !writeup?.streaming || !meeting) return // already done, or the demo was reset
+
+  const { summary, decisions, todos } = scriptFor(project, meeting.authorId).callSummary
+  const blockId = firstTodoBlockId(projectId)
+  const added: Todo[] = todos.map((t) => ({ id: uid('t'), text: t.text, assigneeId: t.assigneeId, done: false, source: meeting.title }))
+  // addTodo puts each one on top: go backwards to keep the order Gemini wrote them in.
+  added.slice().reverse().forEach((t) => s.addTodo(projectId, blockId, t))
+
+  const final: Partial<CallSummaryMessage> = {
+    kind: 'call-summary', title: meeting.title, durationMin: meeting.durationMin, attendeeIds: meeting.attendeeIds,
+    summary, decisions, todoIds: added.map((t) => t.id), streaming: false, at: Date.now(),
+  }
+  s.patch(projectId, writeupId, final as Partial<Message>)
+  refreshBoardSummary(projectId, meeting.title, summary, decisions, added.length)
+  s.toast({
+    icon: 'task_alt',
+    text: {
+      fr: added.length > 1 ? `Compte rendu publié, ${added.length} tâches ajoutées` : added.length === 1 ? 'Compte rendu publié, 1 tâche ajoutée' : 'Compte rendu publié',
+      en: added.length > 1 ? `Summary posted, ${added.length} to-dos added` : added.length === 1 ? 'Summary posted, 1 to-do added' : 'Summary posted',
+    },
+    action: {
+      label: { fr: 'Voir sur le board', en: 'See on board' },
+      run: () => {
+        const st = useStore.getState()
+        if (st.activeProjectId !== projectId) st.selectProject(projectId)
+        useStore.getState().setPane({ type: 'board' })
+      },
+    },
+  })
+}
+
+/* ---- Inviting someone for this call only ---- */
+const GUEST_HUES = ['#00796b', '#c2185b', '#5e35b1', '#ef6c00', '#00838f', '#6d4c41', '#3949ab', '#558b2f']
+/** A guest as a person the stage can draw. People we already know keep their face. */
+export function guestAsPerson(g: { name: string; email: string }): Person {
+  const known = people.find((p) => p.email.toLowerCase() === g.email.toLowerCase())
+  if (known) return known
+  const hash = [...g.email].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
+  return { id: `guest:${g.email}`, name: g.name, title: '', email: g.email, hue: GUEST_HUES[hash % GUEST_HUES.length], role: 'guest', presence: 'online' }
+}
+
+export type InviteErrors = { name?: Txt; email?: Txt }
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+export function validateInvite(rawName: string, rawEmail: string): InviteErrors {
+  const errors: InviteErrors = {}
+  const name = rawName.trim()
+  const email = rawEmail.trim().toLowerCase()
+  if (!name) errors.name = { fr: 'Indiquez un nom.', en: 'Enter a name.' }
+  else if (name.length < 2 || !/\p{L}/u.test(name)) errors.name = { fr: 'Ce nom paraît incomplet.', en: 'This name looks incomplete.' }
+  if (!email) errors.email = { fr: 'Indiquez une adresse e-mail.', en: 'Enter an email address.' }
+  else if (!EMAIL.test(email)) errors.email = { fr: 'Cette adresse n’est pas valide, par exemple : prenom@societe.com', en: 'This address is not valid, for example: name@company.com' }
+  else {
+    const s = useStore.getState()
+    const call = s.call
+    const project = call && projectById(call.projectId)
+    if (call && project) {
+      const same = (e: string) => e.toLowerCase() === email
+      const idsInCall = new Set([...project.memberIds, ...call.participantIds, s.viewerId])
+      if (call.guests.some((g) => same(g.email)) || useCallUi.getState().pendingInvites.some((g) => same(g.email))) {
+        errors.email = { fr: 'Cette personne est déjà invitée à cet appel.', en: 'This person is already invited to this call.' }
+      } else if ([...idsInCall].some((id) => same(personById(id).email))) {
+        errors.email = { fr: 'Cette personne fait déjà partie de l’appel.', en: 'This person is already part of this call.' }
+      }
+    }
+  }
+  return errors
+}
+
+/** Sends the (fake) invitation. Returns the errors if it was refused. */
+export function inviteGuest(rawName: string, rawEmail: string): InviteErrors | null {
+  const errors = validateInvite(rawName, rawEmail)
+  if (errors.name || errors.email) return errors
+  const s = useStore.getState()
+  const call = s.call
+  if (!call) return null
+  const guest = { name: rawName.trim(), email: rawEmail.trim().toLowerCase() }
+  useCallUi.setState((u) => ({ pendingInvites: [...u.pendingInvites, guest] }))
+  s.toast({ icon: 'mail', text: { fr: `Invitation envoyée à ${guest.name}`, en: `Invitation sent to ${guest.name}` } })
+  callTimers.push(setTimeout(() => {
+    const st = useStore.getState()
+    useCallUi.setState((u) => ({ pendingInvites: u.pendingInvites.filter((g) => g.email !== guest.email) }))
+    if (st.call?.startedAt !== call.startedAt) return
+    st.patchCall({ guests: [...st.call.guests, guest] })
+    st.push(call.projectId, {
+      id: uid('m'), kind: 'system', authorId: st.viewerId, at: Date.now(), visibility: { type: 'all' }, icon: 'videocam',
+      text: {
+        fr: `${guest.name} a rejoint cet appel uniquement. Pas d’accès au chat, au board ni aux documents.`,
+        en: `${guest.name} joined this call only. No access to the chat, the board or the documents.`,
+      },
+    })
+  }, INVITE_JOIN_MS))
+  return null
+}
+
+/** A believable, stable meeting link. */
+export function callLink(startedAt: number) {
+  const code = startedAt.toString(36).padStart(10, 'a').slice(-10)
+  return `https://oneplace.example/call/${code.slice(0, 3)}-${code.slice(3, 7)}-${code.slice(7)}`
+}
+
+export async function copyCallLink(startedAt: number) {
+  const link = callLink(startedAt)
+  const { toast } = useStore.getState()
+  try {
+    await navigator.clipboard.writeText(link)
+    toast({ icon: 'link', text: { fr: 'Lien de l’appel copié', en: 'Call link copied' } })
+  } catch { // clipboard refused: still give the link, in plain sight
+    toast({ icon: 'link', text: link })
+  }
+}
+
+/* ---- Reload: `call` is not in the persisted state, so it is kept for this tab here. ---- */
+function saveCall() {
+  try {
+    const call = useStore.getState().call
+    if (call) sessionStorage.setItem(SAVED_KEY, JSON.stringify({ call, line: useCallUi.getState().captionLine }))
+    else sessionStorage.removeItem(SAVED_KEY)
+  } catch { /* private mode: the call just won't survive a reload */ }
+}
+function readSavedCall(): { call: CallState; line: number } | null {
+  try {
+    const raw = sessionStorage.getItem(SAVED_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function restoreOrSweep() {
+  const s = useStore.getState()
+  if (s.call) return // hot reload of this module during development
+  const saved = readSavedCall()
+  const savedProject = saved && projectById(saved.call.projectId)
+  if (saved && savedProject && liveMeetingOf(savedProject)) {
+    useCallUi.setState({ captionLine: saved.line ?? 0 })
+    s.setCall(saved.call)
+    const script = scriptFor(savedProject, s.viewerId)
+    scheduleJoins(expectedIds(savedProject, s.viewerId, script.captions).filter((id) => !saved.call.participantIds.includes(id)), saved.call.startedAt)
+  }
+  for (const p of useStore.getState().projects) {
+    for (const m of p.messages) {
+      // A tab closed in mid-call must not leave a "live" card behind for ever.
+      if (m.kind === 'meeting' && m.live && !m.ended && m.id.startsWith(OWN_LIVE_PREFIX) && useStore.getState().call?.projectId !== p.id) {
+        s.patch(p.id, m.id, { live: false, ended: true, durationMin: m.durationMin || 1 } as Partial<Message>)
+      }
+      // A reload during the write-up must not lose the summary and its to-dos.
+      if (m.kind === 'system' && m.streaming && m.id.startsWith(WRITEUP_PREFIX)) finishWriteup(p.id, m.id.slice(WRITEUP_PREFIX.length))
+    }
+    if (useStore.getState().panes[p.id]?.type === 'call' && useStore.getState().call?.projectId !== p.id) {
+      useStore.setState((st) => ({ panes: { ...st.panes, [p.id]: { type: 'board' } } }))
+    }
+  }
+}
+
+restoreOrSweep()
+useStore.subscribe((s, prev) => {
+  if (s.call === prev.call) return
+  saveCall()
+  if (!s.call) { // also covers the demo's reset, which clears the call without going through endCall
+    clearCallTimers()
+    useCallUi.setState({ hand: false, captionLine: 0, pendingInvites: [] })
+  }
+})
+useCallUi.subscribe((u, prev) => { if (u.captionLine !== prev.captionLine) saveCall() })
