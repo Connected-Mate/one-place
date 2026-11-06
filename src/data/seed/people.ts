@@ -12,7 +12,8 @@ const av = (id: string) => `avatars/${id}.webp`
 
 export const people: Person[] = [
   { id: 'gemini', name: 'Gemini', title: { fr: 'IA du projet', en: 'Project AI' }, email: '', hue: '#4285f4', role: 'ai', presence: 'online' },
-  { id: 'alex', name: 'Alex Cormeraie', title: { fr: 'Chef de projet', en: 'Project lead' }, email: 'alex@oneplace.example', avatar: av('alex'), hue: '#0b57d0', role: 'owner', presence: 'online' },
+  { id: 'alex', name: 'Alex Cormeraie', title: { fr: 'Product manager', en: 'Product manager' }, email: 'alex@oneplace.example', avatar: av('alex'), hue: '#0b57d0', role: 'owner', presence: 'online' },
+  { id: 'damien', name: 'Damien Wattez', title: { fr: 'Manager d’équipe agentique', en: 'Agentic team manager' }, email: 'damien@oneplace.example', avatar: av('damien'), hue: '#546e7a', role: 'member', presence: 'online' },
   { id: 'maya', name: 'Maya Chen', title: { fr: 'Produit', en: 'Product' }, email: 'maya@oneplace.example', avatar: av('maya'), hue: '#8430ce', role: 'member', presence: 'online' },
   { id: 'tom', name: 'Tom Laurent', title: { fr: 'Design', en: 'Design' }, email: 'tom@oneplace.example', avatar: av('tom'), hue: '#e37400', role: 'member', presence: 'online' },
   { id: 'sofia', name: 'Sofia Reyes', title: { fr: 'Marketing', en: 'Marketing' }, email: 'sofia@oneplace.example', avatar: av('sofia'), hue: '#d01884', role: 'member', presence: 'away' },
