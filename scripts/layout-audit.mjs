@@ -72,10 +72,13 @@ const inspect = () => {
   return [...new Set(out)]
 }
 
-const browser = await chromium.launch(process.env.AUDIT_CHROME ? { executablePath: process.env.AUDIT_CHROME } : {})
+const flags = ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required']
+const only = process.env.AUDIT_SIZES?.split(',')
+const browser = await chromium.launch({ args: flags, ...(process.env.AUDIT_CHROME ? { executablePath: process.env.AUDIT_CHROME } : {}) })
 const defects = []
 let screens = 0
 for (const [device, width, height] of SIZES) {
+  if (only && !only.includes(device)) continue
   const touch = width < 900 || height < 500
   const context = await browser.newContext({ viewport: { width, height }, hasTouch: touch, isMobile: touch, locale: 'en-US' })
   const page = await context.newPage()
@@ -109,6 +112,20 @@ for (const [device, width, height] of SIZES) {
     }
     await page.evaluate(() => window.__opStore?.getState().setPane({ type: 'board' }))
   }
+
+  // The call: the stage, its opening and its controls, in each layout.
+  await page.evaluate(() => { const s = window.__opStore?.getState(); s?.selectProject('aurora'); s?.setMobilePane('chat') })
+  await page.waitForTimeout(300)
+  const start = page.getByRole('button', { name: 'Start a call' }).first()
+  if (await start.isVisible().catch(() => false)) {
+    await start.click()
+    await page.waitForTimeout(1500)
+    await check('call, waiting')
+    await page.waitForTimeout(9000)
+    await check('call, everyone in')
+    await page.getByRole('button', { name: /hang up|leave call/i }).first().click({ timeout: 3000 }).catch(() => defects.push(`${device} > call: no hang-up button reachable`))
+    await page.waitForTimeout(600)
+  } else defects.push(`${device} > aurora chat: no Start a call button visible`)
 
   await page.evaluate(() => {
     const s = window.__opStore?.getState()

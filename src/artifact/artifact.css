@@ -486,7 +486,7 @@
 .rp-tab.fresh::after{background:var(--gemini);transform:scaleX(1);animation:rp-glow 2s var(--ease) both}
 .rp-tab.fresh::before{content:'';position:absolute;inset:0;background:var(--gemini-soft);animation:rp-glow 2s var(--ease) both;pointer-events:none}
 .rp-divider{flex:none;align-self:center;width:1px;height:20px;margin:0 4px;background:var(--outline);opacity:.7}
-.rp-mid-wrap{flex:1 1 0;min-width:0;display:flex;align-items:stretch}
+.rp-mid-wrap{flex:1 1 0;min-width:36px;display:flex;align-items:stretch} /* always room for the + */
 .rp-mid{flex:0 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;display:flex}
 .rp-mid::-webkit-scrollbar{display:none}
 /* the fades say there is more, and only when there is: never over a first or last letter at rest */
@@ -510,7 +510,7 @@
 .rp-made-line{justify-content:space-between;flex-wrap:wrap}
 .rp-back{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:0 8px 0 4px;margin-left:-4px;border-radius:var(--r-pill);font-size:13px;color:var(--text-2)}
 .rp-back:hover{background:var(--hover)}
-.rp-add{align-self:center;margin-left:2px;color:var(--text-3)}
+.rp-add{align-self:center;margin-left:2px;color:var(--text-3);flex:none}
 .rp-advice-slot{position:relative;display:flex;align-items:center;flex:none;padding:0 8px 0 4px}
 
 .rp-advice-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 8px;border-radius:var(--r-pill);color:var(--text-3);font-size:13px;white-space:nowrap;transition:background var(--t-fast) var(--ease)}
@@ -753,3 +753,6 @@
 .rp-open-in{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 10px;border:1px solid var(--outline);border-radius:var(--r-pill);font-size:13px;font-weight:500;color:var(--text-2);flex:none;white-space:nowrap;transition:background var(--t-fast) var(--ease)}
 .rp-open-in:hover{background:var(--hover)}
 @container doc (max-width:560px){.rp-open-in{padding:0;width:36px;justify-content:center}.rp-open-in span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}}
+
+/* A tight row (small laptop during a call): the fixed tabs give up some air, then the Call timer goes, so nothing overlaps. */
+@media (min-width:900px) and (max-width:1439px){.rp-tabbar .rp-tab-btn{padding-left:8px;padding-right:8px}.rp-tab-call .rp-tab-timer{display:none}}
