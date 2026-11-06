@@ -70,24 +70,22 @@ export function hiring(): Project {
   const messages: Message[] = [
     t('h-m01', 'maya', dayAt(-6, 9, 45), { fr: 'Fiche de poste en ligne depuis ce matin. 12 candidatures en 48 h, dont 3 sérieuses. Le reste veut « faire du design de lampes » sans avoir jamais dessiné une vis.', en: 'Job description went live this morning. 12 applications in 48 hours, 3 serious. The rest want to "design lamps" without ever having drawn a screw.' }, { reactions: [{ emoji: '😄', by: ['tom', 'alex'] }] }),
     { id: 'h-m02', kind: 'file', authorId: 'maya', at: dayAt(-6, 9, 46), visibility: all, artifactId: 'h-doc-role', text: { fr: 'La fiche, pour référence.', en: 'The job description, for reference.' } },
-    t('h-m03', 'lea', dayAt(-5, 10, 20), { fr: 'Fourchette validée : 68 à 78 k€ selon profil. Pas au-dessus sans repasser par moi.', en: 'Range approved: €68K to €78K depending on profile. Not above without coming back to me.' }, { reactions: [{ emoji: '👍', by: ['maya'] }] }),
+    t('h-m03', 'lea', dayAt(-5, 10, 20), { fr: 'Fourchette validée : 68 à 78 k€ selon profil. Pas au-dessus sans repasser par moi.', en: 'Range approved: €68K to €78K depending on profile. Not above without coming back to me.' }),
     {
       id: 'h-m04', kind: 'email', direction: 'in', authorId: 'ben', at: dayAt(-3, 18, 32), visibility: all,
       from: 'ben.okafor@mail.example', to: 'hiring@oneplace.example',
       subject: { fr: 'Design lead : portfolio et disponibilités', en: 'Design lead: portfolio and availability' },
       body: { fr: 'Bonjour Maya,\n\nMerci pour notre appel, ça m’a donné envie. Mon portfolio est sur okafor-design.example (mot de passe : marée). Les deux projets dont je parlerais volontiers en entretien : l’appli Marée (de zéro à 200 000 utilisateurs en 18 mois) et la lampe Ondine, mon seul objet physique produit en série, 4 000 pièces.\n\nJe suis disponible dans deux mois, le temps de mon préavis. Je préfère présenter du travail réel plutôt que faire un exercice maison, mais je m’adapte.\n\nÀ bientôt,\nBen', en: 'Hi Maya,\n\nThanks for our call, it made me want this. My portfolio is at okafor-design.example (password: maree). The two projects I’d gladly discuss in an interview: the Marée app (zero to 200,000 users in 18 months) and the Ondine lamp, my only physical object made at scale, 4,000 units.\n\nI can start in two months, once my notice period is done. I’d rather present real work than do a take-home exercise, but I can adapt.\n\nBest,\nBen' },
-      reactions: [{ emoji: '👀', by: ['tom', 'alex'] }],
       replies: [
         t('h-m04-r1', 'tom', dayAt(-3, 19, 10), { fr: 'Son travail sur Marée est vraiment bien. La lampe Ondine est plus classique, mais 4 000 pièces, c’est quelqu’un qui a connu l’usine.', en: 'His work on Marée is really good. The Ondine lamp is more conventional, but 4,000 units means someone who has been through a factory.' }),
         t('h-m04-r2', 'maya', dayAt(-3, 19, 15), { fr: 'C’est exactement le point. On n’a pas besoin d’un artiste, on a besoin de quelqu’un qui parle à Jun.', en: 'That is exactly the point. We don’t need an artist, we need someone who can talk to Jun.' }),
       ],
     },
-    t('h-m05', 'maya', dayAt(-3, 19, 30), { fr: `@[Tom Laurent](tom) @[Alex Cormeraie](alex) entretien design avec Ben ${rel(interview, dayAt(-3, 19)).fr} à 15 h. Tom, tu mènes. Alex, tu écoutes et tu poses la question qui fâche à la fin.`, en: `@[Tom Laurent](tom) @[Alex Cormeraie](alex) design interview with Ben ${rel(interview, dayAt(-3, 19)).en} at 3 PM. Tom, you lead. Alex, you listen and ask the awkward question at the end.` }, { reactions: [{ emoji: '👍', by: ['tom', 'alex'] }] }),
+    t('h-m05', 'maya', dayAt(-3, 19, 30), { fr: `@[Tom Laurent](tom) @[Alex Cormeraie](alex) entretien design avec Ben ${rel(interview, dayAt(-3, 19)).fr} à 15 h. Tom, tu mènes. Alex, tu écoutes et tu poses la question qui fâche à la fin.`, en: `@[Tom Laurent](tom) @[Alex Cormeraie](alex) design interview with Ben ${rel(interview, dayAt(-3, 19)).en} at 3 PM. Tom, you lead. Alex, you listen and ask the awkward question at the end.` }),
     { id: 'h-m06', kind: 'meeting', authorId: 'maya', at: dayAt(-3, 19, 32), visibility: all, title: { fr: 'Entretien design : Ben Okafor', en: 'Design interview: Ben Okafor' }, start: interview, durationMin: 60, attendeeIds: ['maya', 'tom', 'alex'], guestEmails: ['ben.okafor@mail.example'] },
     {
       id: 'h-m07', kind: 'text', authorId: 'tom', at: dayAt(-2, 10, 5), visibility: all,
       text: { fr: 'Je propose qu’on arrête l’exercice maison pour les profils confirmés. Ça fait fuir les bons, et les mauvais le font quand même.', en: 'I suggest we drop the take-home exercise for senior profiles. It scares off the good ones, and the bad ones do it anyway.' },
-      reactions: [{ emoji: '💯', by: ['alex'] }],
       replies: [
         t('h-m07-r1', 'maya', dayAt(-2, 10, 30), { fr: 'D’accord pour Ben et Hanna. On garde l’exercice pour les juniors. Je mets à jour la fiche.', en: 'Agreed for Ben and Hanna. We keep the exercise for juniors. I’ll update the job description.' }),
         t('h-m07-r2', 'lea', dayAt(-2, 10, 41), { fr: 'Tant que ça ne devient pas « on recrute au feeling ».', en: 'As long as it doesn’t turn into "we hire on gut feeling".' }),
@@ -103,7 +101,7 @@ export function hiring(): Project {
       action: { type: 'add-todo', blockId: 'hiring-todo', todo: { id: 'h-t7', text: { fr: 'Rédiger la grille d’entretien commune (5 critères)', en: 'Write the shared interview grid (5 criteria)' }, assigneeId: 'alex', due: dayAt(1, 12), done: false, source: { fr: 'Proposition d’Alex', en: 'Alex’s proposal' } } },
     },
     t('h-m11', 'gemini', dayAt(0, 8, 5), { fr: `Rappel : entretien ${rel(interview, dayAt(0, 8)).fr} à 15 h avec Ben. Les trois cartes « Sourcés » n’ont pas bougé depuis leur arrivée. Je prépare les réponses pour Maya ?`, en: `Reminder: interview ${rel(interview, dayAt(0, 8)).en} at 3 PM with Ben. The three "Sourced" cards have not moved since they came in. Shall I draft the replies for Maya?` }),
-    t('h-m12', 'lea', dayAt(0, 9, 22), { fr: '@[Alex Cormeraie](alex) si on monte au-dessus de 78 pour quelqu’un, préviens-moi avant l’offre, pas après.', en: '@[Alex Cormeraie](alex) if we go above 78 for anyone, tell me before the offer, not after.' }, { reactions: [{ emoji: '😅', by: ['maya'] }] }),
+    t('h-m12', 'lea', dayAt(0, 9, 22), { fr: '@[Alex Cormeraie](alex) si on monte au-dessus de 78 pour quelqu’un, préviens-moi avant l’offre, pas après.', en: '@[Alex Cormeraie](alex) if we go above 78 for anyone, tell me before the offer, not after.' }),
   ]
 
   /* The live call happens before the interview: a prep call, so nothing it decides contradicts the kanban. */

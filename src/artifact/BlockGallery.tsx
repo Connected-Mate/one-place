@@ -135,7 +135,7 @@ export function BlockGallery({ project }: { project: Project }) {
       description: { fr: `${tpl.hint.fr}. Il arrivera sur le tableau de tout le monde.`, en: `${tpl.hint.en}. It will appear on everyone's board.` },
       action: { type: 'add-block', block },
     })
-    toast({ text: { fr: `Proposition envoyée : ${owner} décide dans le chat`, en: `Proposal sent: ${owner} decides in the chat` }, icon: 'how_to_vote' })
+    toast({ text: { fr: `Envoyé à ${owner}`, en: `Sent to ${owner}` }, icon: 'how_to_vote' })
   }
   const submitAsk = (e: React.FormEvent) => {
     e.preventDefault()
@@ -146,7 +146,6 @@ export function BlockGallery({ project }: { project: Project }) {
     askGemini(project.id, text)
     // Gemini answers in the chat: take the viewer there, on a phone the chat is another screen.
     useStore.getState().setMobilePane('chat')
-    toast({ text: { fr: 'Gemini répond dans le chat', en: 'Gemini is answering in the chat' }, icon: 'auto_awesome' })
   }
 
   const faces = project.memberIds.filter((id) => personById(id).role !== 'ai').slice(0, 3)

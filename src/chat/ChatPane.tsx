@@ -14,6 +14,7 @@ import { attachFake, sendChat, useChat } from './chatState'
 import { Composer, SuggestionChips } from './Composer'
 import { healInterruptedAnswers } from './gemini'
 import { firstName, parentOf } from './helpers'
+import { openPeople } from '../home/goTo'
 import { MessageRow } from './Messages'
 import './chat.css'
 
@@ -39,7 +40,7 @@ function Header({ project }: { project: Project }) {
   const copyAddress = async () => {
     try {
       await navigator.clipboard.writeText(project.address)
-      toast({ icon: 'content_copy', text: { fr: 'Adresse du projet copiée', en: 'Project address copied' } })
+      toast({ icon: 'content_copy', text: { fr: 'Adresse copiée', en: 'Address copied' } })
     } catch {
       toast({ icon: 'mail', text: project.address })
     }
@@ -50,7 +51,7 @@ function Header({ project }: { project: Project }) {
         <h2 className="chat-name">{t(project.name)}</h2>
         <span className="role-label" title={t(roleHelp)}>{roleLabel}</span>
       </div>
-      <AvatarStack ids={project.memberIds} size={28} max={4} />
+      <button type="button" className="chat-faces" title={t({ fr: 'Voir l’équipe', en: 'See the team' })} aria-label={t({ fr: `Voir l’équipe, ${peopleCount} personnes`, en: `See the team, ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'}` })} onClick={() => openPeople(pid)}><AvatarStack ids={project.memberIds.filter((id) => id !== GEMINI_ID)} size={26} max={3} more={false} /></button>
       {inThisCall
         ? <button type="button" className="in-call-note" onClick={() => setPane({ type: 'call' })}><Icon name="check_circle" size={16} />{t({ fr: 'Tu es dans cet appel', en: 'You’re in this call' })}</button>
         : live
@@ -60,7 +61,7 @@ function Header({ project }: { project: Project }) {
         { icon: 'dashboard', label: t({ fr: 'Voir le board', en: 'Open the board' }), onSelect: () => setPane({ type: 'board' }) },
         { icon: 'alternate_email', label: t({ fr: 'Copier l’adresse du projet', en: 'Copy project address' }), hint: undefined, onSelect: () => { void copyAddress() } },
         { divider: true, label: '' },
-        { icon: 'group', label: t({ fr: `${peopleCount} membres`, en: `${peopleCount} ${peopleCount === 1 ? 'member' : 'members'}` }), disabled: true },
+        { icon: 'group', label: t({ fr: `${peopleCount} membres`, en: `${peopleCount} ${peopleCount === 1 ? 'member' : 'members'}` }), onSelect: () => openPeople(pid) },
       ]} trigger={(p) => <IconButton {...p} icon="more_vert" label={t({ fr: 'Plus d’options', en: 'More options' })} />} />
     </header>
   )
@@ -202,10 +203,13 @@ export function ChatPane() {
               const prev = visible[i - 1]
               const newDay = !prev || dayKey(prev.at) !== dayKey(m.at)
               const grouped = !!prev && !newDay && prev.authorId === m.authorId && groupable(m) && groupable(prev) && sameAudience(prev, m) && m.at - prev.at < GROUP_MS
+              // A private exchange says who can see it, and what it is about, once: on its first message.
+              const samePrivate = !!prev && !newDay && m.visibility.type === 'private' && sameAudience(prev, m)
+              const sameQuote = samePrivate && !!m.quoteId && prev.quoteId === m.quoteId
               return (
                 <Fragment key={m.id}>
                   {newDay && <div className="day-sep" role="separator"><span>{fmtDay(m.at, lang)}</span></div>}
-                  <MessageRow m={m} pid={pid} viewerId={viewerId} ownerId={project.ownerId} address={project.address} grouped={grouped} flash={flashId === m.id} />
+                  <MessageRow m={m} pid={pid} viewerId={viewerId} ownerId={project.ownerId} address={project.address} grouped={grouped} flash={flashId === m.id} samePrivate={samePrivate} sameQuote={sameQuote} />
                 </Fragment>
               )
             })}

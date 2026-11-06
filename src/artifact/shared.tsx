@@ -8,7 +8,7 @@ import { Component, createContext, useContext, useEffect, useRef, useState, type
 import { createPortal } from 'react-dom'
 import type { Artifact, Block, BlockType, L, Project } from '../data/types'
 import { useT } from '../i18n'
-import { useStore } from '../store'
+import { canSee, useStore } from '../store'
 import { Icon, IconButton, Menu, type MenuItem } from '../ui/kit'
 
 export const DAY = 864e5
@@ -67,6 +67,16 @@ export function Empty({ icon, title, hint, children }: { icon: string; title: st
   )
 }
 
+/** The project's calendar: its own events and the meetings booked in the chat that this viewer can see, once each, next first. */
+export function upcomingEvents(block: Extract<Block, { type: 'calendar' }>, project: Project, viewerId: string, now = Date.now()) {
+  const key = (title: unknown, start: number) => `${start}|${typeof title === 'string' ? title : (title as { en: string }).en}`
+  const seen = new Set(block.events.map((e) => key(e.title, e.start)))
+  const meetings = project.messages.flatMap((m) => (m.kind === 'meeting' && !m.ended && canSee(m.visibility, viewerId) && !seen.has(key(m.title, m.start))
+    ? [{ id: m.id, title: m.title, start: m.start, durationMin: m.durationMin, attendeeIds: m.attendeeIds }]
+    : []))
+  return [...block.events, ...meetings].filter((e) => e.start + e.durationMin * 6e4 >= now).sort((a, b) => a.start - b.start)
+}
+
 /** A tooltip that escapes the scrolling parents. `bind(content)` goes on the target. */
 export function useTip() {
   const [tip, setTip] = useState<{ x: number; y: number; below: boolean; content: ReactNode } | null>(null)
@@ -119,7 +129,7 @@ export function Frame({ block, leading, actions, className = '', children, style
     const position = index
     removeBlock(project.id, block.id)
     toast({
-      text: { fr: 'Bloc retiré du tableau', en: 'Block removed from the board' },
+      text: { fr: 'Bloc retiré', en: 'Block removed' },
       icon: 'delete',
       action: {
         label: { fr: 'Annuler', en: 'Undo' },

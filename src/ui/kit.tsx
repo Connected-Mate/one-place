@@ -40,11 +40,11 @@ export function Avatar({ id, person, size = 32, ring, status }: { id?: string; p
     </span>
   )
 }
-export function AvatarStack({ ids, size = 28, max = 4 }: { ids: string[]; size?: number; max?: number }) {
+export function AvatarStack({ ids, size = 28, max = 4, more = true }: { ids: string[]; size?: number; max?: number; more?: boolean }) {
   return (
     <span className="avatar-stack" aria-label={ids.map((i) => personById(i).name).join(', ')}>
       {ids.slice(0, max).map((i) => <Avatar key={i} id={i} size={size} ring />)}
-      {ids.length > max && <span className="avatar more" style={{ width: size, height: size, fontSize: size * .38 }}>+{ids.length - max}</span>}
+      {more && ids.length > max && <span className="avatar more" style={{ width: size, height: size, fontSize: size * .38 }}>+{ids.length - max}</span>}
     </span>
   )
 }

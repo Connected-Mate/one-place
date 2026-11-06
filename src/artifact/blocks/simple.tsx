@@ -9,7 +9,7 @@ import type { Block, Person } from '../../data/types'
 import { fmtDate, fmtTime, useT } from '../../i18n'
 import { personById, useStore } from '../../store'
 import { Avatar, AvatarStack, Button, Icon, IconButton, Sparkle } from '../../ui/kit'
-import { Empty, Frame, KindIcon, KINDS, startOfDay, useBoard } from '../shared'
+import { Empty, Frame, KindIcon, KINDS, startOfDay, upcomingEvents, useBoard } from '../shared'
 
 type Of<T extends Block['type']> = Extract<Block, { type: T }>
 
@@ -90,14 +90,12 @@ export function PeopleBlock({ block }: { block: Of<'people'> }) {
   const { project, role, viewerId } = useBoard()
   const setPrivateTo = useStore((s) => s.setPrivateTo)
   const setMobilePane = useStore((s) => s.setMobilePane)
-  const toast = useStore((s) => s.toast)
   const ids = [...new Set([...project.memberIds, ...project.externalIds])]
   const list: Person[] = ids.map(personById).filter((p) => p.role !== 'ai')
   const presence = (p: Person) => p.presence === 'online' ? t({ fr: 'En ligne', en: 'Online' }) : p.presence === 'away' ? t({ fr: 'Absent', en: 'Away' }) : t({ fr: 'Hors ligne', en: 'Offline' })
   const write = (p: Person) => {
     setPrivateTo(p.id)
     setMobilePane('chat')
-    toast({ text: { fr: `Message privé à ${p.name} dans le chat`, en: `Private message to ${p.name} in the chat` }, icon: 'lock' })
   }
   return (
     <Frame block={block}>
@@ -132,7 +130,8 @@ export function CalendarBlock({ block }: { block: Of<'calendar'> }) {
   const t = useT()
   const lang = useStore((s) => s.lang)
   const now = Date.now()
-  const events = block.events.filter((e) => e.start + e.durationMin * 6e4 >= now).sort((a, b) => a.start - b.start)
+  const { project, viewerId } = useBoard()
+  const events = upcomingEvents(block, project, viewerId, now)
   const today = startOfDay(now)
   const locale = lang === 'fr' ? 'fr-FR' : 'en-US'
   return (
@@ -141,7 +140,7 @@ export function CalendarBlock({ block }: { block: Of<'calendar'> }) {
         <Empty icon="event_available" title={t({ fr: 'Rien de prévu', en: 'Nothing planned' })} hint={t({ fr: 'Demandez à Gemini de caler un moment.', en: 'Ask Gemini to find a time.' })} />
       ) : (
         <ul className="rp-rows">
-          {events.slice(0, 6).map((e) => {
+          {events.map((e) => {
             const title = t(e.title)
             const isToday = startOfDay(e.start) === today
             return (

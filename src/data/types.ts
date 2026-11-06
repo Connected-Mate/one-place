@@ -72,6 +72,8 @@ export interface KanbanCard { id: string; title: Txt; assigneeId?: string; tag?:
 export interface KanbanColumn { id: string; title: Txt; cards: KanbanCard[] }
 
 interface BlockBase {
+  /** when its content last changed */
+  updatedAt?: number
   id: string
   title: Txt
   /** columns taken in the 3-column board grid */

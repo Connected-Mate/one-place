@@ -10,7 +10,7 @@
   .chat-head{display:none}
 }
 @media (max-width:1279px){
-  .chat-head .avatar-stack{display:none}
+  .chat-faces{display:none}
 }
 
 /* Phone: full-bleed, the composer sits on the keyboard or on the home indicator */

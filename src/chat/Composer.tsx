@@ -5,9 +5,9 @@
  */
 // The pill at the bottom: who it goes to, what it quotes, suggestions, attachments.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { tx, useT } from '../i18n'
+import { useT } from '../i18n'
 import { canSee, GEMINI_ID, personById, useStore } from '../store'
-import { Avatar, Button, Dialog, Icon, IconButton, Menu, Sparkle, type MenuItem } from '../ui/kit'
+import { Avatar, Button, Dialog, Icon, IconButton, Menu, type MenuItem } from '../ui/kit'
 import type { Project } from '../data/types'
 import { attachFake, newDoc, scheduleMeeting, sendChat, sendMailReply, shareArtifact, suggestionsFor, useChat } from './chatState'
 import { findMessage, firstName, mailAddress, mailName, snippet } from './helpers'
@@ -22,7 +22,7 @@ export function SuggestionChips({ project, quoteId, onPick, className = '' }: { 
     <div className={`suggestions ${className}`} role="group" aria-label={t({ fr: 'Suggestions pour Gemini', en: 'Suggestions for Gemini' })}>
       {list.map((s) => (
         <button key={s.en} type="button" className="suggestion" onMouseDown={(e) => e.preventDefault()} onClick={() => onPick(t(s))}>
-          <Sparkle size={14} />{t(s)}
+          {t(s)}
         </button>
       ))}
     </div>
@@ -163,7 +163,11 @@ export function Composer({ project }: { project: Project }) {
   }
   useEffect(() => {
     const down = () => { pointerDown.current = true }
-    const up = () => { pointerDown.current = false }
+    // A menu or a dialog of the composer can close without giving the focus back: a press elsewhere still means "left".
+    const up = () => {
+      pointerDown.current = false
+      setTimeout(() => { if (!rootRef.current?.contains(document.activeElement) && !document.querySelector('.menu,.scrim')) { setFocused(false); setJustSent(false) } }, 0)
+    }
     window.addEventListener('pointerdown', down, true)
     window.addEventListener('pointerup', up, true)
     window.addEventListener('pointercancel', up, true)
@@ -196,7 +200,7 @@ export function Composer({ project }: { project: Project }) {
 
   const recipients = [GEMINI_ID, ...project.memberIds.filter((id) => id !== GEMINI_ID && id !== viewerId)]
   const recipientItems: MenuItem[] = [
-    { icon: 'groups', label: t({ fr: 'Tout le monde', en: 'Everyone' }), selected: !privateTo, onSelect: () => setPrivateTo(null, quoteId) },
+    { icon: 'groups', label: t({ fr: 'Tout le monde', en: 'Everyone' }), selected: !privateTo, onSelect: () => { setPrivateTo(null, quoteId); inputRef.current?.focus() } },
     { divider: true, label: '' },
     ...recipients.map((id) => ({ icon: <Avatar id={id} size={24} />, label: t({ fr: `En privé à ${firstName(id)}`, en: `Private to ${firstName(id)}` }), selected: privateTo === id, onSelect: () => { setPrivateTo(id, quoteId); inputRef.current?.focus() } })),
   ]
@@ -210,7 +214,7 @@ export function Composer({ project }: { project: Project }) {
     ? t({ fr: `Votre réponse à ${mailName(mailTarget ?? '')}`, en: `Your reply to ${mailName(mailTarget ?? '')}` })
     : isPrivate && recipient
       ? t({ fr: `Message privé à ${firstName(recipient.id)}`, en: `Private message to ${firstName(recipient.id)}` })
-      : t({ fr: `Message à ${tx(project.name, 'fr')}, ou @Gemini`, en: `Message ${tx(project.name, 'en')}, or @Gemini` })
+      : t({ fr: 'Message, ou @Gemini', en: 'Message or @Gemini' })
 
   return (
     <div
@@ -238,7 +242,8 @@ export function Composer({ project }: { project: Project }) {
       )}
 
       {!mailReply && (
-        <div className="composer-to">
+        // Everyone is the default: nothing to say until the composer is in use. It stays in the tab order, and focusing it opens it.
+        <div className={`composer-to${focused || isPrivate || draft ? '' : ' rest'}`}>
           <Menu items={recipientItems} header={t({ fr: 'Qui peut voir ce message', en: 'Who can see this message' })} trigger={(p) => (
             <button type="button" {...p} className={`to-switch${isPrivate ? ' private' : ''}`} aria-label={t({ fr: 'Choisir les destinataires', en: 'Choose recipients' })}>
               <Icon name={isPrivate ? 'lock' : 'groups'} fill={isPrivate} size={16} />

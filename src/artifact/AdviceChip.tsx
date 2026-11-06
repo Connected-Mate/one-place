@@ -93,12 +93,11 @@ export function AdviceChip({ onOpenSection }: { onOpenSection: (blockId: string)
         break
       case 'toggle':
         s.toggleTodo(project.id, act.blockId, act.todoId)
-        s.toast({ text: { fr: 'Tâche marquée comme faite', en: 'To-do marked as done' }, icon: 'check_circle' })
         pop.current?.focus()
         break
       case 'add-todo':
         s.addTodo(project.id, act.blockId, act.todo)
-        s.toast({ text: { fr: 'Tâche ajoutée', en: 'To-do added' }, icon: 'check_circle' })
+        s.toast({ text: { fr: 'Ajoutée', en: 'To-do added' }, icon: 'check_circle' })
         pop.current?.focus()
         break
     }
@@ -140,7 +139,6 @@ export function AdviceChip({ onOpenSection }: { onOpenSection: (blockId: string)
         onClick={() => setOpen((o) => !o)}
       >
         <Sparkle size={16} />
-        <span className="rp-advice-word">{t({ fr: 'Conseils', en: 'Advice' })}</span>
         {count > 0 && <span className="rp-advice-count">{count}</span>}
       </button>
       {popover && createPortal(<div className="rp-advice-layer">{popover}</div>, matchMedia('(max-width:599px),(max-height:480px) and (max-width:1279px)').matches ? document.body : chip.current?.closest('.right-pane') ?? document.body)}

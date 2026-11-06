@@ -78,11 +78,11 @@ export function move(): Project {
       text: { fr: 'Deux devis déménageurs. Fauvel : 6 800 €, ils emballent tout. Transbox : 5 200 €, on emballe nous-mêmes. @[Alex Cormeraie](alex) à toi.', en: 'Two mover quotes. Fauvel: €6,800, they pack everything. Transbox: €5,200, we pack ourselves. @[Alex Cormeraie](alex) your call.' },
       replies: [
         t('mv-m04-r1', 'sofia', dayAt(-3, 11, 48), { fr: '« On emballe nous-mêmes » : je connais la fin de l’histoire, c’est moi qui emballe.', en: '"We pack ourselves": I know how that story ends, I pack.' }),
-        t('mv-m04-r2', 'lea', dayAt(-3, 11, 52), { fr: 'Je vote Fauvel. 1 600 € pour ne pas avoir Sofia en colère, c’est donné.', en: 'I vote Fauvel. €1,600 to not have an angry Sofia is a bargain.' }, { reactions: [{ emoji: '😂', by: ['karim', 'alex'] }] }),
+        t('mv-m04-r2', 'lea', dayAt(-3, 11, 52), { fr: 'Je vote Fauvel. 1 600 € pour ne pas avoir Sofia en colère, c’est donné.', en: 'I vote Fauvel. €1,600 to not have an angry Sofia is a bargain.' }),
       ],
     },
-    t('mv-m05', 'alex', dayAt(-3, 14, 2), { fr: 'Fauvel. Karim, tu signes.', en: 'Fauvel. Karim, sign it.' }, { reactions: [{ emoji: '👍', by: ['karim', 'sofia'] }] }),
-    t('mv-m06', 'sofia', dayAt(-2, 16, 15), { fr: `Il me faut un vrai mur pour la timeline Aurora et les prototypes. Pas un couloir. Je prends celui de 9 mètres en face de la cuisine, sauf objection d’ici ${weekday(visit, 'fr')}.`, en: `I need a real wall for the Aurora timeline and the prototypes. Not a corridor. I’m taking the 9-meter one opposite the kitchen unless someone objects by ${weekday(visit, 'en')}.` }, { reactions: [{ emoji: '🙌', by: ['alex'] }] }),
+    t('mv-m05', 'alex', dayAt(-3, 14, 2), { fr: 'Fauvel. Karim, tu signes.', en: 'Fauvel. Karim, sign it.' }),
+    t('mv-m06', 'sofia', dayAt(-2, 16, 15), { fr: `Il me faut un vrai mur pour la timeline Aurora et les prototypes. Pas un couloir. Je prends celui de 9 mètres en face de la cuisine, sauf objection d’ici ${weekday(visit, 'fr')}.`, en: `I need a real wall for the Aurora timeline and the prototypes. Not a corridor. I’m taking the 9-meter one opposite the kitchen unless someone objects by ${weekday(visit, 'en')}.` }),
     {
       id: 'mv-m07', kind: 'text', authorId: 'karim', at: dayAt(-1, 9, 30), visibility: all,
       text: { fr: 'Mauvaise nouvelle fibre : l’opérateur annonce 3 semaines après l’emménagement. Je commande une box 4G en attendant, 89 € par mois.', en: 'Bad news on fiber: the carrier says 3 weeks after we move in. I’m ordering a 4G box in the meantime, €89 a month.' },
@@ -94,7 +94,7 @@ export function move(): Project {
     t('mv-m08', 'gemini', dayAt(-1, 9, 45), { fr: 'J’ai ajouté la fibre au calendrier (livraison estimée 3 semaines après l’emménagement) et une tâche « box 4G » pour Karim.', en: 'I added fiber to the timeline (estimated 3 weeks after move-in) and a "4G box" task for Karim.' }),
     { id: 'mv-m09', kind: 'meeting', authorId: 'alex', at: dayAt(-1, 15, 10), visibility: all, title: { fr: 'Visite du site : qui s’assoit où', en: 'Site visit: who sits where' }, start: visit, durationMin: 60, attendeeIds: ['alex', 'karim', 'sofia', 'lea'] },
     t('mv-m10', 'karim', dayAt(0, 8, 20), { fr: `Le bureau qu’on a choisi est sur le tableau, en 3D. 18 pièces, livrées le ${fr(furniture)}. Le chêne clair, pas le blanc, on avait voté.`, en: `The desk we picked is on the board, in 3D. 18 units, delivered ${en(furniture)}. Light oak, not white, we voted.` }),
-    t('mv-m11', 'alex', dayAt(0, 9, 50), { fr: 'Karim, la salle d’archives : je m’en occupe ce week-end. Si quelqu’un tient à ses cartons de 2019, qu’il parle maintenant.', en: 'Karim, the archive room: I’ll do it this weekend. If anyone is attached to their 2019 boxes, speak now.' }, { reactions: [{ emoji: '🫡', by: ['karim', 'lea'] }] }),
+    t('mv-m11', 'alex', dayAt(0, 9, 50), { fr: 'Karim, la salle d’archives : je m’en occupe ce week-end. Si quelqu’un tient à ses cartons de 2019, qu’il parle maintenant.', en: 'Karim, the archive room: I’ll do it this weekend. If anyone is attached to their 2019 boxes, speak now.' }),
     t('mv-m12', 'lea', dayAt(0, 10, 5), { fr: 'Les cartons « compta 2019 » restent. Légalement, 10 ans. Désolée.', en: 'The "accounts 2019" boxes stay. Legally, 10 years. Sorry.' }, { visibility: priv('lea', 'alex') }),
   ]
 

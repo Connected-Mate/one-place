@@ -180,7 +180,10 @@ export const useStore = create<State>()(persist((set, get) => ({
     const blocks = [...p.blocks]; [blocks[i], blocks[j]] = [blocks[j], blocks[i]]
     return { ...p, blocks }
   })),
-  patchBlock: (pid, bid, patch) => set((s) => mapP(s, pid, (p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === bid ? ({ ...b, ...patch } as Block) : b)) }))),
+  patchBlock: (pid, bid, patch) => set((s) => mapP(s, pid, (p) => {
+    const stamp = Object.keys(patch).some((k) => k !== 'fresh') ? { updatedAt: Date.now() } : null
+    return { ...p, blocks: p.blocks.map((b) => (b.id === bid ? ({ ...b, ...stamp, ...patch } as Block) : b)) }
+  })),
   toggleTodo: (pid, bid, tid) => set((s) => mapP(s, pid, (p) => ({
     ...p, blocks: p.blocks.map((b) => (b.id === bid && b.type === 'todo' ? { ...b, todos: b.todos.map((t) => (t.id === tid ? { ...t, done: !t.done } : t)) } : b)),
   }))),

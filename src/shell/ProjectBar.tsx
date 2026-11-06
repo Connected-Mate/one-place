@@ -10,6 +10,7 @@ import { startCall } from '../call/callActions'
 import { useT } from '../i18n'
 import { canSee, GEMINI_ID, mobileView, roleIn, useProject, useStore } from '../store'
 import { Button, Icon, IconButton, Menu } from '../ui/kit'
+import { openPeople } from '../home/goTo'
 
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
@@ -41,7 +42,7 @@ export function ProjectBar() {
   const copyAddress = async () => {
     try {
       await navigator.clipboard.writeText(project.address)
-      s.toast({ icon: 'content_copy', text: { fr: 'Adresse du projet copiée', en: 'Project address copied' } })
+      s.toast({ icon: 'content_copy', text: { fr: 'Adresse copiée', en: 'Address copied' } })
     } catch {
       s.toast({ icon: 'mail', text: project.address })
     }
@@ -78,7 +79,7 @@ export function ProjectBar() {
           <Menu align="right" items={[
             { icon: 'alternate_email', label: t({ fr: 'Copier l’adresse du projet', en: 'Copy project address' }), onSelect: () => { void copyAddress() } },
             { divider: true, label: '' },
-            { icon: 'group', label: t({ fr: `${peopleCount} membres`, en: `${peopleCount} ${peopleCount === 1 ? 'member' : 'members'}` }), disabled: true },
+            { icon: 'group', label: t({ fr: `${peopleCount} membres`, en: `${peopleCount} ${peopleCount === 1 ? 'member' : 'members'}` }), onSelect: () => openPeople(project.id) },
           ]} trigger={(p) => <IconButton {...p} icon="more_vert" label={t({ fr: 'Plus d’options', en: 'More options' })} />} />
         </div>
       </div>

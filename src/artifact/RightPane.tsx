@@ -6,9 +6,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { CallView } from '../call/CallView'
 import type { Artifact, Block, PaneView } from '../data/types'
-import { useT } from '../i18n'
-import { roleIn, useProject, useStore } from '../store'
-import { Icon } from '../ui/kit'
+import { fmtDate, fmtTime, useT } from '../i18n'
+import { roleIn, uid, useProject, useStore } from '../store'
+import { Button, Icon, IconButton, Menu, Sparkle, type MenuItem } from '../ui/kit'
 import { AdviceChip } from './AdviceChip'
 import './artifact.css'
 import { BlockGallery } from './BlockGallery'
@@ -18,7 +18,7 @@ import { PdfView } from './docs/PdfView'
 import { SheetView } from './docs/SheetView'
 import { SlidesView } from './docs/SlidesView'
 import { Overview } from './Overview'
-import { BLOCK_META, BoardContext, KindIcon, revealIn } from './shared'
+import { BoardContext, KindIcon, revealIn, startOfDay } from './shared'
 
 const BOARD_VIEW: PaneView = { type: 'board' }
 const TABS_KEY = 'one-place-open-tabs'
@@ -37,24 +37,39 @@ const loadSections = (): Record<string, string> => {
 const saveSections = (m: Record<string, string>) => {
   try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(m)) } catch { /* private mode: back to Overview on reload */ }
 }
-/** A tab is named after its kind, so the row stays short. A chart goes by its own title; a second of a kind too. */
-function sectionTabs(blocks: Block[], t: (v: { fr: string; en: string } | string) => string) {
-  const seen = new Map<string, number>()
-  return blocks.map((b) => {
-    const n = (seen.get(b.type) ?? 0) + 1
-    seen.set(b.type, n)
-    const kind = t(BLOCK_META[b.type].label)
-    const own = t(b.title)
-    const label = b.type === 'chart' ? own : n === 1 ? kind : own && own !== kind ? own : `${kind} ${n}`
-    return { block: b, label }
-  })
+/**
+ * The row, left to right, in every project. Overview and the three parts never move; Summary and People are reached from
+ * their tile and from the header faces, so they have no tab, only a hidden one that links can press. Files sits on the right
+ * with the documents. Whatever is left was made for this project: the middle, the only part that scrolls.
+ */
+const PARTS: { type: 'todo' | 'timeline' | 'calendar'; label: { fr: string; en: string } }[] = [
+  { type: 'todo', label: { fr: 'À faire', en: 'To-do' } },
+  { type: 'timeline', label: { fr: 'Feuille de route', en: 'Roadmap' } },
+  { type: 'calendar', label: { fr: 'Agenda', en: 'Calendar' } },
+]
+const firstOf = (blocks: Block[], type: Block['type']) => blocks.find((b) => b.type === type)
+function middleOf(blocks: Block[]) {
+  const taken = (['todo', 'timeline', 'calendar', 'summary', 'people', 'files'] as const).map((type) => firstOf(blocks, type)?.id)
+  return blocks.filter((b) => !taken.includes(b.id))
 }
-/** Overview is pinned at the left of the row: a tab counts as visible only clear of it. */
-function revealTab(list: HTMLElement | null, tab: Element | null | undefined) {
-  if (!list || !tab) return
-  const pinned = list.querySelector<HTMLElement>('[data-tab="overview"]')
-  revealIn(list, tab, { top: 0, right: 4, bottom: 0, left: tab === pinned ? 0 : (pinned?.offsetWidth ?? 0) + 4 })
+/** A part the project does not have yet: it comes into being, empty, the first time it is opened. */
+function newPart(type: 'todo' | 'timeline' | 'calendar' | 'files'): Block {
+  const base = { id: uid('b'), span: 3 as const }
+  switch (type) {
+    case 'todo': return { ...base, type, title: { fr: 'À faire', en: 'To do' }, todos: [] }
+    case 'timeline': return { ...base, type, title: { fr: 'Feuille de route', en: 'Roadmap' }, items: [] }
+    case 'calendar': return { ...base, type, title: { fr: 'Agenda', en: 'Calendar' }, events: [] }
+    case 'files': return { ...base, type, title: { fr: 'Fichiers', en: 'Files' }, artifactIds: [] }
+  }
 }
+/** Only the middle scrolls, and clear of its edge fades. */
+function revealTab(middle: HTMLElement | null, tab: Element | null | undefined) {
+  if (!middle || !tab || !tab.getClientRects().length) return
+  revealIn(middle, tab, { top: 0, right: 28, bottom: 0, left: 28 })
+}
+const DOC_TAB_W = 120
+const MIDDLE_MIN = 112
+const AI_SPARK = <Sparkle size={12} mono />
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
@@ -83,9 +98,14 @@ export function RightPane() {
   const setBlockGallery = useStore((s) => s.setBlockGallery)
   const [tabMap, setTabMap] = useState<TabMap>(loadTabs)
   const [sectionMap, setSectionMap] = useState<Record<string, string>>(loadSections)
-  const [overflow, setOverflow] = useState({ on: false, left: false, right: false })
+  const [fade, setFade] = useState({ left: false, right: false })
+  const [docSlots, setDocSlots] = useState(0)
   const [now, setNow] = useState(() => Date.now())
-  const tablist = useRef<HTMLDivElement>(null)
+  const bar = useRef<HTMLDivElement>(null)
+  const middle = useRef<HTMLDivElement>(null)
+  const parts = useRef<HTMLDivElement>(null)
+  const docsAnchor = useRef<HTMLDivElement>(null)
+  const adviceSlot = useRef<HTMLDivElement>(null)
   const warned = useRef<string | null>(null)
 
   const callHere = !!call && call.projectId === project?.id
@@ -99,7 +119,7 @@ export function RightPane() {
     if (warned.current === rawPane.id) return
     warned.current = rawPane.id
     useStore.setState((s) => ({ panes: { ...s.panes, [s.activeProjectId]: { type: 'board' } } }))
-    toast({ text: { fr: 'Ce document n’est plus dans le projet', en: 'This document is no longer in the project' }, icon: 'error' })
+    toast({ text: { fr: 'Document introuvable', en: 'Document not found' }, icon: 'error' })
   }, [rawPane, openArtifact, toast])
 
   const pid = project?.id ?? ''
@@ -141,9 +161,11 @@ export function RightPane() {
     knownFresh.current = { pid, ids: freshIds }
     if (known.pid !== pid) return
     const arrived = freshIds.filter((id) => !known.ids.includes(id))
-    if (arrived.length && view === 'board' && section !== 'overview') pickSection(arrived[0])
-    revealTab(tablist.current, tablist.current?.querySelector(`[data-tab="${CSS.escape(arrived[0] ?? '')}"]`))
-  }, [freshIds, pid, view, section, pickSection])
+    // A refreshed summary glows on its tile: no one is taken away for that.
+    const opens = arrived.find((id) => blocks?.some((b) => b.id === id && b.type !== 'summary'))
+    if (opens && view === 'board' && section !== 'overview') pickSection(opens)
+    revealTab(middle.current, middle.current?.querySelector(`[data-tab="${CSS.escape(arrived.at(-1) ?? '')}"]`))
+  }, [freshIds, pid, view, section, pickSection, blocks])
   // The flag can outlive its timer (a reload in mid-animation, a block that is not on screen).
   useEffect(() => {
     if (!freshIds.length) return
@@ -151,27 +173,32 @@ export function RightPane() {
     return () => clearTimeout(timer)
   }, [freshIds, pid])
 
-  const tabCount = (blocks?.length ?? 0) + tabIds.length + (call ? 1 : 0)
-  const readOverflow = useCallback(() => {
-    const el = tablist.current
+  const middleCount = blocks ? middleOf(blocks).length : 0
+  const readFade = useCallback(() => {
+    const el = middle.current
     if (!el) return
     const left = el.scrollLeft > 2, right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
-    const on = el.scrollWidth > el.clientWidth + 1
-    setOverflow((o) => (o.on === on && o.left === left && o.right === right ? o : { on, left, right }))
+    setFade((o) => (o.left === left && o.right === right ? o : { left, right }))
   }, [])
+  // How many documents show as tabs: what the fixed parts leave, once the middle keeps enough to be usable. The rest go in the Files menu.
+  const readRoom = useCallback(() => {
+    readFade()
+    const row = bar.current
+    if (!row) return
+    const fixed = (parts.current?.offsetWidth ?? 0) + (docsAnchor.current?.offsetWidth ?? 0) + (adviceSlot.current?.offsetWidth ?? 0)
+    const room = row.clientWidth - fixed - MIDDLE_MIN - 12
+    setDocSlots(matchMedia('(max-width:599px)').matches ? 0 : Math.max(0, Math.floor(room / DOC_TAB_W)))
+  }, [readFade])
   useLayoutEffect(() => {
-    const el = tablist.current
-    if (!el) return
-    readOverflow()
-    const ro = new ResizeObserver(readOverflow)
-    ro.observe(el)
+    readRoom()
+    const ro = new ResizeObserver(readRoom)
+    if (bar.current) ro.observe(bar.current)
+    if (middle.current) ro.observe(middle.current)
     return () => ro.disconnect()
-  }, [readOverflow, tabCount, pid])
+  }, [readRoom, middleCount, pid, !!call]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    revealTab(tablist.current, tablist.current?.querySelector('[aria-selected="true"]')?.parentElement)
-    // showing the chevrons narrows the row: reveal again when they appear, not when one merely goes disabled
-  }, [activeKey, tabCount, overflow.on])
-  const scrollTabs = (dir: -1 | 1) => tablist.current?.scrollBy({ left: dir * tablist.current.clientWidth * 0.7 })
+    revealTab(middle.current, middle.current?.querySelector('[aria-selected="true"]')?.parentElement)
+  }, [activeKey, middleCount])
 
   if (!project) return <section className="pane right-pane" />
 
@@ -190,7 +217,7 @@ export function RightPane() {
   }
   const onTabsKey = (e: React.KeyboardEvent) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End') return
-    const tabs = [...(tablist.current?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [])]
+    const tabs = [...(bar.current?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [])].filter((x) => x.getClientRects().length)
     const i = tabs.indexOf(document.activeElement as HTMLElement)
     if (i < 0) return
     e.preventDefault()
@@ -199,56 +226,137 @@ export function RightPane() {
     tabs[next].click()
   }
   const role = roleIn(project, viewerId)
+  const summaryBlock = firstOf(project.blocks, 'summary')
+  const peopleBlock = firstOf(project.blocks, 'people')
+  const filesBlock = firstOf(project.blocks, 'files')
+  const made = middleOf(project.blocks)
+  const madeOpen = !!openBlock && view === 'board' && made.some((b) => b.id === openBlock.id)
+  // reached from a tile or from the header faces: Overview stays the tab in hand
+  const viewFromOverview = activeKey === summaryBlock?.id || activeKey === peopleBlock?.id
+  const openPart = (type: 'todo' | 'timeline' | 'calendar' | 'files') => {
+    const have = firstOf(project.blocks, type)
+    if (have) { openSection(have.id); return }
+    const fresh = newPart(type)
+    useStore.getState().addBlock(project.id, fresh)
+    useStore.getState().patchBlock(project.id, fresh.id, { fresh: false })
+    openSection(fresh.id)
+  }
+  const addLabel = role === 'owner' ? t({ fr: 'Ajouter un bloc', en: 'Add block' }) : t({ fr: 'Proposer un bloc', en: 'Propose a block' })
+  // Documents take the tabs they have room for, the open one always among them. The others wait in the Files menu.
+  const shownDocs = tabIds.slice(0, docSlots)
+  if (openArtifact && docSlots > 0 && !shownDocs.includes(openArtifact.id)) shownDocs[docSlots - 1] = openArtifact.id
+  const moreDocs = tabIds.filter((id) => !shownDocs.includes(id))
+  const docTitle = (id: string) => t(project.artifacts.find((a) => a.id === id)!.title)
+  const filesItems: MenuItem[] = moreDocs.map((id) => ({ label: docTitle(id), selected: activeKey === id, onSelect: () => setPane({ type: 'artifact', id }) }))
+  if (openArtifact && moreDocs.includes(openArtifact.id)) filesItems.push({ divider: true, label: '' }, { label: t({ fr: `Fermer ${docTitle(openArtifact.id)}`, en: `Close ${docTitle(openArtifact.id)}` }), onSelect: () => closeTab(openArtifact.id) })
+  const filesOn = activeKey === filesBlock?.id || (!!openArtifact && moreDocs.includes(openArtifact.id))
+  const tabButton = (on: boolean, onClick: () => void, children: React.ReactNode, title?: string) => (
+    <button type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1} className="rp-tab-btn" title={title} onClick={onClick}>{children}</button>
+  )
 
   return (
     <section className="pane right-pane" aria-label={t({ fr: 'Vue partagée du projet', en: 'Shared project view' })}>
       <BoardContext.Provider value={{ project, role, viewerId }}>
-      <div className={`rp-tabbar${overflow.left ? ' scrolled' : ''}`}>
-      {overflow.on && <button type="button" className="rp-tab-scroll prev" tabIndex={-1} aria-hidden="true" disabled={!overflow.left} onClick={() => scrollTabs(-1)}><Icon name="chevron_left" size={20} /></button>}
-      <div ref={tablist} className="rp-tabs" role="tablist" aria-label={t({ fr: 'Parties du projet', en: 'Parts of this project' })} onKeyDown={onTabsKey} onScroll={readOverflow}>
-        <div className={`rp-tab rp-tab-pinned${activeKey === 'overview' ? ' on' : ''}`} role="presentation" data-tab="overview">
-          <button type="button" role="tab" aria-selected={activeKey === 'overview'} tabIndex={activeKey === 'overview' ? 0 : -1} className="rp-tab-btn" onClick={() => openSection('overview')}>
-            <Icon name="dashboard" size={18} fill={activeKey === 'overview'} /><span className="rp-tab-word">{t({ fr: 'Vue d’ensemble', en: 'Overview' })}</span>
-          </button>
+      <div ref={bar} className="rp-tabbar" onKeyDown={onTabsKey}>
+        <div ref={parts} className="rp-tabs rp-parts" role="tablist" aria-label={t({ fr: 'Parties du projet', en: 'Parts of this project' })}>
+          <div className={`rp-tab${activeKey === 'overview' || viewFromOverview ? ' on' : ''}`} role="presentation" data-tab="overview">
+            {tabButton(activeKey === 'overview' || viewFromOverview, () => openSection('overview'), t({ fr: 'Vue d’ensemble', en: 'Overview' }))}
+          </div>
+          {PARTS.map(({ type, label }) => {
+            const block = firstOf(project.blocks, type)
+            const on = !!block && activeKey === block.id
+            return (
+              <div key={type} className={`rp-tab${on ? ' on' : ''}${block?.fresh && !on ? ' fresh' : ''}`} role="presentation" data-tab={block?.id ?? `part-${type}`}>
+                {tabButton(on, () => openPart(type), t(label))}
+              </div>
+            )
+          })}
+          {[summaryBlock, peopleBlock].map((block) => block && (
+            <div key={block.id} role="presentation" data-tab={block.id} hidden>
+              <button type="button" role="tab" aria-selected={false} tabIndex={-1} onClick={() => openSection(block.id)}>{t(block.title)}</button>
+            </div>
+          ))}
         </div>
-        {sectionTabs(project.blocks, t).map(({ block, label }) => {
-          const on = activeKey === block.id
-          return (
-            <div key={block.id} className={`rp-tab${on ? ' on' : ''}${block.fresh && !on ? ' fresh' : ''}`} role="presentation" data-tab={block.id}>
-              <button type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1} className="rp-tab-btn" title={label} onClick={() => openSection(block.id)}>
-                <span className="rp-trunc">{label}</span>
-              </button>
+        <i className="rp-divider" aria-hidden="true" />
+        <div className="rp-mid-wrap">
+          {made.length > 0 && (
+            <div ref={middle} className={`rp-mid${fade.left ? ' fade-l' : ''}${fade.right ? ' fade-r' : ''}`} onScroll={readFade} onWheel={(e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY }}>
+              <div className="rp-tabs" role="tablist" aria-label={t({ fr: 'Faits par Gemini pour ce projet', en: 'Made by Gemini for this project' })}>
+                {made.map((block) => {
+                  const on = activeKey === block.id
+                  const title = t(block.title)
+                  return (
+                    <div key={block.id} className={`rp-tab rp-made${on ? ' on' : ''}${block.fresh && !on ? ' fresh' : ''}`} role="presentation" data-tab={block.id}>
+                      {tabButton(on, () => openSection(block.id), <>{AI_SPARK}<span className="rp-trunc">{title}</span></>, title)}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          )
-        })}
-        {tabIds.map((id) => {
-          const a = project.artifacts.find((x) => x.id === id)!
-          const title = t(a.title)
-          const on = activeKey === id
-          return (
-            <div key={id} className={`rp-tab closable${on ? ' on' : ''}`} role="presentation" onAuxClick={(e) => { if (e.button === 1) closeTab(id) }}>
-              <button type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1} className="rp-tab-btn" title={title} onClick={() => setPane({ type: 'artifact', id })} onKeyDown={(e) => { if (e.key === 'Delete') closeTab(id) }}>
-                <KindIcon kind={a.kind} size={18} /><span className="rp-trunc">{title}</span>
-              </button>
-              <button type="button" className="rp-tab-x" aria-label={t({ fr: `Fermer ${title}`, en: `Close ${title}` })} onClick={() => closeTab(id)}><Icon name="close" size={16} /></button>
+          )}
+          {role !== 'guest' && (made.length > 0
+            ? <IconButton icon="add" size={32} className="rp-add" label={addLabel} onClick={() => setBlockGallery(true)} />
+            : <button type="button" className="rp-add-first" title={addLabel} onClick={() => setBlockGallery(true)}><Icon name="add" size={18} /><span className="rp-trunc">{t({ fr: 'Demander à Gemini de construire quelque chose', en: 'Ask Gemini to build something' })}</span></button>)}
+        </div>
+        <div className="rp-docs">
+          <div ref={docsAnchor} className="rp-tabs" role="tablist" aria-label={t({ fr: 'Fichiers et appel', en: 'Files and call' })}>
+            {call && (
+              <div className={`rp-tab rp-tab-call${activeKey === 'call' ? ' on' : ''}`} role="presentation">
+                {tabButton(activeKey === 'call', openCall, <><i className="rp-live-dot" aria-hidden="true" />{t({ fr: 'Appel', en: 'Call' })}<span className="rp-tab-time">{mmss(now - call.startedAt)}</span></>)}
+              </div>
+            )}
+            <div className={`rp-tab rp-files${filesOn ? ' on' : ''}${filesBlock?.fresh && !filesOn ? ' fresh' : ''}`} role="presentation" data-tab={filesBlock?.id ?? 'part-files'}>
+              {tabButton(filesOn, () => openPart('files'), t({ fr: 'Fichiers', en: 'Files' }))}
             </div>
-          )
-        })}
-        {call && (
-          <div className={`rp-tab rp-tab-call${activeKey === 'call' ? ' on' : ''}`} role="presentation">
-            <button type="button" role="tab" aria-selected={activeKey === 'call'} tabIndex={activeKey === 'call' ? 0 : -1} className="rp-tab-btn" onClick={openCall}>
-              <i className="rp-live-dot" aria-hidden="true" />{t({ fr: 'Appel', en: 'Call' })}<span className="rp-tab-time">{mmss(now - call.startedAt)}</span>
-            </button>
+          </div>
+          {moreDocs.length > 0 && (
+            <Menu align="right" items={filesItems} header={t({ fr: 'Documents ouverts', en: 'Open documents' })} trigger={(p) => (
+              <button type="button" {...p} className="rp-files-more" aria-label={t({ fr: `${moreDocs.length} autres documents ouverts`, en: `${moreDocs.length} more open ${moreDocs.length === 1 ? 'document' : 'documents'}` })}>{moreDocs.length}<Icon name="arrow_drop_down" size={16} /></button>
+            )} />
+          )}
+          {shownDocs.length > 0 && (
+            <div className="rp-tabs" role="tablist" aria-label={t({ fr: 'Documents ouverts', en: 'Open documents' })}>
+              {shownDocs.map((id) => {
+                const a = project.artifacts.find((x) => x.id === id)!
+                const title = t(a.title)
+                const on = activeKey === id
+                return (
+                  <div key={id} className={`rp-tab closable${on ? ' on' : ''}`} role="presentation" style={{ width: DOC_TAB_W }} onAuxClick={(e) => { if (e.button === 1) closeTab(id) }}>
+                    <button type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1} className="rp-tab-btn" title={title} onClick={() => setPane({ type: 'artifact', id })} onKeyDown={(e) => { if (e.key === 'Delete') closeTab(id) }}>
+                      <KindIcon kind={a.kind} size={16} /><span className="rp-trunc">{title}</span>
+                    </button>
+                    <button type="button" className="rp-tab-x" aria-label={t({ fr: `Fermer ${title}`, en: `Close ${title}` })} onClick={() => closeTab(id)}><Icon name="close" size={14} /></button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        {/* On a phone the middle would crowd the thumb row: the blocks made by AI are one tap away, in a sheet. */}
+        {role !== 'guest' && (
+          <div className={`rp-ai-sheet${madeOpen ? ' on' : ''}${made.some((b) => b.fresh) ? ' fresh' : ''}`}>
+            <Menu align="right" header={t({ fr: 'Fait par IA', en: 'Made by AI' })}
+              items={[
+                ...made.map((b) => ({ label: t(b.title), selected: activeKey === b.id, onSelect: () => openSection(b.id) })),
+                ...(made.length ? [{ divider: true, label: '' }] : []),
+                { icon: 'add', label: made.length ? addLabel : t({ fr: 'Demander à Gemini de construire quelque chose', en: 'Ask Gemini to build something' }), onSelect: () => setBlockGallery(true) },
+              ]}
+              trigger={(p) => <button type="button" {...p} className="rp-ai-btn" aria-label={t({ fr: 'Fait par IA', en: 'Made by AI' })} title={t({ fr: 'Fait par IA', en: 'Made by AI' })}><Sparkle size={18} mono /></button>}
+            />
           </div>
         )}
-      </div>
-      {overflow.on && <button type="button" className="rp-tab-scroll next" tabIndex={-1} aria-hidden="true" disabled={!overflow.right} onClick={() => scrollTabs(1)}><Icon name="chevron_right" size={20} /></button>}
-      {role !== 'guest' && <div className="rp-advice-slot"><AdviceChip key={project.id} onOpenSection={openSection} /></div>}
+        {role !== 'guest' && <div ref={adviceSlot} className="rp-advice-slot"><AdviceChip key={project.id} onOpenSection={openSection} /></div>}
       </div>
         <div className="rp-body">
           {/* Overview stays mounted under the other tabs: scroll position kept, and its bars can animate a move. */}
           <div className="rp-view" hidden={view !== 'board' || section !== 'overview'} role="tabpanel"><Overview key={project.id} onOpen={openSection} /></div>
-          {view === 'board' && openBlock && <div className="rp-view" role="tabpanel" key={openBlock.id}><SectionView block={openBlock} /></div>}
+          {view === 'board' && openBlock && (
+            <div className="rp-view" role="tabpanel" key={openBlock.id}>
+              {viewFromOverview && <div className="rp-viewbar"><button type="button" className="rp-back" onClick={() => openSection('overview')}><Icon name="arrow_back" size={16} />{t({ fr: 'Vue d’ensemble', en: 'Overview' })}</button></div>}
+              {madeOpen && <MadeLine block={openBlock} canAsk={role !== 'guest'} />}
+              <SectionView block={openBlock} />
+            </div>
+          )}
           {view === 'artifact' && <div className="rp-view" role="tabpanel" key={openArtifact!.id}><ArtifactView artifact={openArtifact!} /></div>}
           {/* The call keeps running behind other tabs and other projects. */}
           {call && <div className="rp-view" role="tabpanel" hidden={view !== 'call'}><CallView /></div>}
@@ -257,6 +365,22 @@ export function RightPane() {
         {galleryOpen && role === 'guest' && <CloseOnMount close={() => setBlockGallery(false)} />}
       </BoardContext.Provider>
     </section>
+  )
+}
+
+/** A block in the middle was made for this project: it says so, and asking for a change is one click. */
+function MadeLine({ block, canAsk }: { block: Block; canAsk: boolean }) {
+  const t = useT()
+  const lang = useStore((s) => s.lang)
+  const lastMessage = useProject()?.messages.at(-1)?.at
+  const at = block.updatedAt ?? lastMessage ?? Date.now()
+  const when = startOfDay(at) === startOfDay(Date.now()) ? fmtTime(at, lang) : fmtDate(at, lang)
+  const ask = () => window.dispatchEvent(new CustomEvent('oneplace:compose', { detail: { text: `@Gemini update ${t(block.title)}: ` } }))
+  return (
+    <div className="rp-viewbar rp-made-line">
+      <span>{t({ fr: `Fait par Gemini · mis à jour ${when}`, en: `Made by Gemini · updated ${when}` })}</span>
+      {canAsk && <Button size="s" className="rp-quiet" onClick={ask}>{t({ fr: 'Demander une mise à jour', en: 'Ask Gemini to update' })}</Button>}
+    </div>
   )
 }
 

@@ -9,8 +9,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Block, TimelineItem } from '../../data/types'
 import { fmtDate, useT } from '../../i18n'
 import { personById, useStore } from '../../store'
-import { Avatar } from '../../ui/kit'
-import { DAY, Empty, Frame, prefersReducedMotion, startOfDay, useBoard, useTip } from '../shared'
+import { DAY, Empty, Frame, prefersReducedMotion, startOfDay, useTip } from '../shared'
 
 const PX_PER_DAY = 8
 const monday = (at: number) => { const d = new Date(startOfDay(at)); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime() }
@@ -19,7 +18,6 @@ const addDays = (at: number, n: number) => { const d = new Date(at); d.setDate(d
 export function TimelineBlock({ block }: { block: Extract<Block, { type: 'timeline' }> }) {
   const t = useT()
   const lang = useStore((s) => s.lang)
-  const { project } = useBoard()
   const { bind, node, hide } = useTip()
   const scroller = useRef<HTMLDivElement>(null)
   const seen = useRef(new Map<string, number>())
@@ -110,24 +108,23 @@ export function TimelineBlock({ block }: { block: Extract<Block, { type: 'timeli
       <div ref={scroller} className="rp-gantt-scroll" role="region" tabIndex={0} aria-label={t({ fr: `${t(block.title)}, défilement horizontal`, en: `${t(block.title)}, scrolls horizontally` })} onScroll={hide}>
         <div className="rp-gantt" style={{ minWidth: totalDays * PX_PER_DAY }}>
           <div className="rp-g-axis" aria-hidden="true">
-            {/* the week label under the Today pill would be half hidden: skip that one */}
-            {weeks.filter((w) => { const px = ((now - w) / DAY) * pxPerDay; return px < -16 || px > 68 }).map((w) => <span key={w} className="rp-g-week" style={{ left: `${pct(w)}%` }}>{fmtDate(w, lang).replace('.', '')}</span>)}
+            {/* one week label in two, and none under the Today label, which would half hide it */}
+            {weeks.filter((w, n) => { const px = ((now - w) / DAY) * pxPerDay; return n % 2 === 0 && (px < -16 || px > 68) }).map((w) => <span key={w} className="rp-g-week" style={{ left: `${pct(w)}%` }}>{fmtDate(w, lang).replace('.', '')}</span>)}
           </div>
           <div className="rp-g-body">
-            {weeks.map((w) => <span key={w} className="rp-g-grid" style={{ left: `${pct(w)}%` }} />)}
+            {weeks.filter((w) => new Date(w).getDate() <= 7).map((w) => <span key={w} className="rp-g-grid" style={{ left: `${pct(w)}%` }} />)}
             <span className="rp-g-today" style={{ left: `${pct(now)}%` }}><span>{t({ fr: 'Aujourd’hui', en: 'Today' })}</span></span>
             {groups.map((g, gi) => (
               <div key={gi} className="rp-g-lane">
                 {g.lane != null && <p className="rp-g-lane-name"><span>{t(g.lane)}</span></p>}
                 {g.items.map((i) => {
-                  const color = i.color ?? project.color
                   const d = describe(i)
                   const isMoved = moved.includes(i.id)
                   if (i.milestone) {
                     const flip = pct(i.start) > 72
                     return (
                       <div key={i.id} className="rp-g-row">
-                        <button type="button" className={`rp-g-ms${isMoved ? ' moved' : ''}${flip ? ' flip' : ''}`} style={{ left: `${pct(i.start)}%`, '--c': color } as React.CSSProperties} aria-label={`${d.label}, ${d.dates}${d.owner ? `, ${d.owner}` : ''}`} {...bind(tipFor(i))}>
+                        <button type="button" className={`rp-g-ms${isMoved ? ' moved' : ''}${flip ? ' flip' : ''}`} style={{ left: `${pct(i.start)}%` }} aria-label={`${d.label}, ${d.dates}${d.owner ? `, ${d.owner}` : ''}`} {...bind(tipFor(i))}>
                           <span className="rp-g-diamond" />
                           <span className="rp-g-ms-label">{d.label}</span>
                         </button>
@@ -136,21 +133,21 @@ export function TimelineBlock({ block }: { block: Extract<Block, { type: 'timeli
                   }
                   const end = Math.max(i.end, i.start + DAY)
                   const widthPx = ((end - i.start) / DAY) * pxPerDay
-                  const fits = d.label.length * 7.2 + (i.ownerId ? 38 : 16) < widthPx
+                  const fits = d.label.length * 7.2 + 16 < widthPx
                   const flip = !fits && pct(end) > 68
                   const progress = progressOf(i)
+                  const late = end < startOfDay(now) && (progress ?? 0) < 100
                   return (
                     <div key={i.id} className="rp-g-row">
                       <button
                         type="button"
-                        className={`rp-g-bar${isMoved ? ' moved' : ''}${fits ? '' : flip ? ' out flip' : ' out'}`}
-                        style={{ left: `${pct(i.start)}%`, width: `${pct(end) - pct(i.start)}%`, '--c': color } as React.CSSProperties}
+                        className={`rp-g-bar${isMoved ? ' moved' : ''}${late ? ' late' : ''}${fits ? '' : flip ? ' out flip' : ' out'}`}
+                        style={{ left: `${pct(i.start)}%`, width: `${pct(end) - pct(i.start)}%` }}
                         aria-label={`${d.label}, ${d.dates}${d.owner ? `, ${d.owner}` : ''}${progress != null ? `, ${Math.round(progress)}%` : ''}`}
                         {...bind(tipFor(i))}
                       >
                         <span className="rp-g-track">
                           {progress != null && <span className="rp-g-progress" style={{ width: `${progress}%` }} />}
-                          {i.ownerId && <Avatar id={i.ownerId} size={20} />}
                         </span>
                         <span className="rp-g-label">{d.label}</span>
                       </button>

@@ -61,23 +61,19 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
           return (
             <li key={p.id}>
               <button type="button" className={`rail-item${on ? ' on' : ''}${p.unread ? ' unread' : ''}`} aria-current={on ? 'page' : undefined} onClick={() => select(p.id)} title={name}>
-                <span className="rail-icon" style={{ color: p.color }}><Icon name={p.icon} fill={on} />{p.unread > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
+                <span className="rail-icon"><Icon name={p.icon} fill={on} />{p.unread > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
                 <span className="rail-label rail-text">
                   <span className="rail-name">{name}</span>
                   <span className="rail-sub">{projectStatus(p, viewerId, lang)}</span>
                 </span>
                 {live === p.id && <Icon name="call" size={16} className="rail-live" />}
-                {p.mentions > 0 && <span className="rail-at rail-label" aria-label={t({ fr: `${p.mentions} mentions`, en: `${p.mentions} mentions` })}>@</span>}
-                {p.unread > 0 && <span className="rail-count rail-label">{p.unread}<span className="sr-only"> {t({ fr: 'non lus', en: 'unread' })}</span></span>}
+                {p.unread > 0 && <span className="rail-count rail-label">{p.unread}<span className="sr-only"> {t({ fr: 'non lus', en: 'unread' })}{p.mentions > 0 ? t({ fr: `, ${p.mentions} mentions`, en: `, ${p.mentions} ${p.mentions === 1 ? 'mention' : 'mentions'}` }) : ''}</span></span>}
               </button>
             </li>
           )
         })}
       </ul>
       <TryPanel />
-      <div className="rail-foot rail-label">
-        {t({ fr: 'Pas de boîte mail. Pas d’autres applis. Une seule vue.', en: 'No inbox. No other apps. One view.' })}
-      </div>
       {create && <NewProject onClose={() => setCreate(false)} />}
     </nav>
   )

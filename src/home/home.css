@@ -3,32 +3,31 @@
  * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
-/* Home: one white panel. Flat, hairlines, --surface-1 for the calendar and the tiles, no card inside a card. */
+/* Home: one white panel, as calm as an inbox. No cards, no fills, no lines between rows: space does the work. */
 .home-pane{flex:1;min-width:0}
 .hm-scroll{flex:1;min-height:0;overflow:auto;container:home/inline-size}
-.hm{max-width:1320px;margin:0 auto;padding:24px 40px 32px;display:flex;flex-direction:column;gap:24px}
+.hm{max-width:1240px;margin:0 auto;padding:32px 48px 40px;display:flex;flex-direction:column;gap:40px}
 
 .hm-greet{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}
 .hm-greet h1{margin:0;font-size:28px;line-height:36px;font-weight:400;letter-spacing:-.3px;color:var(--text)}
 .hm-greet p{margin:0;font-size:14px;line-height:20px;color:var(--text-3)}
 
-.hm-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,400px);gap:32px;align-items:start}
-.hm-title{display:flex;align-items:center;gap:10px;margin:0;font-size:16px;line-height:24px;font-weight:500;color:var(--text)}
-.hm-title .ms{color:var(--text-2)}
-.hm-count{font-size:12px;line-height:20px;min-width:20px;padding:0 6px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-2);text-align:center}
+.hm-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:64px;align-items:start}
+.hm-title{display:flex;align-items:baseline;gap:8px;margin:0;font-size:16px;line-height:24px;font-weight:500;color:var(--text)}
+.hm-count{font-size:13px;font-weight:400;color:var(--text-3)}
 
 /* what needs you */
 .hm-needs{min-width:0;display:flex;flex-direction:column;align-items:stretch}
-.hm-brief{margin:12px 0 8px;padding:12px 16px;border-radius:var(--r-m);background:var(--gemini-soft);font-size:14px;line-height:20px;color:var(--text)}
+.hm-brief{display:flex;gap:8px;margin:8px 0 12px;font-size:14px;line-height:20px;color:var(--text-2);max-width:72ch}
+.hm-brief svg{margin-top:2px}
 .hm-rows{list-style:none;margin:0;padding:0}
-.hm-row{display:flex;align-items:center;gap:4px;min-height:56px;padding-left:4px;box-shadow:inset 0 -1px 0 var(--hairline);transition:background var(--t-fast) var(--ease);overflow:hidden}
-.hm-row:last-child{box-shadow:none}
-@media (hover:hover){.hm-row:hover{background:var(--hover);border-radius:var(--r-m);box-shadow:none}}
+.hm-row{position:relative;display:flex;align-items:center;gap:4px;min-height:56px;padding-left:4px;border-radius:var(--r-m);transition:background var(--t-fast) var(--ease);overflow:hidden}
+@media (hover:hover){.hm-row:hover,.hm-row:has(:focus-visible){background:var(--hm-row-on)}}
 .hm-row.fresh{animation:rise var(--t-slow) var(--ease-out)}
 .hm-row.leaving{animation:hm-leave var(--t-slow) var(--ease) forwards;pointer-events:none}
 @keyframes hm-leave{from{max-height:80px;min-height:0;opacity:1}40%{opacity:0}to{max-height:0;min-height:0;opacity:0}}
-.hm-lead,.hm-tick{flex:none;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:var(--text-2)}
-.hm-lead.late{color:var(--red-strong)}.hm-lead.live{color:var(--green-strong)}
+.hm-lead,.hm-tick{flex:none;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:var(--text-3)}
+.hm-lead.live{color:var(--green-strong)}
 .hm-tick{position:relative;color:transparent;transition:color var(--t-fast) var(--ease)}
 .hm-tick::before{content:'';position:absolute;inset:6px;border:1.5px solid var(--text-3);border-radius:50%;transition:border-color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
 .hm-tick .ms{position:relative}
@@ -38,66 +37,60 @@
 .hm-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:56px;padding:8px;text-align:left;border-radius:var(--r-s)}
 .hm-sentence{font-size:14px;line-height:20px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hm-meta{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;line-height:16px;color:var(--text-3)}
-.hm-cue{flex:none;font-weight:500}
-.hm-cue.late{color:var(--red-strong)}.hm-cue.soon{color:var(--primary)}.hm-cue.live{color:var(--green-strong)}
+.hm-cue{flex:none}
+.hm-cue.late{color:var(--red-strong)}.hm-cue.live{color:var(--green-strong)}
 .hm-project{display:inline-flex;align-items:center;gap:4px;min-width:0}.hm-project>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hm-actions{flex:none;display:flex;align-items:center;gap:4px;padding-right:8px}
 .hm-aside{color:var(--text-3)}
-.hm-more{align-self:flex-start;margin-top:8px}
+.btn.hm-more{align-self:flex-start;margin-top:8px;color:var(--text-2);font-weight:400}
 .hm-clear{display:flex;align-items:center;gap:16px;padding:16px;color:var(--text-2)}
 .hm-clear .ms{color:var(--green-strong)}.hm-clear p{margin:0}
 
 /* coming up */
-.hm-up{min-width:0;display:flex;flex-direction:column;padding:16px;background:var(--surface-1);border-radius:var(--r-l)}
+.hm-up{min-width:0;display:flex;flex-direction:column}
 .hm-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;margin:12px 0 8px}
 .hm-day{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;border-radius:var(--r-m);color:var(--text-2);transition:background var(--t-fast) var(--ease)}
 .hm-day:hover{background:var(--hover)}
 .hm-day.on{background:var(--primary-soft);color:var(--on-primary-soft)}
 .hm-day-name{font-size:11px;line-height:16px;font-weight:500;color:var(--text-3)}.hm-day.on .hm-day-name{color:inherit}
 .hm-day-num{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:14px}
+.hm-day.free:not(.today):not(.on) .hm-day-num{color:var(--text-3)}
 .hm-day.today .hm-day-num{background:var(--primary);color:var(--on-primary);font-weight:500}
-.hm-day-dots{display:flex;gap:2px;height:6px}.hm-day-dots i{width:5px;height:5px;border-radius:50%}
 .hm-events{list-style:none;margin:0;padding:0}
 .hm-event{display:flex;align-items:center;gap:8px;min-width:0}
-.hm-event.first:not(:first-child){margin-top:4px;padding-top:4px;border-top:1px solid var(--hairline)}
+.hm-event.first:not(:first-child){margin-top:8px}
 .hm-date{flex:none;width:32px;display:flex;flex-direction:column;align-items:center;align-self:flex-start;padding-top:6px;color:var(--text-2)}
 .hm-date small{font-size:11px;line-height:14px;font-weight:500}
 .hm-date b{font-size:18px;line-height:24px;font-weight:400}
 .hm-date.today{color:var(--primary)}.hm-date.today b{font-weight:500}
-.hm-event-main{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);padding:6px 8px 6px 12px;text-align:left;border-radius:var(--r-s);position:relative;transition:background var(--t-fast) var(--ease)}
-.hm-event-main::before{content:'';position:absolute;left:2px;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--ev)}
+.hm-event-main{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);padding:6px 8px;text-align:left;border-radius:var(--r-s);transition:background var(--t-fast) var(--ease)}
 .hm-event-main:hover{background:var(--hover)}
 .hm-event-title{font-size:14px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hm-event-time,.hm-event-project{font-size:12px;line-height:16px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hm-event-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-.hm-guest{display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:16px;color:var(--text-2)}
+.hm-event-time{font-size:12px;line-height:16px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-event-side{flex:none}
 .hm-none{margin:8px 0 4px;color:var(--text-3)}
 
 /* projects */
 .hm-projects{min-width:0}
-.hm-tiles{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
-.hm-tile{width:100%;height:100%;display:flex;flex-direction:column;gap:6px;padding:12px 16px;border-radius:var(--r-m);background:var(--surface-1);text-align:left;transition:background var(--t-fast) var(--ease)}
-.hm-tile:hover{background:var(--surface-2)}
+.hm-tiles{list-style:none;margin:8px -12px 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px 16px}
+.hm-tile{width:100%;height:100%;display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r-m);text-align:left;transition:background var(--t-fast) var(--ease)}
+.hm-tile:hover{background:var(--hover)}
+.hm-tile-head>.ms:first-child{color:var(--text-3)}
 .hm-tile-head{display:flex;align-items:center;gap:8px;min-width:0}
-.hm-tile-name{flex:1;min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hm-tile-unread{font-size:12px;font-weight:700;color:var(--text-2)}
-.hm-tile-status{flex:1;font-size:12px;line-height:16px;color:var(--text-2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:32px}
-.hm-tile-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:22px}
-.hm-progress{display:flex;align-items:center;gap:8px;min-width:0;font-size:12px;line-height:16px;color:var(--text-3)}
-.hm-progress-label{white-space:nowrap}
-.hm-bar{width:48px;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;flex:none}
-.hm-bar i{display:block;height:100%;border-radius:2px;background:var(--primary);transition:width var(--t-slow) var(--ease)}
+.hm-tile-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-tile-unread{font-size:12px;color:var(--text-3)}
+.hm-tile-status{padding-left:28px;font-size:12px;line-height:16px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* where a click from Home lands, on the board */
 .hm-flash{animation:hm-flash 1.6s var(--ease);border-radius:var(--r-s)}
 @keyframes hm-flash{0%,60%{background:var(--primary-soft)}100%{background:transparent}}
 
 @container home (max-width:880px){
-  .hm{padding:20px 24px 28px}
-  .hm-top{grid-template-columns:minmax(0,1fr);gap:24px}
+  .hm{padding:20px 24px 28px;gap:32px}
+  .hm-top{grid-template-columns:minmax(0,1fr);gap:32px}
 }
 @container home (max-width:600px){
-  .hm{padding:16px 16px 24px;gap:20px}
+  .hm{padding:16px 16px 24px;gap:28px}
   .hm-greet h1{font-size:24px;line-height:32px}
   .hm-row{flex-wrap:wrap;padding:6px 0 10px 0}
   .hm-lead,.hm-tick{width:40px;height:40px}
@@ -116,7 +109,6 @@
 @container home (min-width:600px) and (max-width:880px){
   .hm{padding:20px 16px 28px}
   .hm-top{grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start}
-  .hm-up{padding:16px 8px}
   .hm-row{flex-wrap:wrap;padding:6px 0 10px}
   .hm-actions{flex:1 0 100%;padding:4px 8px 0 40px;flex-wrap:wrap}
   .hm-sentence{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3}
@@ -131,12 +123,21 @@
   .hm-day{min-height:48px}
   .hm-actions .btn.s,.hm-more{height:40px}
   .hm-aside{width:40px!important;height:40px!important}
-  .hm-tile{padding:14px 16px}
+  .hm-tile{padding:12px}
 }
 @media (max-width:599px){
   .hm-scroll{overscroll-behavior:contain}
   .hm{padding-bottom:88px}
-  .hm-up{padding:16px 12px}
   .hm-greet{gap:0 12px}
   .hm-greet p{width:100%}
+}
+
+/* ---- With a mouse, a row's actions wait for it, as in Gmail: over the end of the row, on hover or keyboard focus. With a finger they stay. ---- */
+.hm-rows{--hm-row-on:color-mix(in srgb,var(--panel) 93%,var(--text))}
+@media (hover:hover){
+  .hm-row:not(.keep) .hm-actions{position:absolute;top:0;right:0;bottom:0;flex:none;flex-wrap:nowrap;padding:0 8px 0 16px;background:var(--hm-row-on);opacity:0;transition:opacity var(--t-fast) var(--ease)}
+  .hm-row:not(.keep):hover .hm-actions,.hm-row:not(.keep):has(:focus-visible) .hm-actions{opacity:1}
+  .hm-row:not(.keep):not(:hover):not(:has(:focus-visible)) .hm-actions{pointer-events:none}
+  /* the one row whose decision stays on screen: only the rest of its actions wait */
+  .hm-row.keep:not(:hover):not(:has(:focus-visible)) .hm-sec{width:0!important;min-width:0;padding:0;margin:0;overflow:hidden;opacity:0}
 }

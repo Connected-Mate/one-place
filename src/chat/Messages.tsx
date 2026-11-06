@@ -70,18 +70,14 @@ function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string
   return (
     <article className={`ocard mail-card ${m.direction}${draft ? ' draft' : ''}`}>
       <div className="mail-tag">
-        <Icon name={draft ? 'edit_note' : m.direction === 'in' ? 'mail' : 'forward_to_inbox'} size={16} />
         <span>{draft
           ? t({ fr: `Brouillon de mail pour ${outName}, pas encore envoyé`, en: `Draft to ${outName}, not sent yet` })
           : m.direction === 'in'
             ? t({ fr: `Mail reçu, envoyé à ${address}`, en: `Email received, sent to ${address}` })
             : t({ fr: `Envoyé par mail à ${outName}, pas besoin de compte pour le recevoir`, en: `Sent by email to ${outName}. They don’t need an account.` })}</span>
       </div>
-      <div className="mail-meta">
-        {m.direction === 'in'
-          ? <><span className="mail-who">{mailName(m.from)}</span> <span className="mail-addr">{mailAddress(m.from)}</span></>
-          : <><span className="mail-label">{t({ fr: 'À', en: 'To' })}</span> <span className="mail-who">{outName}</span> <span className="mail-addr">{mailAddress(m.to)}</span></>}
-      </div>
+      {/* The sender's name is above the card and the line above says who it goes to. Only a draft shows the address: it is read before it leaves. */}
+      {draft && <div className="mail-meta"><span className="mail-label">{t({ fr: 'À', en: 'To' })}</span> <span className="mail-who">{outName}</span> <span className="mail-addr">{mailAddress(m.to)}</span></div>}
       <div className="mail-subject">{t(m.subject)}</div>
       <div className={`mail-body${open || !long ? ' open' : ''}`}>{body}</div>
       {long && (
@@ -94,11 +90,11 @@ function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string
         {draft && m.visibility.type === 'private' && m.visibility.with.includes(viewerId) && (
           <>
             <Button variant="filled" size="s" icon="send" onClick={() => sendDraft(pid, m.id)}>{t({ fr: 'Envoyer', en: 'Send' })}</Button>
-            <Button variant="outlined" size="s" onClick={edit}>{t({ fr: 'Modifier', en: 'Edit' })}</Button>
+            <Button size="s" onClick={edit}>{t({ fr: 'Modifier', en: 'Edit' })}</Button>
             <Button size="s" onClick={discard}>{t({ fr: 'Supprimer', en: 'Discard' })}</Button>
           </>
         )}
-        {!draft && m.direction === 'in' && <Button variant="tonal" size="s" icon="reply" onClick={reply}>{t({ fr: 'Répondre par mail', en: 'Reply by email' })}</Button>}
+        {!draft && m.direction === 'in' && <Button size="s" onClick={reply}>{t({ fr: 'Répondre par mail', en: 'Reply by email' })}</Button>}
       </div>
     </article>
   )
@@ -153,10 +149,10 @@ function MeetingCard({ m, pid }: { m: MeetingMessage; pid: string }) {
           {m.live && !m.ended && <span className="live-tag"><span className="live-dot" />{t({ fr: 'En cours', en: 'Live' })}</span>}
           {m.ended && <span className="muted-tag">{t({ fr: 'Terminée', en: 'Ended' })}</span>}
         </div>
-        <AvatarStack ids={m.attendeeIds} size={24} max={5} />
+        <AvatarStack ids={m.attendeeIds} size={22} max={3} />
         {!!m.guestEmails?.length && (
           <div className="chip-row">
-            {m.guestEmails.map((g) => <span key={g} className="guest-chip"><Icon name="person" size={14} /><span className="ellipsis">{g}</span><em>{t({ fr: 'appel uniquement', en: 'call only' })}</em></span>)}
+            {m.guestEmails.map((g) => <span key={g} className="guest-chip"><span className="ellipsis">{g}</span><em>{t({ fr: 'appel uniquement', en: 'call only' })}</em></span>)}
           </div>
         )}
         {!m.ended && (
@@ -164,7 +160,7 @@ function MeetingCard({ m, pid }: { m: MeetingMessage; pid: string }) {
             {inCall && m.live
               ? <button type="button" className="in-call-note" onClick={join}><Icon name="check_circle" size={16} />{t({ fr: 'Tu es dans cet appel', en: 'You’re in this call' })}</button>
               : <Button variant="filled" size="s" icon="videocam" onClick={join}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>}
-            <Button variant="outlined" size="s" icon="person_add" onClick={() => setGuest(true)}>{t({ fr: 'Ajouter un invité', en: 'Add guest' })}</Button>
+            <Button size="s" onClick={() => setGuest(true)}>{t({ fr: 'Ajouter un invité', en: 'Add guest' })}</Button>
           </div>
         )}
       </div>
@@ -188,7 +184,6 @@ function CallSummaryCard({ m, pid }: { m: CallSummaryMessage; pid: string }) {
         <span className="summary-title">{t(m.title)}</span>
         <span className="summary-dur">{m.durationMin} min</span>
       </div>
-      <AvatarStack ids={m.attendeeIds} size={24} max={5} />
       <p className="summary-text">{t(m.summary)}</p>
       {!!m.decisions.length && (
         <>
@@ -198,9 +193,8 @@ function CallSummaryCard({ m, pid }: { m: CallSummaryMessage; pid: string }) {
       )}
       {n > 0 && (
         <button type="button" className="summary-todos" onClick={open}>
-          <Icon name="task_alt" size={18} />
           {t(n > 1 ? { fr: `${n} tâches ajoutées au board`, en: `${n} to-dos added to the board` } : { fr: '1 tâche ajoutée au board', en: '1 to-do added to the board' })}
-          <Icon name="chevron_right" size={18} />
+          <Icon name="chevron_right" size={16} />
         </button>
       )}
     </article>
@@ -242,18 +236,18 @@ function ProposalCard({ m, pid, viewerId, ownerId }: { m: ProposalMessage; pid: 
     if (!approved) return
     const a = m.action
     const blockId = a.type === 'add-block' ? a.block.id : a.type === 'none' ? undefined : a.blockId
-    s.toast({ icon: 'check_circle', text: { fr: 'C’est sur le board', en: 'It’s on the board' }, action: { label: { fr: 'Voir', en: 'View' }, run: () => goBoard(pid, blockId) } })
+    s.toast({ icon: 'check_circle', text: { fr: 'Sur le board', en: 'On the board' }, action: { label: { fr: 'Voir', en: 'View' }, run: () => goBoard(pid, blockId) } })
   }
   const decider = m.decidedBy ? firstName(m.decidedBy) : ''
   return (
     <article className={`ocard proposal-card ${m.status}`}>
-      <div className="proposal-tag"><Icon name="how_to_vote" size={16} />{t({ fr: 'Proposition', en: 'Proposal' })}</div>
+      <div className="proposal-tag">{t({ fr: 'Proposition', en: 'Proposal' })}</div>
       <div className="proposal-title">{t(m.title)}</div>
       <div className="proposal-desc">{t(m.description)}</div>
       {m.status === 'pending' && isOwner && (
         <div className="card-actions">
-          <Button variant="filled" size="s" icon="check" onClick={() => decide(true)}>{t({ fr: 'Approuver', en: 'Approve' })}</Button>
-          <Button variant="outlined" size="s" onClick={() => decide(false)}>{t({ fr: 'Refuser', en: 'Decline' })}</Button>
+          <Button variant="filled" size="s" onClick={() => decide(true)}>{t({ fr: 'Approuver', en: 'Approve' })}</Button>
+          <Button size="s" onClick={() => decide(false)}>{t({ fr: 'Refuser', en: 'Decline' })}</Button>
         </div>
       )}
       {m.status === 'pending' && !isOwner && (
@@ -382,9 +376,8 @@ function Thread({ m, pid, viewerId, ownerId, address }: { m: Message; pid: strin
     <div className="thread">
       {n > 0 && (
         <button type="button" className="thread-toggle" aria-expanded={open} onClick={() => setThread(m.id, !open)}>
-          <AvatarStack ids={[...new Set(replies.map((r) => r.authorId))]} size={20} max={3} />
           <span>{t(n > 1 ? { fr: `${n} réponses`, en: `${n} replies` } : { fr: '1 réponse', en: '1 reply' })}</span>
-          <Icon name={open ? 'expand_less' : 'expand_more'} size={18} />
+          <Icon name={open ? 'expand_less' : 'expand_more'} size={16} />
         </button>
       )}
       {open && replies.map((r) => <MessageRow key={r.id} m={r} pid={pid} viewerId={viewerId} ownerId={ownerId} address={address} parentId={m.id} />)}
@@ -400,8 +393,8 @@ function Thread({ m, pid, viewerId, ownerId, address }: { m: Message; pid: strin
 }
 
 /* ---------- row ---------- */
-export interface RowProps { m: Message; pid: string; viewerId: string; ownerId: string; address: string; grouped?: boolean; parentId?: string; flash?: boolean }
-export const MessageRow = memo(function MessageRow({ m, pid, viewerId, ownerId, address, grouped, parentId, flash }: RowProps) {
+export interface RowProps { m: Message; pid: string; viewerId: string; ownerId: string; address: string; grouped?: boolean; parentId?: string; flash?: boolean; samePrivate?: boolean; sameQuote?: boolean }
+export const MessageRow = memo(function MessageRow({ m, pid, viewerId, ownerId, address, grouped, parentId, flash, samePrivate, sameQuote }: RowProps) {
   const t = useT()
   const lang = useStore((s) => s.lang)
   const touched = useChat((s) => s.touched === m.id)
@@ -427,9 +420,12 @@ export const MessageRow = memo(function MessageRow({ m, pid, viewerId, ownerId, 
     setTouched(touched ? null : m.id)
   }
   const bubbled = !isCard && (own || isPrivate)
-  const pvt = isPrivate && (
-    <div className="private-tag"><Icon name="lock" fill size={14} />{privateLabel(m.visibility, viewerId, lang)}</div>
+  // later messages of the same private exchange: the tint says it, a screen reader still hears it
+  const pvt = isPrivate && (samePrivate
+    ? <span className="sr-only">{privateLabel(m.visibility, viewerId, lang)}</span>
+    : <div className="private-tag"><Icon name="lock" size={12} /><span className="ellipsis">{privateLabel(m.visibility, viewerId, lang)}</span></div>
   )
+  const showQuote = !!m.quoteId && !sameQuote
   return (
     <div
       className={`msg${own ? ' own' : ''}${grouped ? ' grouped' : ''}${parentId ? ' reply' : ''}${isPrivate ? ' private' : ''}${flash ? ' flash' : ''}${touched ? ' touched' : ''}${isCard ? ' is-card' : ''}`}
@@ -439,7 +435,7 @@ export const MessageRow = memo(function MessageRow({ m, pid, viewerId, ownerId, 
       <div className="msg-main">
         {!grouped && (
           <div className="msg-head">
-            {!own && <span className={`msg-name${person.role === 'ai' ? ' ai' : ''}`}>{name}</span>}
+            {!own && <span className={`msg-name${person.role === 'ai' ? ' ai' : ''}`} title={m.kind === 'email' && m.direction === 'in' ? mailAddress(m.from) : undefined}>{name}</span>}
             {own && <span className="sr-only">{t({ fr: 'Toi', en: 'You' })}</span>}
             <time className="msg-time" dateTime={new Date(m.at).toISOString()}>{fmtTime(m.at, lang)}</time>
           </div>
@@ -449,14 +445,14 @@ export const MessageRow = memo(function MessageRow({ m, pid, viewerId, ownerId, 
             ? (
               <div className={`bubble${isPrivate ? ' private' : ''}`}>
                 {pvt}
-                {m.quoteId && <Quote id={m.quoteId} pid={pid} viewerId={viewerId} />}
+                {showQuote && <Quote id={m.quoteId!} pid={pid} viewerId={viewerId} />}
                 <Body m={m} pid={pid} viewerId={viewerId} ownerId={ownerId} address={address} />
               </div>
             )
             : (
               <>
                 {isPrivate && pvt}
-                {m.quoteId && m.kind !== 'email' && <Quote id={m.quoteId} pid={pid} viewerId={viewerId} />}
+                {showQuote && m.kind !== 'email' && <Quote id={m.quoteId!} pid={pid} viewerId={viewerId} />}
                 <Body m={m} pid={pid} viewerId={viewerId} ownerId={ownerId} address={address} />
               </>
             )}

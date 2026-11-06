@@ -95,7 +95,7 @@ export function aurora(): Project {
   const blocks: Block[] = [
     {
       id: 'aurora-summary', type: 'summary', span: 3, title: { fr: 'Où on en est', en: 'Where things stand' }, updatedAt: dayAt(0, 9, 46),
-      text: { fr: `Le lot 2 de diffuseurs glisse de 7 jours chez Lumen Works. Les 300 pièces conformes sont parties par avion, la pré-série du ${fr(pilotRun)} tient. Reste une décision : garder la date de lancement ou la décaler d’une semaine. Nora peut suivre si elle est prévenue avant ${weekday(noraDeadline, 'fr')}.`, en: `Diffuser batch 2 slips by 7 days at Lumen Works. The 300 compliant parts are on their way by air, so the ${en(pilotRun)} pilot run holds. One decision left: keep the launch date or move it by a week. Nora can follow if she knows by ${weekday(noraDeadline, 'en')}.` },
+      text: { fr: `Reste une décision : garder la date de lancement ou la décaler d’une semaine. Le lot 2 de diffuseurs glisse de 7 jours chez Lumen Works. Les 300 pièces conformes sont parties par avion, la pré-série du ${fr(pilotRun)} tient. Nora peut suivre si elle est prévenue avant ${weekday(noraDeadline, 'fr')}.`, en: `One decision left: keep the launch date or move it by a week. Diffuser batch 2 slips by 7 days at Lumen Works. The 300 compliant parts are on their way by air, so the ${en(pilotRun)} pilot run holds. Nora can follow if she knows by ${weekday(noraDeadline, 'en')}.` },
       bullets: [
         { fr: 'Décision sur la date de lancement attendue d’Alex, après le point trésorerie de Léa', en: 'Launch date decision expected from Alex, once Léa confirms the cash plan' },
         { fr: 'Budget : 412 k€ engagés pour 400 k€, le shooting explique l’écart', en: 'Budget: €412K committed against €400K, the shoot explains the gap' },
@@ -151,7 +151,7 @@ export function aurora(): Project {
 
   const messages: Message[] = [
     // ---- three business days ago
-    t('a-m01', 'sofia', dayAt(-3, 9, 40), { fr: 'Première maquette de la page précommande sur le staging. @[Tom Laurent](tom) les photos Sable rendent vraiment bien en grand.', en: 'First cut of the preorder page is on staging. @[Tom Laurent](tom) the Sand photos look really good at full width.' }, { reactions: [{ emoji: '🔥', by: ['alex', 'maya', 'karim'] }] }),
+    t('a-m01', 'sofia', dayAt(-3, 9, 40), { fr: 'Première maquette de la page précommande sur le staging. @[Tom Laurent](tom) les photos Sable rendent vraiment bien en grand.', en: 'First cut of the preorder page is on staging. @[Tom Laurent](tom) the Sand photos look really good at full width.' }),
     {
       id: 'a-m02', kind: 'file', authorId: 'tom', at: dayAt(-3, 10, 5), visibility: all, artifactId: 'a-slides-keynote',
       text: { fr: 'Keynote v1, 6 slides. La 4 est encore un cadre rouge, je sais.', en: 'Keynote v1, 6 slides. Slide 4 is still a red box, I know.' },
@@ -166,11 +166,11 @@ export function aurora(): Project {
       description: { fr: 'Engagé vs prévu par poste, pour arrêter de rouvrir la feuille de Léa à chaque point.', en: 'Committed vs planned by item, so we stop reopening Léa’s sheet at every meeting.' },
       action: { type: 'add-block', block: blocks.find((b) => b.id === 'aurora-chart')! },
     },
-    t('a-m04', 'karim', dayAt(-3, 14, 22), { fr: `Lumen Works confirme le créneau de pré-série : ${fr(pilotRun)}, 500 unités. Les diffuseurs du lot 2 doivent arriver le ${fr(diffusersPlanned)}, soit une semaine avant. Ça passe.`, en: `Lumen Works confirms the pilot run slot: ${en(pilotRun)}, 500 units. Batch 2 diffusers are due on ${en(diffusersPlanned)}, a week before. We’re fine.` }, { reactions: [{ emoji: '👍', by: ['alex', 'maya'] }] }),
+    t('a-m04', 'karim', dayAt(-3, 14, 22), { fr: `Lumen Works confirme le créneau de pré-série : ${fr(pilotRun)}, 500 unités. Les diffuseurs du lot 2 doivent arriver le ${fr(diffusersPlanned)}, soit une semaine avant. Ça passe.`, en: `Lumen Works confirms the pilot run slot: ${en(pilotRun)}, 500 units. Batch 2 diffusers are due on ${en(diffusersPlanned)}, a week before. We’re fine.` }),
     { id: 'a-m05', kind: 'meeting', authorId: 'alex', at: dayAt(-3, 15, 30), visibility: all, title: { fr: 'Point hebdo Aurora', en: 'Aurora weekly' }, start: dayAt(-3, 16), durationMin: 45, attendeeIds: ['alex', 'maya', 'tom', 'sofia', 'karim', 'lea'], ended: true },
 
     // ---- two business days ago: the email that changes everything
-    t('a-m06', 'lea', dayAt(-2, 9, 15), { fr: 'Budget à jour. On est à 412 k€ engagés pour 400 k€ visés. Le shooting a coûté 13 k€ de plus que prévu, le reste tient.', en: 'Budget updated. We’re at €412K committed against a €400K target. The shoot came in €13K over, everything else holds.' }, { reactions: [{ emoji: '👀', by: ['alex'] }] }),
+    t('a-m06', 'lea', dayAt(-2, 9, 15), { fr: 'Budget à jour. On est à 412 k€ engagés pour 400 k€ visés. Le shooting a coûté 13 k€ de plus que prévu, le reste tient.', en: 'Budget updated. We’re at €412K committed against a €400K target. The shoot came in €13K over, everything else holds.' }),
     { id: 'a-m07', kind: 'file', authorId: 'lea', at: dayAt(-2, 9, 16), visibility: all, artifactId: 'a-sheet-budget', text: { fr: 'La feuille, avec un onglet par scénario.', en: 'The sheet, one tab per scenario.' } },
     {
       id: 'a-m08', kind: 'email', direction: 'in', authorId: 'jun', at: dayAt(-2, 11, 48), visibility: all,
@@ -191,7 +191,7 @@ export function aurora(): Project {
     t('a-m10', 'alex', dayAt(-2, 12, 3), { fr: 'Entre nous : c’est la deuxième fois que Lumen glisse en deux mois. On a un plan B sur les diffuseurs ?', en: 'Between us: that is the second time Lumen slips in two months. Do we have a plan B on diffusers?' }, { visibility: priv('alex', 'maya'), quoteId: 'a-m08' }),
     t('a-m11', 'maya', dayAt(-2, 12, 10), { fr: 'Pas vraiment. Orel Optics pourrait, mais avec 5 semaines de délai. Attendons l’appel avant de paniquer. Et Jun a été honnête, ça compte.', en: 'Not really. Orel Optics could, but with a 5-week lead time. Let’s wait for the call before panicking. And Jun was honest about it, that counts.' }, { visibility: priv('alex', 'maya'), quoteId: 'a-m08' }),
     t('a-m12', 'alex', dayAt(-2, 12, 20), { fr: `@[Karim Haddad](karim) @[Maya Chen](maya) appel ${rel(callDay, dayAt(-2, 12)).fr} 10 h sur le retard Lumen, avec @[Léa Martin](lea) pour le budget. @[Sofia Reyes](sofia) j’ai besoin de savoir si l’embargo avec Nora peut bouger.`, en: `@[Karim Haddad](karim) @[Maya Chen](maya) call ${rel(callDay, dayAt(-2, 12)).en} at 10 AM on the Lumen delay, with @[Léa Martin](lea) for the money side. @[Sofia Reyes](sofia) I need to know whether the embargo with Nora can move.` }),
-    t('a-m13', 'sofia', dayAt(-2, 14, 30), { fr: 'Le papier de Nora est calé pour le matin du lancement. Si on bouge, je dois la prévenir dans les prochains jours, elle a d’autres sujets derrière.', en: 'Nora’s piece is slotted for launch morning. If we move, I have to tell her in the next few days, she has other pieces lined up.' }, { reactions: [{ emoji: '👍', by: ['alex'] }] }),
+    t('a-m13', 'sofia', dayAt(-2, 14, 30), { fr: 'Le papier de Nora est calé pour le matin du lancement. Si on bouge, je dois la prévenir dans les prochains jours, elle a d’autres sujets derrière.', en: 'Nora’s piece is slotted for launch morning. If we move, I have to tell her in the next few days, she has other pieces lined up.' }),
     // Tom and Maya, hidden from Alex (proves "view as Tom")
     t('a-m14', 'tom', dayAt(-2, 15, 40), { fr: 'Franchement, si le lancement décale d’une semaine, j’en profiterais pour refaire la notice dans la boîte. Ne le dis pas encore à Alex, il va dire que je rajoute du scope.', en: 'Honestly, if the launch moves a week I’d use it to redo the insert in the box. Don’t tell Alex yet, he’ll say I’m adding scope.' }, { visibility: priv('tom', 'maya') }),
     t('a-m15', 'maya', dayAt(-2, 15, 47), { fr: 'Ha. On verra ce que dit l’appel. Si ça bouge, je te soutiens sur la notice. La version actuelle ressemble à un mode d’emploi de micro-ondes.', en: 'Ha. Let’s see what the call says. If it moves, I’ll back you on the insert. The current one reads like a microwave manual.' }, { visibility: priv('tom', 'maya') }),
@@ -226,14 +226,13 @@ export function aurora(): Project {
     {
       id: 'a-m19', kind: 'text', authorId: 'lea', at: dayAt(-1, 11, 30), visibility: all,
       text: { fr: 'Fret aérien pour les 300 pièces : 2 400 € environ. Ça pique, mais ça ne tue pas. Ligne ajoutée dans le budget.', en: 'Air freight for the 300 parts: about €2,400. It stings, but it won’t kill us. Line added to the budget.' },
-      reactions: [{ emoji: '🙏', by: ['karim', 'alex'] }],
       replies: [
         t('a-m19-r1', 'karim', dayAt(-1, 11, 34), { fr: 'Le bateau c’était 380 €. Je dis ça, je dis rien.', en: 'Sea freight was €380. Just saying.' }),
         t('a-m19-r2', 'lea', dayAt(-1, 11, 35), { fr: 'Je sais, Karim.', en: 'I know, Karim.' }, { reactions: [{ emoji: '😂', by: ['maya', 'sofia', 'tom'] }] }),
       ],
     },
-    { id: 'a-m20', kind: 'file', authorId: 'maya', at: dayAt(-1, 14, 12), visibility: all, artifactId: 'a-doc-brief', text: { fr: 'Brief de lancement mis à jour avec les deux scénarios. La section 4 est celle à lire.', en: 'Launch brief updated with both scenarios. Section 4 is the one to read.' }, reactions: [{ emoji: '👍', by: ['alex', 'sofia'] }] },
-    t('a-m21', 'tom', dayAt(-1, 15, 30), { fr: 'Petite chose : il me faut toujours une décision sur le coloris du visuel héros. Sable ou Ardoise. Je ne peux pas continuer à rendre les deux.', en: 'Quick one: I still need a decision on the hero colorway. Sand or Slate. I can’t keep rendering both.' }, { reactions: [{ emoji: '😅', by: ['sofia'] }] }),
+    { id: 'a-m20', kind: 'file', authorId: 'maya', at: dayAt(-1, 14, 12), visibility: all, artifactId: 'a-doc-brief', text: { fr: 'Brief de lancement mis à jour avec les deux scénarios. La section 4 est celle à lire.', en: 'Launch brief updated with both scenarios. Section 4 is the one to read.' }, },
+    t('a-m21', 'tom', dayAt(-1, 15, 30), { fr: 'Petite chose : il me faut toujours une décision sur le coloris du visuel héros. Sable ou Ardoise. Je ne peux pas continuer à rendre les deux.', en: 'Quick one: I still need a decision on the hero colorway. Sand or Slate. I can’t keep rendering both.' }),
     {
       id: 'a-m22', kind: 'proposal', authorId: 'tom', at: dayAt(-1, 15, 34), visibility: all, status: 'pending',
       title: { fr: 'Ajouter un sondage sur le coloris', en: 'Add a poll on the colorway' },
@@ -258,7 +257,7 @@ export function aurora(): Project {
         t('a-m23-r1', 'gemini', dayAt(-1, 16, 2) + 20_000, { fr: `Pas grand-chose de définitif. Les précommandes n’ouvrent que dans 4 semaines, donc un décalage les déplace, il ne les supprime pas. Le vrai risque est l’embargo avec Nora : si son papier sort avant la date, l’effet de surprise est perdu. Sofia a noté qu’elle peut suivre si elle est prévenue avant ${weekday(noraDeadline, 'fr')}.`, en: `Not much that is permanent. Preorders only open in 4 weeks, so a shift moves them, it does not lose them. The real risk is the embargo with Nora: if her piece runs before the date, the surprise is gone. Sofia noted she can follow if she knows by ${weekday(noraDeadline, 'en')}.` }, { visibility: priv('alex', 'gemini') }),
       ],
     },
-    t('a-m24', 'sofia', dayAt(-1, 17, 20), { fr: `J’ai eu Nora. Elle peut décaler son papier d’une semaine si on confirme avant ${weekday(noraDeadline, 'fr')}. Elle veut 20 minutes avec Tom sur l’histoire du design, je cale ça ${rel(noraMeeting, dayAt(-1, 17)).fr}.`, en: `Spoke with Nora. She can move her piece by a week if we confirm by ${weekday(noraDeadline, 'en')}. She wants 20 minutes with Tom about the design story, I’ll set it up for ${rel(noraMeeting, dayAt(-1, 17)).en}.` }, { reactions: [{ emoji: '🙏', by: ['alex', 'tom'] }] }),
+    t('a-m24', 'sofia', dayAt(-1, 17, 20), { fr: `J’ai eu Nora. Elle peut décaler son papier d’une semaine si on confirme avant ${weekday(noraDeadline, 'fr')}. Elle veut 20 minutes avec Tom sur l’histoire du design, je cale ça ${rel(noraMeeting, dayAt(-1, 17)).fr}.`, en: `Spoke with Nora. She can move her piece by a week if we confirm by ${weekday(noraDeadline, 'en')}. She wants 20 minutes with Tom about the design story, I’ll set it up for ${rel(noraMeeting, dayAt(-1, 17)).en}.` }),
 
     // ---- today (compressed into the time before now if needed)
     {
@@ -278,14 +277,12 @@ export function aurora(): Project {
     {
       id: 'a-m29', kind: 'text', authorId: 'maya', at: dayAt(0, 9, 40), visibility: all,
       text: { fr: 'J’ai testé le firmware 0.9.3 toute la nuit sur mon unité. La rampe de lever de soleil est enfin douce. L’alarme sonne encore avec 1 minute de retard par contre.', en: 'Ran firmware 0.9.3 on my unit all night. The sunrise ramp is finally smooth. The alarm still fires 1 minute late though.' },
-      reactions: [{ emoji: '☀️', by: ['tom', 'sofia', 'karim'] }],
       replies: [
         t('a-m29-r1', 'tom', dayAt(0, 9, 44), { fr: 'C’est une fonctionnalité, non ? Un snooze avant le snooze.', en: 'Is that a feature? A snooze before the snooze.' }),
         t('a-m29-r2', 'maya', dayAt(0, 9, 45), { fr: 'Non, Tom.', en: 'No, Tom.' }),
       ],
     },
-    { id: 'a-m30', kind: 'system', authorId: 'gemini', at: dayAt(0, 9, 46), visibility: all, icon: 'auto_awesome', text: { fr: 'Gemini a mis à jour « Où on en est » à partir des 12 derniers messages.', en: 'Gemini updated "Where things stand" from the last 12 messages.' } },
-    t('a-m31', 'sofia', dayAt(0, 10, 20), { fr: 'Le texte de la page précommande est dans le brief, section 5. Toujours « Aurora vous réveille en douceur » contre « Réveillez-vous à vos conditions ». Je préfère la première. Avis ?', en: 'The preorder page copy is in the brief, section 5. Still "Aurora wakes you gently" vs "Wake up on your terms". I prefer the first. Thoughts?' }, { reactions: [{ emoji: '✨', by: ['maya', 'lea'] }, { emoji: '🤔', by: ['tom'] }] }),
+    t('a-m31', 'sofia', dayAt(0, 10, 20), { fr: 'Le texte de la page précommande est dans le brief, section 5. Toujours « Aurora vous réveille en douceur » contre « Réveillez-vous à vos conditions ». Je préfère la première. Avis ?', en: 'The preorder page copy is in the brief, section 5. Still "Aurora wakes you gently" vs "Wake up on your terms". I prefer the first. Thoughts?' }),
     t('a-m32', 'alex', dayAt(0, 10, 35), { fr: 'Le sondage de Tom : si je l’approuve, on va finir avec « les deux », non ? On ne peut pas sortir deux références le premier jour.', en: 'Tom’s poll: if I approve it, we end up with "both", don’t we? We can’t ship two SKUs on day one.' }, { visibility: priv('alex', 'maya'), quoteId: 'a-m22' }),
     t('a-m33', 'maya', dayAt(0, 10, 41), { fr: 'On finira avec Sable. Tom le sait déjà. Laisse-lui son sondage, ça ne coûte rien et ça lui fera plaisir.', en: 'We’ll end up with Sand. Tom already knows. Let him have his poll, it costs nothing and it will make him happy.' }, { visibility: priv('alex', 'maya'), quoteId: 'a-m22' }),
   ]

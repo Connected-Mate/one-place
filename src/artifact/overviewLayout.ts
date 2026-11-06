@@ -11,21 +11,20 @@ export interface Slot { c: number; r: number; w: number; h: number }
 interface Want { w: number; h: number; min: number }
 
 // [wide 12-column page] and [narrow 2-column page], in grid units. Order below is also reading order.
-const WANT: Record<Block['type'], { wide: Want; narrow: Want; rank: number }> = {
-  summary: { rank: 0, wide: { w: 8, h: 2, min: 5 }, narrow: { w: 2, h: 2, min: 2 } },
-  calendar: { rank: 1, wide: { w: 4, h: 2, min: 3 }, narrow: { w: 1, h: 2, min: 1 } },
+const WANT: Record<Exclude<Block['type'], (typeof TAB_ONLY)[number]>, { wide: Want; narrow: Want; rank: number }> = {
+  summary: { rank: 0, wide: { w: 8, h: 1, min: 5 }, narrow: { w: 2, h: 1, min: 2 } },
+  calendar: { rank: 1, wide: { w: 4, h: 1, min: 3 }, narrow: { w: 2, h: 1, min: 2 } },
   timeline: { rank: 2, wide: { w: 8, h: 4, min: 5 }, narrow: { w: 2, h: 3, min: 2 } },
   model3d: { rank: 3, wide: { w: 4, h: 4, min: 3 }, narrow: { w: 1, h: 3, min: 1 } },
   kanban: { rank: 4, wide: { w: 8, h: 3, min: 6 }, narrow: { w: 2, h: 2, min: 2 } },
-  todo: { rank: 5, wide: { w: 5, h: 3, min: 4 }, narrow: { w: 2, h: 3, min: 2 } },
+  todo: { rank: 5, wide: { w: 8, h: 3, min: 4 }, narrow: { w: 2, h: 3, min: 2 } },
   chart: { rank: 6, wide: { w: 4, h: 3, min: 3 }, narrow: { w: 1, h: 3, min: 1 } },
-  people: { rank: 7, wide: { w: 3, h: 3, min: 3 }, narrow: { w: 1, h: 2, min: 1 } },
-  files: { rank: 8, wide: { w: 5, h: 2, min: 3 }, narrow: { w: 2, h: 2, min: 2 } },
-  poll: { rank: 9, wide: { w: 4, h: 2, min: 3 }, narrow: { w: 1, h: 2, min: 1 } },
-  notes: { rank: 10, wide: { w: 3, h: 2, min: 3 }, narrow: { w: 1, h: 2, min: 1 } },
+  poll: { rank: 7, wide: { w: 4, h: 2, min: 3 }, narrow: { w: 1, h: 2, min: 1 } },
 }
 
-export const inReadingOrder = (blocks: Block[]) => [...blocks].sort((a, b) => WANT[a.type].rank - WANT[b.type].rank)
+/** Overview says where things stand. These live in their own tab, one click away, and never as a tile. */
+const TAB_ONLY = ['people', 'files', 'notes'] as const
+export const onOverview = (b: Block): b is Extract<Block, { type: keyof typeof WANT }> => !(TAB_ONLY as readonly string[]).includes(b.type)
 
 function pack(items: { id: string; want: Want }[], cols: number) {
   const grid: (string | null)[][] = []
@@ -63,7 +62,7 @@ function pack(items: { id: string; want: Want }[], cols: number) {
 }
 
 export function layout(blocks: Block[]) {
-  const ordered = inReadingOrder(blocks)
+  const ordered = blocks.filter(onOverview).sort((a, b) => WANT[a.type].rank - WANT[b.type].rank)
   return {
     ordered,
     wide: pack(ordered.map((b) => ({ id: b.id, want: WANT[b.type].wide })), 12),

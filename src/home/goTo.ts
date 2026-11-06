@@ -4,7 +4,7 @@
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
 // Home's links into a project: the project, then the exact message or the exact to-do.
-import { useStore } from '../store'
+import { uid, useStore } from '../store'
 
 const st = () => useStore.getState()
 
@@ -26,6 +26,20 @@ function atBoard(pid: string, blockId: string) {
   st().selectProject(pid)
   st().setPane({ type: 'board' })
   requestAnimationFrame(() => pressSection(blockId))
+}
+
+/** The People view has no tab: the header faces and the project menu lead there. A project without one gets it now. */
+export function openPeople(pid: string) {
+  const s = st()
+  const have = s.projects.find((p) => p.id === pid)?.blocks.find((b) => b.type === 'people')
+  const id = have?.id ?? uid('b')
+  if (!have) {
+    s.addBlock(pid, { id, type: 'people', title: { fr: 'Équipe', en: 'Team' }, span: 1 })
+    s.patchBlock(pid, id, { fresh: false })
+  }
+  s.setPane({ type: 'board' })
+  s.setMobilePane('pane')
+  requestAnimationFrame(() => pressSection(id))
 }
 
 export function openBlock(pid: string, blockId: string) {

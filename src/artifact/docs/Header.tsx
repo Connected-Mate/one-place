@@ -25,7 +25,7 @@ export function ArtifactHeader({ artifact, children }: { artifact: Artifact; chi
         variant="tonal"
         className="rp-share"
         icon="group"
-        onClick={() => toast({ text: { fr: 'Tout le monde dans le projet l’a déjà', en: 'Everyone in the project already has it' }, icon: 'group' })}
+        onClick={() => toast({ text: { fr: 'Tout le monde l’a déjà', en: 'Everyone already has it' }, icon: 'group' })}
       >
         {t({ fr: 'Partager', en: 'Share' })}
       </Button>

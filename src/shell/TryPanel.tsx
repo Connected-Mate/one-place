@@ -4,7 +4,7 @@
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
 import { useState } from 'react'
-import { Icon, IconButton } from '../ui/kit'
+import { Icon } from '../ui/kit'
 import { ME_ID, useProject, useStore } from '../store'
 import { startCall } from '../call/callActions'
 import { useT } from '../i18n'
@@ -22,7 +22,7 @@ function useSteps() {
     { id: 'proposal', icon: 'how_to_vote', l: { fr: 'Valide une proposition', en: 'Approve a proposal' }, run: () => {
       const m = [...project.messages].reverse().find((x) => x.kind === 'proposal' && x.status === 'pending')
       s.setMobilePane('chat')
-      if (m) s.focusMessage(m.id); else s.toast({ text: { fr: 'Aucune proposition en attente ici.', en: 'No pending proposal here.' } })
+      if (m) s.focusMessage(m.id); else s.toast({ text: { fr: 'Aucune proposition en attente.', en: 'No proposal waiting' } })
     } },
     { id: 'call', icon: 'call', l: { fr: 'Lance un appel et raccroche', en: 'Start a call, then hang up' }, run: () => startCall(project.id) },
     { id: 'viewas', icon: 'visibility', l: s.viewerId === ME_ID ? { fr: 'Regarde avec les yeux de Tom', en: 'See it through Tom’s eyes' } : { fr: 'Reviens à Alex', en: 'Back to Alex’s view' }, run: () => s.setViewer(s.viewerId === ME_ID ? 'tom' : ME_ID) },
@@ -59,8 +59,7 @@ export function TryCard() {
   return (
     <section className={`try-card${open ? ' open' : ''}`} aria-label={t({ fr: 'À essayer', en: 'Things to try' })}>
       <button type="button" className="try-card-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <Icon name="flag" size={20} />
-        <strong>{t({ fr: 'À essayer', en: 'Things to try' })}</strong>
+        <span>{t({ fr: 'À essayer', en: 'Things to try' })}</span>
         <span className="try-count">{count}/{steps.length}</span>
         <Icon name={open ? 'expand_less' : 'expand_more'} size={20} />
       </button>
@@ -73,24 +72,18 @@ export function TryPanel() {
   const t = useT()
   const done = useStore((s) => s.tourDone)
   const steps = useSteps()
-  const [open, setOpenState] = useState(() => { try { return localStorage.getItem('one-place-try') !== 'min' } catch { return true } })
+  // One quiet row until someone asks for it.
+  const [open, setOpenState] = useState(() => { try { return localStorage.getItem('one-place-try') === 'open' } catch { return false } })
   const setOpen = (v: boolean) => { setOpenState(v); try { localStorage.setItem('one-place-try', v ? 'open' : 'min') } catch { /* private mode */ } }
   const count = steps.filter((x) => done.includes(x.id)).length
-  if (!open) {
-    return (
-      <button type="button" className="try-fab" onClick={() => setOpen(true)} aria-label={t({ fr: 'Ouvrir le parcours', en: 'Open the tour' })}>
-        <Icon name="flag" size={18} /> {count}/{steps.length}
-      </button>
-    )
-  }
   return (
-    <aside className="try" aria-label={t({ fr: 'À essayer', en: 'Things to try' })}>
-      <header>
-        <strong>{t({ fr: 'À essayer', en: 'Things to try' })}</strong>
+    <aside className={`try${open ? ' open' : ''}`} aria-label={t({ fr: 'À essayer', en: 'Things to try' })}>
+      {open && <StepRows steps={steps} done={done} />}
+      <button type="button" className="try-row" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span>{t({ fr: 'À essayer', en: 'Things to try' })}</span>
         <span className="try-count">{count}/{steps.length}</span>
-        <IconButton icon="close" size={28} label={t({ fr: 'Réduire', en: 'Minimize' })} onClick={() => setOpen(false)} />
-      </header>
-      <StepRows steps={steps} done={done} />
+        <Icon name={open ? 'expand_more' : 'expand_less'} size={18} />
+      </button>
     </aside>
   )
 }
