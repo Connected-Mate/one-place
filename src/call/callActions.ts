@@ -13,8 +13,6 @@ import { GEMINI_ID, personById, roleIn, uid, useStore } from '../store'
 import { stopMedia } from './media'
 import { stopVoice, unlockAudio } from './voice'
 
-const FIRST_JOIN_MS = 700
-const JOIN_STEP_MS = 1100
 const INVITE_JOIN_MS = 2200
 const WRITEUP_MS = 2400
 const SAVED_KEY = 'one-place-call'
@@ -73,14 +71,12 @@ function openCallPane(projectId: string) {
   useStore.getState().setPane({ type: 'call' })
 }
 
-function scheduleJoins(ids: string[], startedAt: number) {
-  ids.forEach((id, i) => {
-    callTimers.push(setTimeout(() => {
-      const { call, patchCall } = useStore.getState()
-      if (!call || call.startedAt !== startedAt || call.participantIds.includes(id)) return
-      patchCall({ participantIds: [...call.participantIds, id] })
-    }, FIRST_JOIN_MS + i * JOIN_STEP_MS))
-  })
+/** Arrivals are part of the call's timeline, see openings.ts. */
+export function joinParticipants(ids: string[]) {
+  const { call, patchCall } = useStore.getState()
+  if (!call) return
+  const fresh = ids.filter((id) => !call.participantIds.includes(id))
+  if (fresh.length) patchCall({ participantIds: [...call.participantIds, ...fresh] })
 }
 
 export function startCall(projectId: string) {
@@ -111,7 +107,6 @@ export function startCall(projectId: string) {
     s.push(projectId, message)
   }
   s.markTour('call')
-  scheduleJoins(expected, now)
 }
 
 /** Bring the view back to the running call, wherever the user went. */
@@ -331,8 +326,6 @@ function restoreOrSweep() {
   if (saved && savedProject && liveMeetingOf(savedProject)) {
     useCallUi.setState({ captionLine: saved.line ?? 0 })
     s.setCall(saved.call)
-    const script = scriptFor(savedProject, s.viewerId)
-    scheduleJoins(expectedIds(savedProject, s.viewerId, script.captions).filter((id) => !saved.call.participantIds.includes(id)), saved.call.startedAt)
   }
   for (const p of useStore.getState().projects) {
     for (const m of p.messages) {

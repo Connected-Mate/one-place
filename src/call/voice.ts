@@ -7,7 +7,8 @@
 // Nothing is downloaded before a call starts. Missing, stale or refused clips just mean silent captions.
 import { create } from 'zustand'
 
-export interface Clip { who: string; hash: string; duration: number }
+/** `end` is where the speech stops, before the clip's silent tail: a real conversation doesn't wait for it. */
+export interface Clip { who: string; hash: string; duration: number; end?: number }
 export type VoiceManifest = Record<string, Clip>
 
 const base = import.meta.env.BASE_URL
@@ -16,39 +17,45 @@ const START_TIMEOUT_MS = 4000
 
 export const useVoice = create<{ muted: boolean; blocked: boolean }>(() => ({ muted: false, blocked: false }))
 
-let el: HTMLAudioElement | null = null
+const POOL_SIZE = 4 // the most voices that talk at once
+const pool: HTMLAudioElement[] = []
 let manifest: Promise<VoiceManifest> | null = null
 let cancelActive: (() => void) | null = null
 
-function audioEl() {
-  if (!el) {
-    el = document.createElement('audio')
+function audioEl(i = 0) {
+  while (pool.length <= i) {
+    const el = document.createElement('audio')
     el.setAttribute('data-call-voice', '')
     el.preload = 'auto'
     el.style.display = 'none'
+    el.muted = useVoice.getState().muted
     document.body.appendChild(el)
+    pool.push(el)
   }
-  return el
+  return pool[i]
 }
 
-/** Call inside a click: browsers then let this element play on its own for the rest of the call. */
+/** Call inside a click: browsers then let these elements play on their own for the rest of the call. */
 export function unlockAudio() {
+  if (cancelActive) return // already speaking: the elements are unlocked
   try {
-    const a = audioEl()
-    if (cancelActive) return // already speaking: the element is unlocked
-    a.src = SILENCE
-    void a.play().then(() => { if (!cancelActive) a.pause() }, () => {})
+    for (let i = 0; i < POOL_SIZE; i++) {
+      const a = audioEl(i)
+      a.src = SILENCE
+      void a.play().then(() => { if (!cancelActive) a.pause() }, () => {})
+    }
   } catch { /* no audio at all: captions carry on */ }
 }
 
 export function enableSound() {
   unlockAudio()
   useVoice.setState({ blocked: false, muted: false })
+  pool.forEach((a) => { a.muted = false })
 }
 
 export function setCallAudioMuted(muted: boolean) {
   useVoice.setState({ muted })
-  if (el) el.muted = muted
+  pool.forEach((a) => { a.muted = muted })
 }
 
 /** Dates in the script are computed from today: they must not make yesterday's clip look stale. */
@@ -78,12 +85,11 @@ export function loadManifest(): Promise<VoiceManifest> {
 }
 
 /** The clip for this line, or null when this line has to stay silent. */
-export function clipFor(m: VoiceManifest, prefix: string | undefined, line: number, who: string, text: string, selfId: string) {
-  if (!prefix || who === selfId) return null // the viewer's own lines are captions only
-  const key = `${prefix}-${line}`
+export function clipFor(m: VoiceManifest, key: string | undefined, who: string, text: string, selfId: string) {
+  if (!key || who === selfId) return null // the viewer's own lines are captions only
   const clip = m[key]
   if (!clip || clip.who !== who || clip.hash !== textHash(text)) return null
-  return { src: `${base}call/voice/${key}.mp3`, duration: clip.duration }
+  return { src: `${base}call/voice/${key}.mp3`, duration: clip.end ?? clip.duration }
 }
 
 export const estimateSeconds = (words: number) => Math.max(1.6, words * .36)
@@ -132,6 +138,10 @@ export function speak({ src, duration, onTalk, onProgress, onDone }: Speak) {
     onProgress(1)
     onDone()
   }
+  const finishAndCut = () => {
+    if (a) a.pause()
+    finish()
+  }
   const silent = (from = 0) => {
     if (over) return
     detach()
@@ -156,7 +166,10 @@ export function speak({ src, duration, onTalk, onProgress, onDone }: Speak) {
     useVoice.setState({ blocked: false })
     onTalk(true)
     if (tick) clearInterval(tick)
-    tick = setInterval(() => onProgress(Math.min(1, a.currentTime / (a.duration || duration))), 60)
+    tick = setInterval(() => {
+      onProgress(Math.min(1, a.currentTime / duration))
+      if (a.currentTime >= duration) finishAndCut() // the rest of the clip is only its silent tail
+    }, 40)
   }
   a.onended = finish
   a.onerror = () => silent()
@@ -165,6 +178,42 @@ export function speak({ src, duration, onTalk, onProgress, onDone }: Speak) {
     if (e?.name === 'NotAllowedError') useVoice.setState({ blocked: true })
     silent()
   })
+  return cancel
+}
+
+interface Many {
+  parts: { src?: string; duration: number; at: number }[]
+  onDone(): void
+}
+
+/** Several voices at once: one element each, each with its small offset, as people really talk over each other. */
+export function speakTogether({ parts, onDone }: Many) {
+  cancelActive?.()
+  const timers: ReturnType<typeof setTimeout>[] = []
+  const used: HTMLAudioElement[] = []
+  let over = false
+  const cancel = () => {
+    if (over) return
+    over = true
+    timers.forEach(clearTimeout)
+    used.forEach((a) => { a.pause(); a.removeAttribute('src'); a.load() })
+    cancelActive = null
+  }
+  cancelActive = cancel
+  parts.slice(0, POOL_SIZE).forEach((p, i) => {
+    if (!p.src) return
+    timers.push(setTimeout(() => {
+      const a = audioEl(i)
+      used.push(a)
+      a.muted = useVoice.getState().muted
+      a.src = p.src!
+      a.play().then(() => useVoice.setState({ blocked: false }), (e: { name?: string }) => {
+        if (!over && e?.name === 'NotAllowedError') useVoice.setState({ blocked: true })
+      })
+    }, p.at))
+  })
+  const longest = Math.max(...parts.map((p) => p.at + p.duration * 1000), 700)
+  timers.push(setTimeout(() => { used.forEach((a) => a.pause()); over = true; cancelActive = null; onDone() }, longest))
   return cancel
 }
 

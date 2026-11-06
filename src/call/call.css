@@ -349,3 +349,11 @@ button.cv-gemini:hover{transform:scale(1.06)}
   [data-mode="project"] .cv-top{display:none}
   [data-mode="project"] .cv-body{padding-top:12px}
 }
+
+/* ---- Gemini's first note, right by the badge ---- */
+.cv-note-card{position:absolute;z-index:3;width:min(280px,calc(100% - 24px));transform:translate(-50%,30px);padding:8px 12px;border-radius:var(--r-m);background:var(--panel);color:var(--text);box-shadow:var(--shadow-3);font-size:13px;line-height:18px;animation:cv-card var(--t-slow) var(--ease-out)}
+.cv-note-card.above{transform:translate(-50%,calc(-100% - 30px))}
+.cv-note-card header{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:2px}
+.cv-note-card p{margin:0;overflow-wrap:anywhere}
+.cv-cap-face{display:inline-flex;border-radius:50%;box-shadow:0 0 0 2px rgba(32,33,36,.94);flex:none}
+@keyframes cv-card{from{opacity:0;scale:.94}}

@@ -12,11 +12,11 @@ import { useT } from '../i18n'
 import { useStore } from '../store'
 import { Avatar, Icon, Sparkle, base } from '../ui/kit'
 import { clearNotice, subscribeLevel, useMedia, useTabVisible } from './media'
-import { clipFor, enableSound, estimateSeconds, loadManifest, setCallAudioMuted, speak, useVoice } from './voice'
+import { talkersOf, type Beat } from './openings'
+import { clipFor, enableSound, estimateSeconds, loadManifest, setCallAudioMuted, speak, speakTogether, useVoice } from './voice'
 import './call.css'
 
 export interface StagePerson { person: Person; callOnly?: boolean }
-export interface CaptionLine { who: string; text: Txt }
 
 export interface StageProps {
   mode: 'project' | 'guest'
@@ -32,10 +32,10 @@ export interface StageProps {
   captions: boolean
   sharing?: boolean
   hand: boolean
-  lines: CaptionLine[]
-  /** names the clips of these lines, see voice.ts */
-  voicePrefix?: string
+  /** the whole call in order: opening, then script. See openings.ts */
+  timeline: Beat[]
   line: number
+  onJoin(ids: string[]): void
   doc?: Artifact
   onLine(n: number): void
   onMic(): void
@@ -68,65 +68,89 @@ export function useElapsed(startedAt: number) {
 const GAP_MS = 600
 const LAST_LINE_HOLD_MS = 2200
 
-/** Plays the script line by line, in sync with each clip. Stops at the end; everything dies with the component. */
-function useCaptionPlayer({ lines, line, onLine, joined, selfId, mic, allHere, voicePrefix }: { lines: CaptionLine[]; line: number; onLine(n: number): void; joined: Set<string>; selfId: string; mic: boolean; allHere: boolean; voicePrefix?: string }) {
+/** Runs the timeline step by step: joins, silences, lines, choruses, notes. Stops at the end; everything dies with the component. */
+function useTimeline({ timeline, line, onLine, onJoin, selfId, mic, onNote }: { timeline: Beat[]; line: number; onLine(n: number): void; onJoin(ids: string[]): void; selfId: string; mic: boolean; onNote(text: string): void }) {
   const lang = useStore((s) => s.lang)
   const [count, setCount] = useState(0)
-  const [talking, setTalking] = useState(false)
+  const [talking, setTalking] = useState<string[]>([])
   const visible = useTabVisible()
   const hasMic = useMedia((m) => !!m.audio)
-  const current = lines[line] as CaptionLine | undefined
-  const who = current?.who
+  const beat = timeline[line] as Beat | undefined
+  const sayWho = beat?.kind === 'say' ? beat.who : undefined
   // You don't speak with your mic off. With no mic at all, your lines stay: the conversation needs them.
-  const skip = who === selfId && !mic && hasMic
-  // People must be there before they speak; the opening line waits for the whole room.
-  const ready = !!who && (joined.has(who) || who === 'gemini') && (line > 0 || allHere)
-  const text = current ? (typeof current.text === 'string' ? current.text : current.text[lang]) : ''
+  const skip = sayWho === selfId && !mic && hasMic
+  const text = beat?.kind === 'say' ? (typeof beat.text === 'string' ? beat.text : beat.text[lang]) : beat?.kind === 'chorus' ? beat.caption : ''
   const words = useMemo(() => text.split(/\s+/).filter(Boolean), [text])
-  const onLineRef = useRef(onLine)
-  onLineRef.current = onLine
+  const handlers = useRef({ onLine, onJoin, onNote })
+  handlers.current = { onLine, onJoin, onNote }
 
   useEffect(() => {
-    setCount(0)
-    setTalking(false)
-    if (!current || !visible) return
-    if (skip) {
-      const t = setTimeout(() => onLineRef.current(line + 1), 0)
+    if (!beat || !visible) { setCount(0); setTalking([]); return }
+    const next = () => handlers.current.onLine(line + 1)
+    if (beat.kind === 'wait') {
+      const t = setTimeout(next, beat.ms)
       return () => clearTimeout(t)
     }
-    if (!ready) return
+    if (beat.kind === 'join' || beat.kind === 'note') {
+      if (beat.kind === 'join') handlers.current.onJoin(beat.ids)
+      else handlers.current.onNote(beat.text)
+      const t = setTimeout(next, beat.ms ?? 0)
+      return () => clearTimeout(t)
+    }
+    setCount(0)
+    setTalking([])
+    if (skip) {
+      const t = setTimeout(next, 0)
+      return () => clearTimeout(t)
+    }
     let dead = false
     let stop: (() => void) | undefined
     let hold: ReturnType<typeof setTimeout> | undefined
-    // Words appear in proportion to their length, which follows speech better than a word count.
-    const total = words.reduce((n, w) => n + w.length + 1, 0) || 1
-    const countAt = (f: number) => {
-      if (reducedMotion()) return words.length
-      let seen = 0, n = 0
-      for (const w of words) { seen += w.length + 1; if (seen / total > f + .02) break; n += 1 }
-      return Math.max(1, n)
+    const gap = beat.gap ?? (timeline[line + 1] ? GAP_MS : LAST_LINE_HOLD_MS)
+    const after = () => {
+      setTalking([])
+      setCount(words.length)
+      hold = setTimeout(next, gap)
     }
     void loadManifest().then((m) => {
       if (dead) return
-      const clip = clipFor(m, voicePrefix, line, who!, text, selfId)
+      if (beat.kind === 'chorus') {
+        setTalking(beat.parts.map((p) => p.who))
+        setCount(words.length) // a shout has no word-by-word
+        stop = speakTogether({
+          parts: beat.parts.map((p) => {
+            const clip = clipFor(m, p.key, p.who, p.text, selfId)
+            return { src: clip?.src, duration: clip?.duration ?? .9, at: p.at ?? 0 }
+          }),
+          onDone: after,
+        })
+        return
+      }
+      // Words appear in proportion to their length, which follows speech better than a word count.
+      const total = words.reduce((n, w) => n + w.length + 1, 0) || 1
+      const countAt = (f: number) => {
+        if (reducedMotion()) return words.length
+        let seen = 0, n = 0
+        for (const w of words) { seen += w.length + 1; if (seen / total > f + .02) break; n += 1 }
+        return Math.max(1, n)
+      }
+      const clip = clipFor(m, beat.key, beat.who, text, selfId)
       stop = speak({
         src: clip?.src,
         duration: clip?.duration ?? estimateSeconds(words.length),
-        onTalk: setTalking,
+        onTalk: (on) => setTalking(on ? [beat.who] : []),
         onProgress: (f) => { const n = countAt(f); setCount((c) => (c === n ? c : n)) },
-        onDone: () => {
-          setTalking(false)
-          setCount(words.length)
-          hold = setTimeout(() => onLineRef.current(line + 1), lines[line + 1] ? GAP_MS : LAST_LINE_HOLD_MS)
-        },
+        onDone: after,
       })
     })
     return () => { dead = true; stop?.(); if (hold) clearTimeout(hold) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [line, words, skip, ready, visible, voicePrefix])
+  }, [line, words, skip, visible])
 
-  const shown = !!current && count > 0
-  return { who: talking ? who : undefined, captionWho: shown ? who : undefined, text: shown ? words.slice(0, count).join(' ') : '' }
+  const spoken = beat?.kind === 'say' || beat?.kind === 'chorus'
+  const shown = spoken && count > 0
+  const speakers = beat?.kind === 'chorus' ? beat.parts.map((p) => p.who) : sayWho ? [sayWho] : []
+  return { talking, captionWho: shown ? speakers : [], text: shown ? words.slice(0, count).join(' ') : '' }
 }
 
 /** One quiet line at the top of the stage: the privacy note, or why the camera is off. Never blocks anything. */
@@ -478,10 +502,16 @@ export function Stage(p: StageProps) {
 
   const ids = p.people.map((x) => x.person.id)
   const joined = useMemo(() => new Set(ids), [ids.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
-  const captions = useCaptionPlayer({ lines: p.lines, line: p.line, onLine: p.onLine, joined, selfId: p.selfId, mic: p.mic, allHere: p.waiting === 0, voicePrefix: p.voicePrefix })
+  const [card, setCard] = useState<{ id: number; text: string } | null>(null)
+  const captions = useTimeline({ timeline: p.timeline, line: p.line, onLine: p.onLine, onJoin: p.onJoin, selfId: p.selfId, mic: p.mic, onNote: (text) => setCard((c) => ({ id: (c?.id ?? 0) + 1, text })) })
+  useEffect(() => {
+    if (!card) return
+    const t = setTimeout(() => setCard(null), 6500)
+    return () => clearTimeout(t)
+  }, [card])
   const audioMuted = useVoice((v) => v.muted)
   const soundBlocked = useVoice((v) => v.blocked)
-  const talkers = useMemo(() => new Set(p.lines.map((l) => l.who)), [p.lines])
+  const talkers = useMemo(() => talkersOf(p.timeline), [p.timeline])
   const muted = (id: string) => (id === p.selfId ? !p.mic : !talkers.has(id))
 
   // Arrival animation and announcement only for those who join while we watch.
@@ -547,10 +577,10 @@ export function Stage(p: StageProps) {
   if (ordered.length > MAX_TILES && !p.sharing) {
     visible = ordered.slice(0, MAX_TILES - 1)
     overflow = ordered.length - visible.length
-    const talking = captions.who && ordered.find((x) => x.person.id === captions.who)
+    const talking = ordered.find((x) => captions.talking.includes(x.person.id))
     if (talking && !visible.includes(talking)) visible = [...visible.slice(0, -1), talking]
   }
-  const speaker = captions.captionWho ? p.people.find((x) => x.person.id === captions.captionWho)?.person : undefined
+  const speakers = captions.captionWho.map((id) => p.people.find((x) => x.person.id === id)?.person).filter((x): x is Person => !!x)
   const showDoc = p.sharing && p.doc
 
   const captioning = p.captions && !!captions.text
@@ -558,14 +588,17 @@ export function Stage(p: StageProps) {
   const wrap = useRef<HTMLDivElement>(null)
   const crossing = useCrossing(wrap, showDoc ? 0 : cells, captioning)
   const firstName = (id: string) => (p.people.find((x) => x.person.id === id)?.person.name ?? '').split(' ')[0]
-  const heard = p.lines.slice(0, captions.captionWho ? p.line + 1 : p.line).slice(-3)
-  const notes = p.mode === 'guest' ? [] : heard.map((l) => ({ who: firstName(l.who), text: t(l.text) }))
+  // Gemini's notes: what it wrote, then what was said in the meeting proper. Hellos are not notes.
+  const notes = p.mode === 'guest' ? [] : p.timeline.slice(0, captions.text ? p.line + 1 : p.line).flatMap((b) => (
+    b.kind === 'note' ? [{ who: '', text: b.text }] : b.kind === 'say' && b.scripted ? [{ who: firstName(b.who), text: t(b.text) }] : []
+  )).slice(-3)
+  const hearing = captions.talking.length > 0 || !!card
 
   const tiles = visible.map(({ person, callOnly }) => {
     const isSelf = person.id === p.selfId
     return (
       <Tile key={person.id} person={person} self={isSelf} cam={isSelf ? p.cam : true}
-        muted={muted(person.id)} speaking={captions.who === person.id} hand={isSelf && p.hand}
+        muted={muted(person.id)} speaking={captions.talking.includes(person.id)} hand={isSelf && p.hand}
         callOnly={callOnly} arrive={arrived.has(person.id)} />
     )
   })
@@ -584,7 +617,7 @@ export function Stage(p: StageProps) {
         <div className="cv-main">
           {showDoc && <DocCard doc={p.doc!} onStop={p.onShare} />}
           {showDoc
-            ? <div className="cv-strip-wrap"><div className="cv-strip">{tiles}</div><GeminiBadge mode={p.mode} talking={!!captions.who} notes={notes} className="on-strip" /></div>
+            ? <div className="cv-strip-wrap"><div className="cv-strip">{tiles}</div><GeminiBadge mode={p.mode} talking={hearing} notes={notes} className="on-strip" /></div>
             : (
               <div ref={wrap} className="cv-grid-wrap">
                 <div className="cv-grid" data-n={cells}>
@@ -595,20 +628,26 @@ export function Stage(p: StageProps) {
                     </button>
                   )}
                 </div>
-                {crossing && <GeminiBadge mode={p.mode} talking={!!captions.who} notes={notes} style={{ left: crossing.x, top: crossing.y }} />}
+                {crossing && <GeminiBadge mode={p.mode} talking={hearing} notes={notes} style={{ left: crossing.x, top: crossing.y }} />}
+                {crossing && card && p.mode === 'project' && (
+                  <div key={card.id} className={`cv-note-card${crossing.y > (wrap.current?.clientHeight ?? 0) * .6 ? ' above' : ''}`} role="status" style={{ left: crossing.x, top: crossing.y }}>
+                    <header><Sparkle size={14} />{t({ fr: 'Gemini prend des notes', en: 'Gemini is taking notes' })}</header>
+                    <p>{card.text}</p>
+                  </div>
+                )}
                 {p.people.length === 1 && (
                   <div className="cv-alone">
                     {p.waiting > 0
-                      ? t({ fr: 'Les autres arrivent…', en: 'The others are on their way…' })
-                      : t({ fr: 'Personne d’autre dans l’appel pour l’instant.', en: 'You are the only one here for now.' })}
+                      ? t({ fr: 'En attente des autres participants', en: 'Waiting for others to join' })
+                      : t({ fr: 'Vous êtes seul dans cet appel', en: 'You’re the only one here' })}
                   </div>
                 )}
               </div>
             )}
           {captioning && (
             <div className={`cv-captions${showDoc ? ' over-strip' : ''}`} aria-live="off" aria-label={t({ fr: 'Sous-titres en direct', en: 'Live captions' })}>
-              {speaker && <Avatar person={speaker} size={24} />}
-              <div className="cv-cap-text">{speaker && <b>{speaker.name}</b>}<p>{captions.text}</p></div>
+              {speakers.slice(0, 3).map((x, i) => <span key={x.id} className="cv-cap-face" style={{ marginLeft: i ? -8 : 0 }}><Avatar person={x} size={24} /></span>)}
+              <div className="cv-cap-text">{speakers.length > 0 && <b>{speakers.map((x) => (speakers.length > 1 ? x.name.split(' ')[0] : x.name)).join(', ')}</b>}<p>{captions.text}</p></div>
             </div>
           )}
           <MediaNotice />

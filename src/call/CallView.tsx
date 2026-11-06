@@ -9,11 +9,12 @@ import { fmtDay, fmtTime, useT } from '../i18n'
 import { personById, ME_ID, paneOf, useStore, useViewer } from '../store'
 import { Avatar, AvatarStack, Button, Icon, Sparkle } from '../ui/kit'
 import { Logo } from '../ui/Logo'
-import { endCall, expectedIds, guestAsPerson, returnToCall, scriptFor, startCall, useCallUi } from './callActions'
+import { endCall, expectedIds, guestAsPerson, joinParticipants, returnToCall, scriptFor, startCall, useCallUi } from './callActions'
 import { InviteDialog } from './InviteDialog'
 import { setCamera, setMicrophone, useLiveMedia } from './media'
+import { buildGuestTimeline, buildTimeline } from './openings'
 import { unlockAudio } from './voice'
-import { CtlButton, MediaNotice, Stage, Tile, useElapsed, type CaptionLine, type StagePerson } from './Stage'
+import { CtlButton, MediaNotice, Stage, Tile, useElapsed, type StagePerson } from './Stage'
 import './call.css'
 
 /* ---- The call inside the project ---- */
@@ -38,13 +39,15 @@ function ProjectStage({ call, project }: { call: CallState; project: Project }) 
   }, [call.participantIds, call.guests, viewerId, project.memberIds])
   const expected = expectedIds(project, viewerId, script.captions)
   const waiting = expected.filter((id) => !call.participantIds.includes(id)).length + pending
+  // Fixed for the whole call: it must not shift under the player if the project changes meanwhile.
+  const timeline = useMemo(() => buildTimeline(project, viewerId, script, expected), [call.startedAt, viewerId]) // eslint-disable-line react-hooks/exhaustive-deps
   useLiveMedia(true, call.cam, call.mic, (what) => patchCall(what === 'cam' ? { cam: false } : { mic: false }))
 
   return (
     <>
       <Stage mode="project" title={call.title} startedAt={call.startedAt} selfId={viewerId} people={people} waiting={waiting}
         mic={call.mic} cam={call.cam} captions={call.captions} sharing={call.sharing} hand={hand} doc={doc}
-        lines={script.captions} voicePrefix={project.id} line={line} onLine={(n) => useCallUi.setState({ captionLine: n })}
+        timeline={timeline} line={line} onLine={(n) => useCallUi.setState({ captionLine: n })} onJoin={joinParticipants}
         onMic={() => { void setMicrophone(!call.mic); patchCall({ mic: !call.mic }) }}
         onCam={() => { void setCamera(!call.cam); patchCall({ cam: !call.cam }) }}
         onCaptions={() => patchCall({ captions: !call.captions })} onHand={() => useCallUi.setState({ hand: !hand })}
@@ -151,13 +154,6 @@ function findGuestMeeting(projects: Project[], viewerId: string, viewerEmail: st
   }
 }
 
-/** What a guest hears is generic on purpose: the project's script talks about things she must not see. */
-const guestLines = (hostId: string, otherId: string | undefined, guestName: string): CaptionLine[] => [
-  { who: hostId, text: { fr: `Bonjour ${guestName}, merci de nous rejoindre.`, en: `Hi ${guestName}, thanks for joining us.` } },
-  ...(otherId ? [{ who: otherId, text: { fr: 'Bonjour ! On vous entend très bien.', en: 'Hello! We can hear you really well.' } }] : []),
-  { who: hostId, text: { fr: 'On commence quand vous voulez. Vous avez une vingtaine de minutes ?', en: 'We can start whenever you like. Do you have about twenty minutes?' } },
-]
-
 function ViewAsAlex({ compact }: { compact?: boolean }) {
   const t = useT()
   const setViewer = useStore((s) => s.setViewer)
@@ -199,7 +195,7 @@ export function GuestScreen() {
   const [hand, setHand] = useState(false)
   const [startedAt, setStartedAt] = useState(0)
   const [line, setLine] = useState(0)
-  const [joinedCount, setJoinedCount] = useState(0)
+  const [joinedIds, setJoinedIds] = useState<string[]>([])
 
   // A guest's meeting is frozen once joined: the project moving on must not change her stage.
   const [held, setHeld] = useState<GuestMeeting | null>(null)
@@ -211,31 +207,23 @@ export function GuestScreen() {
     return ids.includes(current.hostId) ? [current.hostId, ...ids.filter((id) => id !== current.hostId)] : [current.hostId, ...ids]
   }, [current, viewer.id])
 
-  const lines = useMemo<CaptionLine[]>(() => (
-    current ? guestLines(current.hostId, others.find((id) => id !== current.hostId), viewer.name.split(' ')[0]) : []
-  ), [current, others, viewer.name])
-
-  useEffect(() => {
-    if (phase !== 'joined') return
-    const timers = others.map((_, i) => setTimeout(() => setJoinedCount((n) => Math.max(n, i + 1)), 700 + i * 1100))
-    return () => timers.forEach(clearTimeout)
-  }, [phase, others])
+  // What a guest hears is generic on purpose: the project's script talks about things she must not see.
+  const timeline = useMemo(() => (current ? buildGuestTimeline(current.hostId, others, viewer.id, viewer.name.split(' ')[0]) : []), [current, others, viewer.id, viewer.name])
 
   // Pre-join shows a real preview, as Meet does; leaving lets go of the camera at once.
   useLiveMedia(phase !== 'left' && !!current, cam, mic, (what) => (what === 'cam' ? setCam(false) : setMic(false)))
 
-  const join = () => { unlockAudio(); setHeld(meeting); setStartedAt(Date.now()); setLine(0); setJoinedCount(0); setHand(false); setPhase('joined') }
+  const join = () => { unlockAudio(); setHeld(meeting); setStartedAt(Date.now()); setLine(0); setJoinedIds([]); setHand(false); setPhase('joined') }
 
   if (phase === 'joined' && current) {
     const inCall: StagePerson[] = [
       { person: viewer, callOnly: true },
-      ...others.slice(0, joinedCount).map((id) => ({ person: personById(id) })),
+      ...joinedIds.map((id) => ({ person: personById(id) })),
     ]
     return (
       <div className="cv-guest-stage">
-        <Stage mode="guest" title={current.title} startedAt={startedAt} selfId={viewer.id} people={inCall} waiting={others.length - joinedCount}
-          mic={mic} cam={cam} captions={captions} hand={hand} lines={lines} line={line} onLine={setLine}
-          voicePrefix="guest"
+        <Stage mode="guest" title={current.title} startedAt={startedAt} selfId={viewer.id} people={inCall} waiting={others.length - joinedIds.length}
+          mic={mic} cam={cam} captions={captions} hand={hand} timeline={timeline} line={line} onLine={setLine} onJoin={(ids) => setJoinedIds((j) => [...new Set([...j, ...ids])])}
           onMic={() => { void setMicrophone(!mic); setMic(!mic) }} onCam={() => { void setCamera(!cam); setCam(!cam) }} onCaptions={() => setCaptions((v) => !v)} onHand={() => setHand((v) => !v)}
           onHangUp={() => setPhase('left')} topSlot={<ViewAsAlex compact />} />
       </div>
