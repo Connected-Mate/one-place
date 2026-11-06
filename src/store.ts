@@ -228,4 +228,5 @@ export const canSee = (v: Visibility, viewerId: string) => v.type === 'all' || v
 /** owner edits directly; members propose; guests see only their call. */
 export const roleIn = (p: Project, viewerId: string): 'owner' | 'member' | 'guest' => (p.ownerId === viewerId ? 'owner' : p.memberIds.includes(viewerId) ? 'member' : 'guest')
 export { GEMINI_ID, ME_ID }
-export const paneOf = (s: State): PaneView => s.panes[s.activeProjectId] ?? { type: 'board' }
+const BOARD: PaneView = { type: 'board' } // same object each read: safe as a store selector
+export const paneOf = (s: State): PaneView => s.panes[s.activeProjectId] ?? BOARD
