@@ -6,6 +6,7 @@
 // The voices of the call: one clip per scripted line, one line at a time, through one <audio> element.
 // Nothing is downloaded before a call starts. Missing, stale or refused clips just mean silent captions.
 import { create } from 'zustand'
+import { audioContext, stopLoop } from './sounds'
 
 /** `end` is where the speech stops, before the clip's silent tail: a real conversation doesn't wait for it. */
 export interface Clip { who: string; hash: string; duration: number; end?: number }
@@ -19,6 +20,35 @@ export const useVoice = create<{ muted: boolean; blocked: boolean }>(() => ({ mu
 
 const POOL_SIZE = 4 // the most voices that talk at once
 const pool: HTMLAudioElement[] = []
+const analysers = new Map<HTMLAudioElement, { node: AnalyserNode; data: Uint8Array<ArrayBuffer> }>()
+/** Who is being heard right now, on which element. Faces follow this. */
+const voiceOf = new Map<string, HTMLAudioElement>()
+
+/** Reads the element's real level, to move the mouth with the voice. Only with a running context: a suspended one would silence the element. */
+function listen(a: HTMLAudioElement) {
+  if (analysers.has(a)) return
+  const c = audioContext()
+  if (!c || c.state !== 'running') return
+  try {
+    const source = c.createMediaElementSource(a)
+    const node = c.createAnalyser()
+    node.fftSize = 256
+    source.connect(node)
+    node.connect(c.destination)
+    analysers.set(a, { node, data: new Uint8Array(node.fftSize) })
+  } catch { /* timing will do */ }
+}
+
+/** The voice level of this person from 0 to 1, or null when it can't be measured and timing must stand in. */
+export function voiceLevel(who: string): number | null {
+  const a = voiceOf.get(who)
+  const an = a && analysers.get(a)
+  if (!an || a!.muted) return null
+  an.node.getByteTimeDomainData(an.data)
+  let sum = 0
+  for (const v of an.data) sum += ((v - 128) / 128) ** 2
+  return Math.min(1, Math.sqrt(sum / an.data.length) * 4)
+}
 let manifest: Promise<VoiceManifest> | null = null
 let cancelActive: (() => void) | null = null
 
@@ -95,6 +125,7 @@ export function clipFor(m: VoiceManifest, key: string | undefined, who: string, 
 export const estimateSeconds = (words: number) => Math.max(1.6, words * .36)
 
 interface Speak {
+  who?: string
   src?: string
   duration: number
   onTalk(on: boolean): void
@@ -104,7 +135,7 @@ interface Speak {
 }
 
 /** Plays one line. Returns a function that stops it at once. */
-export function speak({ src, duration, onTalk, onProgress, onDone }: Speak) {
+export function speak({ who, src, duration, onTalk, onProgress, onDone }: Speak) {
   cancelActive?.()
   let tick: ReturnType<typeof setInterval> | undefined
   let guard: ReturnType<typeof setTimeout> | undefined
@@ -116,6 +147,7 @@ export function speak({ src, duration, onTalk, onProgress, onDone }: Speak) {
     if (guard) clearTimeout(guard)
     tick = guard = undefined
     if (a) { a.onplaying = a.onended = a.onerror = null }
+    if (who) voiceOf.delete(who)
   }
   const stopElement = () => {
     if (!a) return
@@ -158,6 +190,8 @@ export function speak({ src, duration, onTalk, onProgress, onDone }: Speak) {
   cancelActive = cancel
   if (!a) { silent(); return cancel }
 
+  listen(a)
+  if (who) voiceOf.set(who, a)
   a.muted = useVoice.getState().muted
   a.src = src!
   guard = setTimeout(() => silent(), START_TIMEOUT_MS) // slow network: the captions don't wait
@@ -182,7 +216,7 @@ export function speak({ src, duration, onTalk, onProgress, onDone }: Speak) {
 }
 
 interface Many {
-  parts: { src?: string; duration: number; at: number }[]
+  parts: { who?: string; src?: string; duration: number; at: number }[]
   onDone(): void
 }
 
@@ -197,6 +231,7 @@ export function speakTogether({ parts, onDone }: Many) {
     over = true
     timers.forEach(clearTimeout)
     used.forEach((a) => { a.pause(); a.removeAttribute('src'); a.load() })
+    parts.forEach((p) => { if (p.who) voiceOf.delete(p.who) })
     cancelActive = null
   }
   cancelActive = cancel
@@ -205,6 +240,8 @@ export function speakTogether({ parts, onDone }: Many) {
     timers.push(setTimeout(() => {
       const a = audioEl(i)
       used.push(a)
+      listen(a)
+      if (p.who) voiceOf.set(p.who, a)
       a.muted = useVoice.getState().muted
       a.src = p.src!
       a.play().then(() => useVoice.setState({ blocked: false }), (e: { name?: string }) => {
@@ -213,10 +250,11 @@ export function speakTogether({ parts, onDone }: Many) {
     }, p.at))
   })
   const longest = Math.max(...parts.map((p) => p.at + p.duration * 1000), 700)
-  timers.push(setTimeout(() => { used.forEach((a) => a.pause()); over = true; cancelActive = null; onDone() }, longest))
+  timers.push(setTimeout(() => { used.forEach((a) => a.pause()); parts.forEach((p) => { if (p.who) voiceOf.delete(p.who) }); over = true; cancelActive = null; onDone() }, longest))
   return cancel
 }
 
 export function stopVoice() {
+  stopLoop()
   cancelActive?.()
 }

@@ -13,7 +13,8 @@ import { useStore } from '../store'
 import { Avatar, Icon, Sparkle, base } from '../ui/kit'
 import { clearNotice, subscribeLevel, useMedia, useTabVisible } from './media'
 import { talkersOf, type Beat } from './openings'
-import { clipFor, enableSound, estimateSeconds, loadManifest, setCallAudioMuted, speak, speakTogether, useVoice } from './voice'
+import { playSound, startLoop, stopLoop } from './sounds'
+import { clipFor, enableSound, estimateSeconds, loadManifest, setCallAudioMuted, speak, speakTogether, useVoice, voiceLevel } from './voice'
 import './call.css'
 
 export interface StagePerson { person: Person; callOnly?: boolean }
@@ -36,6 +37,10 @@ export interface StageProps {
   timeline: Beat[]
   line: number
   onJoin(ids: string[]): void
+  /** whose camera is on, the viewer's aside */
+  camsOn: string[]
+  onCamOn(ids: string[]): void
+  onLeave(ids: string[]): void
   doc?: Artifact
   onLine(n: number): void
   onMic(): void
@@ -69,7 +74,7 @@ const GAP_MS = 600
 const LAST_LINE_HOLD_MS = 2200
 
 /** Runs the timeline step by step: joins, silences, lines, choruses, notes. Stops at the end; everything dies with the component. */
-function useTimeline({ timeline, line, onLine, onJoin, selfId, mic, onNote }: { timeline: Beat[]; line: number; onLine(n: number): void; onJoin(ids: string[]): void; selfId: string; mic: boolean; onNote(text: string): void }) {
+function useTimeline({ timeline, line, onLine, onJoin, onCamOn, onLeave, selfId, mic, onNote }: { timeline: Beat[]; line: number; onLine(n: number): void; onJoin(ids: string[]): void; onCamOn(ids: string[]): void; onLeave(ids: string[]): void; selfId: string; mic: boolean; onNote(text: string): void }) {
   const lang = useStore((s) => s.lang)
   const [count, setCount] = useState(0)
   const [talking, setTalking] = useState<string[]>([])
@@ -81,8 +86,8 @@ function useTimeline({ timeline, line, onLine, onJoin, selfId, mic, onNote }: { 
   const skip = sayWho === selfId && !mic && hasMic
   const text = beat?.kind === 'say' ? (typeof beat.text === 'string' ? beat.text : beat.text[lang]) : beat?.kind === 'chorus' ? beat.caption : ''
   const words = useMemo(() => text.split(/\s+/).filter(Boolean), [text])
-  const handlers = useRef({ onLine, onJoin, onNote })
-  handlers.current = { onLine, onJoin, onNote }
+  const handlers = useRef({ onLine, onJoin, onCamOn, onLeave, onNote })
+  handlers.current = { onLine, onJoin, onCamOn, onLeave, onNote }
 
   useEffect(() => {
     if (!beat || !visible) { setCount(0); setTalking([]); return }
@@ -91,9 +96,17 @@ function useTimeline({ timeline, line, onLine, onJoin, selfId, mic, onNote }: { 
       const t = setTimeout(next, beat.ms)
       return () => clearTimeout(t)
     }
-    if (beat.kind === 'join' || beat.kind === 'note') {
+    if (beat.kind === 'mimic') {
+      setCount(0)
+      setTalking([])
+      const t = setTimeout(next, beat.ms)
+      return () => clearTimeout(t)
+    }
+    if (beat.kind === 'join' || beat.kind === 'note' || beat.kind === 'cam' || beat.kind === 'leave') {
       if (beat.kind === 'join') handlers.current.onJoin(beat.ids)
-      else handlers.current.onNote(beat.text)
+      else if (beat.kind === 'cam') handlers.current.onCamOn(beat.ids)
+      else if (beat.kind === 'leave') handlers.current.onLeave(beat.ids)
+      else { playSound('note'); handlers.current.onNote(beat.text) }
       const t = setTimeout(next, beat.ms ?? 0)
       return () => clearTimeout(t)
     }
@@ -120,7 +133,7 @@ function useTimeline({ timeline, line, onLine, onJoin, selfId, mic, onNote }: { 
         stop = speakTogether({
           parts: beat.parts.map((p) => {
             const clip = clipFor(m, p.key, p.who, p.text, selfId)
-            return { src: clip?.src, duration: clip?.duration ?? .9, at: p.at ?? 0 }
+            return { who: p.who, src: clip?.src, duration: clip?.duration ?? .9, at: p.at ?? 0 }
           }),
           onDone: after,
         })
@@ -136,6 +149,7 @@ function useTimeline({ timeline, line, onLine, onJoin, selfId, mic, onNote }: { 
       }
       const clip = clipFor(m, beat.key, beat.who, text, selfId)
       stop = speak({
+        who: beat.who,
         src: clip?.src,
         duration: clip?.duration ?? estimateSeconds(words.length),
         onTalk: (on) => setTalking(on ? [beat.who] : []),
@@ -150,7 +164,10 @@ function useTimeline({ timeline, line, onLine, onJoin, selfId, mic, onNote }: { 
   const spoken = beat?.kind === 'say' || beat?.kind === 'chorus'
   const shown = spoken && count > 0
   const speakers = beat?.kind === 'chorus' ? beat.parts.map((p) => p.who) : sayWho ? [sayWho] : []
-  return { talking, captionWho: shown ? speakers : [], text: shown ? words.slice(0, count).join(' ') : '' }
+  const prev = timeline[line - 1] as Beat | undefined
+  const mimic = beat?.kind === 'mimic' ? beat.who : undefined
+  const stillMuted = mimic ?? (prev?.kind === 'mimic' ? prev.who : undefined)
+  return { talking, mimic, stillMuted, captionWho: shown ? speakers : [], text: shown ? words.slice(0, count).join(' ') : '' }
 }
 
 /** One quiet line at the top of the stage: the privacy note, or why the camera is off. Never blocks anything. */
@@ -248,7 +265,86 @@ function stillMotion(id: string): React.CSSProperties {
   } as React.CSSProperties
 }
 
-export function Tile({ person, self, muted, speaking, cam = true, hand, callOnly, arrive, youLabel }: { person: Person; self?: boolean; muted?: boolean; speaking?: boolean; cam?: boolean; hand?: boolean; callOnly?: boolean; arrive?: boolean; youLabel?: string }) {
+/**
+ * A person on camera: their still, with two more frames of the same moment.
+ * Talking follows the voice's real level (timing if it can't be read), with small head movement;
+ * listening stays nearly still, with a rare look aside. Every value is kept small on purpose:
+ * credible beats busy, and any more reads as flicker.
+ */
+function Webcam({ person, talking, warm, onBroken }: { person: Person; talking: boolean; warm: boolean; onBroken(): void }) {
+  const root = useRef<HTMLSpanElement>(null)
+  const talk = useRef<HTMLImageElement>(null)
+  const aside = useRef<HTMLImageElement>(null)
+  const id = person.id
+
+  useEffect(() => {
+    if (!talking || reducedMotion()) return
+    let open = false
+    let holdUntil = 0
+    let phase = Math.random() * 6
+    const start = performance.now()
+    let nextTiming = 0
+    const tick = () => {
+      const now = performance.now()
+      const level = voiceLevel(id)
+      if (now >= holdUntil) {
+        let want: boolean
+        if (level != null) want = level > .1
+        else { // no level to read: an irregular rhythm of syllables
+          if (now >= nextTiming) { nextTiming = now + 120 + Math.random() * 210; want = !open } else want = open
+        }
+        if (want !== open) {
+          open = want
+          holdUntil = now + 80 + Math.random() * 90
+          if (talk.current) talk.current.style.opacity = open ? '1' : '0'
+        }
+      }
+      phase += .05 + (level ?? .2) * .05
+      const t = (now - start) / 1000
+      root.current?.style.setProperty('--cv-hx', `${(Math.sin(phase) * .28).toFixed(3)}%`)
+      root.current?.style.setProperty('--cv-hy', `${(Math.sin(phase * .7 + t) * .18).toFixed(3)}%`)
+    }
+    const timer = setInterval(tick, 50)
+    const r = root.current, tk = talk.current
+    return () => {
+      clearInterval(timer)
+      if (tk) tk.style.opacity = '0'
+      r?.style.setProperty('--cv-hx', '0%')
+      r?.style.setProperty('--cv-hy', '0%')
+    }
+  }, [talking, id])
+
+  useEffect(() => {
+    if (talking || reducedMotion()) return
+    let t: ReturnType<typeof setTimeout>
+    const show = () => {
+      if (aside.current) aside.current.style.opacity = '1'
+      t = setTimeout(hide, 1800 + Math.random() * 2400)
+    }
+    const hide = () => {
+      if (aside.current) aside.current.style.opacity = '0'
+      t = setTimeout(show, 7000 + Math.random() * 11000)
+    }
+    t = setTimeout(show, 3500 + Math.random() * 11000)
+    const a = aside.current
+    return () => { clearTimeout(t); if (a) a.style.opacity = '0' }
+  }, [talking])
+
+  return (
+    <span ref={root} className={`cv-still${warm ? ' warming' : ''}`} style={stillMotion(id)} aria-hidden="true">
+      <span className="cv-still-move">
+        <img src={`${base}call/${id}.webp`} alt="" onError={onBroken} />
+        <img ref={aside} className="cv-still-aside" src={`${base}call/${id}-aside.webp`} alt="" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+        <img ref={talk} className="cv-still-talk" src={`${base}call/${id}-talk.webp`} alt="" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+      </span>
+      <span className="cv-grain" />
+    </span>
+  )
+}
+
+export { SelfVideo }
+
+export function Tile({ person, self, muted, speaking, mouthing, cam = true, hand, callOnly, arrive, youLabel }: { person: Person; self?: boolean; muted?: boolean; speaking?: boolean; mouthing?: boolean; cam?: boolean; hand?: boolean; callOnly?: boolean; arrive?: boolean; youLabel?: string }) {
   const t = useT()
   const ref = useRef<HTMLElement>(null)
   const track = useMedia((m) => (self && cam ? m.video : null))
@@ -261,17 +357,18 @@ export function Tile({ person, self, muted, speaking, cam = true, hand, callOnly
       setTalking((was) => (was ? v > .1 : v > .18))
     })
   }, [self])
-  const still = !self && STILLS.has(person.id) && !broken
+  const still = !self && cam && STILLS.has(person.id) && !broken
+  // A camera switched on while we watch warms up, as webcams do. One already on when we arrive doesn't.
+  const wasOn = useRef(still)
+  const warm = useRef(false)
+  if (still && !wasOn.current) warm.current = true
+  wasOn.current = still
   const video = !!track
   const talkingNow = speaking || (self && talking && !muted)
   return (
     <figure ref={ref} className={`cv-tile${talkingNow ? ' speaking' : ''}${arrive ? ' arrive' : ''}${video || still ? ' has-video' : ' cam-off'}${self && talking && !muted ? ' level' : ''}`} aria-label={person.name}>
       {video && <SelfVideo track={track} />}
-      {still && (
-        <span className="cv-still" style={stillMotion(person.id)} aria-hidden="true">
-          <img src={`${base}call/${person.id}.webp`} alt="" onError={() => setBroken(true)} />
-        </span>
-      )}
+      {still && <Webcam person={person} talking={!!speaking || !!mouthing} warm={warm.current} onBroken={() => setBroken(true)} />}
       {!video && !still && <span className="cv-face"><Avatar person={person} size={160} /></span>}
       <span className="cv-tile-top">
         {hand && <span className="cv-badge hand" title={t({ fr: 'Main levée', en: 'Hand raised' })}><Icon name="back_hand" fill size={16} /></span>}
@@ -287,6 +384,24 @@ export function Tile({ person, self, muted, speaking, cam = true, hand, callOnly
   )
 }
 
+/** M, C and S. Not while typing (the composer sits right beside the stage), in a dialog, or behind another tab. */
+export function useCallKeys(root: React.RefObject<HTMLElement | null>, onMic: () => void, onCam: () => void) {
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || document.querySelector('.scrim')) return
+      if (!root.current?.getClientRects().length) return
+      const el = e.target as HTMLElement | null
+      if (el?.closest?.('input,textarea,select,[contenteditable="true"]')) return
+      const k = e.key.toLowerCase()
+      if (k === 'm') { e.preventDefault(); onMic() }
+      if (k === 'c') { e.preventDefault(); onCam() }
+      if (k === 's') { e.preventDefault(); setCallAudioMuted(!useVoice.getState().muted) }
+    }
+    document.addEventListener('keydown', key)
+    return () => document.removeEventListener('keydown', key)
+  })
+}
+
 /* ---- Gemini, at the crossing of the grid ---- */
 const nearest = (list: number[], target: number) => list.reduce((best, v) => (Math.abs(v - target) < Math.abs(best - target) - .5 ? v : best), list[0])
 
@@ -300,6 +415,9 @@ function useCrossing(wrap: React.RefObject<HTMLDivElement | null>, n: number, ca
       const grid = w.querySelector<HTMLElement>('.cv-grid')
       if (!grid) return
       const tiles = [...grid.children] as HTMLElement[]
+      // The bottom row's name tags rise above the caption bar while it shows.
+      const lowest = Math.max(...tiles.map((el) => el.offsetTop))
+      tiles.forEach((el) => el.classList.toggle('bottom-row', el.offsetTop === lowest))
       const W = w.clientWidth, H = w.clientHeight
       let x = W / 2, y = H / 2
       if (tiles.length <= 1) y = H - (captioning ? 116 : 40) // one face: below it, above the captions
@@ -503,7 +621,7 @@ export function Stage(p: StageProps) {
   const ids = p.people.map((x) => x.person.id)
   const joined = useMemo(() => new Set(ids), [ids.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
   const [card, setCard] = useState<{ id: number; text: string } | null>(null)
-  const captions = useTimeline({ timeline: p.timeline, line: p.line, onLine: p.onLine, onJoin: p.onJoin, selfId: p.selfId, mic: p.mic, onNote: (text) => setCard((c) => ({ id: (c?.id ?? 0) + 1, text })) })
+  const captions = useTimeline({ timeline: p.timeline, line: p.line, onLine: p.onLine, onJoin: p.onJoin, selfId: p.selfId, mic: p.mic, onCamOn: p.onCamOn, onLeave: p.onLeave, onNote: (text) => setCard((c) => ({ id: (c?.id ?? 0) + 1, text })) })
   useEffect(() => {
     if (!card) return
     const t = setTimeout(() => setCard(null), 6500)
@@ -512,7 +630,7 @@ export function Stage(p: StageProps) {
   const audioMuted = useVoice((v) => v.muted)
   const soundBlocked = useVoice((v) => v.blocked)
   const talkers = useMemo(() => talkersOf(p.timeline), [p.timeline])
-  const muted = (id: string) => (id === p.selfId ? !p.mic : !talkers.has(id))
+  const muted = (id: string) => (id === p.selfId ? !p.mic : id === captions.stillMuted || !talkers.has(id))
 
   // Arrival animation and announcement only for those who join while we watch.
   const known = useRef<Set<string> | null>(null)
@@ -527,7 +645,9 @@ export function Stage(p: StageProps) {
     if (fresh.length) {
       setArrived((a) => new Set([...a, ...fresh]))
       fresh.forEach((id) => say(t({ fr: `${nameOf(id)} a rejoint l’appel`, en: `${nameOf(id)} joined the call` })))
+      fresh.slice(0, 3).forEach((_, i) => setTimeout(() => playSound('join'), i * 140))
     }
+    if (gone.length) gone.slice(0, 3).forEach((_, i) => setTimeout(() => playSound('leave'), i * 140))
   }, [joined]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Focus goes back where it was once the stage is gone, rather than getting lost.
@@ -536,25 +656,18 @@ export function Stage(p: StageProps) {
     return () => { if (prev?.isConnected && (document.activeElement === document.body || !document.activeElement)) prev.focus() }
   }, [])
 
-  const toggleMic = () => { say(p.mic ? t({ fr: 'Micro coupé', en: 'Microphone off' }) : t({ fr: 'Micro activé', en: 'Microphone on' })); p.onMic() }
-  const toggleCam = () => { say(p.cam ? t({ fr: 'Caméra coupée', en: 'Camera off' }) : t({ fr: 'Caméra activée', en: 'Camera on' })); p.onCam() }
-  const toggleHand = () => { say(p.hand ? t({ fr: 'Main baissée', en: 'Hand lowered' }) : t({ fr: 'Main levée', en: 'Hand raised' })); p.onHand() }
-
-  // M and C, except when typing (the chat composer sits right beside the stage) or in a dialog.
+  // Alone and still waiting: the quiet tone, as long as someone is expected.
+  const visibleTab = useTabVisible()
+  const lonely = p.people.length === 1 && p.waiting > 0 && visibleTab
   useEffect(() => {
-    const key = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || document.querySelector('.scrim')) return
-      if (!root.current?.getClientRects().length) return // the call runs behind another tab: keys are not for it
-      const el = e.target as HTMLElement | null
-      if (el?.closest?.('input,textarea,select,[contenteditable="true"]')) return
-      const k = e.key.toLowerCase()
-      if (k === 'm') { e.preventDefault(); toggleMic() }
-      if (k === 'c') { e.preventDefault(); toggleCam() }
-      if (k === 's') { e.preventDefault(); setCallAudioMuted(!useVoice.getState().muted) }
-    }
-    document.addEventListener('keydown', key)
-    return () => document.removeEventListener('keydown', key)
-  })
+    if (!lonely) return
+    startLoop('waiting')
+    return stopLoop
+  }, [lonely])
+
+  const toggleMic = () => { playSound(p.mic ? 'micOff' : 'micOn'); say(p.mic ? t({ fr: 'Micro coupé', en: 'Microphone off' }) : t({ fr: 'Micro activé', en: 'Microphone on' })); p.onMic() }
+  const toggleCam = () => { playSound(p.cam ? 'camOff' : 'camOn'); say(p.cam ? t({ fr: 'Caméra coupée', en: 'Camera off' }) : t({ fr: 'Caméra activée', en: 'Camera on' })); p.onCam() }
+  const toggleHand = () => { if (!p.hand) playSound('hand'); say(p.hand ? t({ fr: 'Main baissée', en: 'Hand lowered' }) : t({ fr: 'Main levée', en: 'Hand raised' })); p.onHand() }
 
   const label = {
     mic: p.mic ? t({ fr: 'Couper le micro', en: 'Turn off microphone' }) : t({ fr: 'Activer le micro', en: 'Turn on microphone' }),
@@ -593,11 +706,23 @@ export function Stage(p: StageProps) {
     b.kind === 'note' ? [{ who: '', text: b.text }] : b.kind === 'say' && b.scripted ? [{ who: firstName(b.who), text: t(b.text) }] : []
   )).slice(-3)
   const hearing = captions.talking.length > 0 || !!card
+  useCallKeys(root, toggleMic, toggleCam)
 
+  const camsOn = new Set(p.camsOn)
+  const capBar = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = capBar.current, r = root.current
+    if (!el || !r) { r?.style.removeProperty('--cv-cap-h'); return }
+    const set = () => r.style.setProperty('--cv-cap-h', `${el.offsetHeight + 12}px`)
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(el)
+    return () => { ro.disconnect(); r.style.removeProperty('--cv-cap-h') }
+  }, [captioning])
   const tiles = visible.map(({ person, callOnly }) => {
     const isSelf = person.id === p.selfId
     return (
-      <Tile key={person.id} person={person} self={isSelf} cam={isSelf ? p.cam : true}
+      <Tile key={person.id} person={person} self={isSelf} cam={isSelf ? p.cam : camsOn.has(person.id)} mouthing={captions.mimic === person.id}
         muted={muted(person.id)} speaking={captions.talking.includes(person.id)} hand={isSelf && p.hand}
         callOnly={callOnly} arrive={arrived.has(person.id)} />
     )
@@ -645,7 +770,7 @@ export function Stage(p: StageProps) {
               </div>
             )}
           {captioning && (
-            <div className={`cv-captions${showDoc ? ' over-strip' : ''}`} aria-live="off" aria-label={t({ fr: 'Sous-titres en direct', en: 'Live captions' })}>
+            <div ref={capBar} className={`cv-captions${showDoc ? ' over-strip' : ''}`} aria-live="off" aria-label={t({ fr: 'Sous-titres en direct', en: 'Live captions' })}>
               {speakers.slice(0, 3).map((x, i) => <span key={x.id} className="cv-cap-face" style={{ marginLeft: i ? -8 : 0 }}><Avatar person={x} size={24} /></span>)}
               <div className="cv-cap-text">{speakers.length > 0 && <b>{speakers.map((x) => (speakers.length > 1 ? x.name.split(' ')[0] : x.name)).join(', ')}</b>}<p>{captions.text}</p></div>
             </div>

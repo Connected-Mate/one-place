@@ -70,7 +70,7 @@
 .cv-alone{position:absolute;left:50%;top:52px;transform:translateX(-50%);max-width:calc(100% - 32px);padding:6px 14px;border-radius:var(--r-pill);background:var(--cv-scrim);font-size:13px;text-align:center;animation:fade var(--t) var(--ease)}
 
 /* ---- captions ---- */
-.cv-captions{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:2;width:min(760px,calc(100% - 16px));display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-radius:var(--r-s);background:rgba(32,33,36,.94);color:var(--on-call);pointer-events:none;animation:fade var(--t) var(--ease)}
+.cv-captions{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:2;width:min(760px,calc(100% - 16px));display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-radius:var(--r-s);background:var(--call-bg);color:var(--on-call);pointer-events:none;animation:fade var(--t) var(--ease)}
 .cv-captions.over-strip{bottom:calc(var(--cv-strip-h,104px) + 16px)}
 .cv-captions .avatar{margin-top:2px}
 .cv-cap-text{min-width:0;flex:1}
@@ -309,14 +309,23 @@
 
 /* ---- faces: video, not circles ---- */
 .cv-self-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:-1;background:var(--call-surface)}
-.cv-still{position:absolute;inset:0;z-index:-1;overflow:hidden;animation:cv-breathe var(--cv-breath,6s) ease-in-out infinite alternate;animation-delay:var(--cv-delay,0s)}
-.cv-still img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 28%;animation:cv-drift 31s ease-in-out infinite alternate;animation-delay:var(--cv-delay,0s);will-change:transform}
+.cv-still{position:absolute;inset:0;z-index:-1;overflow:hidden;background:#000;animation:cv-exposure 9s ease-in-out infinite;animation-delay:var(--cv-delay,0s)}
+.cv-still-move{position:absolute;inset:0;transform:translate(var(--cv-hx,0%),var(--cv-hy,0%)) scale(1.05);transition:transform 120ms linear}
+.cv-still img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:50% 28%}
+.cv-still-talk{opacity:0;transition:opacity 70ms linear}
+.cv-still-aside{opacity:0;transition:opacity 650ms ease-in-out}
+/* Webcam grain: a faint noise that shifts a few times a second. */
+.cv-grain{position:absolute;inset:-8%;opacity:.05;mix-blend-mode:overlay;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:cv-grain .5s steps(4) infinite}
+/* A webcam waking up: dark, a touch overexposed, then it settles. */
+.cv-still.warming{animation:cv-warm 1.7s ease-out both}
+.cv-tile.bottom-row .cv-tag{transition:bottom var(--t) var(--ease);bottom:var(--cv-cap-h,8px)}
+@keyframes cv-exposure{50%{filter:brightness(1.015)}}
+@keyframes cv-grain{25%{transform:translate(-2%,1%)}50%{transform:translate(1%,-2%)}75%{transform:translate(2%,2%)}}
+@keyframes cv-warm{0%{opacity:0;filter:brightness(.2)}18%{opacity:1;filter:brightness(1.7) contrast(.85) saturate(.8)}55%{filter:brightness(1.18) contrast(.95)}100%{opacity:1;filter:none}}
 .cv-tile.has-video .cv-tag-name{text-shadow:0 1px 3px rgba(0,0,0,.85)}
 .cv-tile.has-video::before{content:"";position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(transparent,rgba(0,0,0,.42));pointer-events:none;z-index:0}
 .cv-tile.level::after{content:"";position:absolute;inset:0;border-radius:inherit;border:3px solid var(--cv-speak);opacity:calc(.45 + var(--cv-level,0) * .55);pointer-events:none}
-@keyframes cv-breathe{from{transform:scale(1.035)}to{transform:scale(1.05)}}
-@keyframes cv-drift{from{transform:translate(calc(var(--cv-x,.6%) * -1),calc(var(--cv-y,.4%) * -1))}to{transform:translate(var(--cv-x,.6%),var(--cv-y,.4%))}}
-@media (prefers-reduced-motion:reduce){.cv-still,.cv-still img{animation:none}.cv-still{transform:scale(1.02)}}
+@media (prefers-reduced-motion:reduce){.cv-still,.cv-grain{animation:none}}
 
 /* ---- quiet lines over the stage ---- */
 .cv-quiet{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:3;width:max-content;max-width:calc(100% - 24px);padding:6px 14px;border-radius:var(--r-pill);background:rgba(32,33,36,.86);color:var(--on-call);font-size:12px;line-height:18px;text-align:center;animation:fade var(--t) var(--ease)}
@@ -357,3 +366,24 @@ button.cv-gemini:hover{transform:scale(1.06)}
 .cv-note-card p{margin:0;overflow-wrap:anywhere}
 .cv-cap-face{display:inline-flex;border-radius:50%;box-shadow:0 0 0 2px rgba(32,33,36,.94);flex:none}
 @keyframes cv-card{from{opacity:0;scale:.94}}
+
+/* ---- Calling someone: their face in the middle, you in the corner ---- */
+.cv-ring{align-items:stretch;justify-content:flex-end}
+.cv-ring-center{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center}
+.cv-ring-center h2{margin:0;font-size:22px;line-height:30px;font-weight:400}
+.cv-ring-photo{position:relative;display:block;width:min(38cqmin,168px);height:min(38cqmin,168px);flex:none;border-radius:50%}
+.cv-ring-photo .avatar{width:100%!important;height:100%!important}
+[data-phase="ringing"] .cv-ring-photo::before,[data-phase="ringing"] .cv-ring-photo::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--cv-active);opacity:0;animation:cv-ring-out 3.4s var(--ease) infinite}
+[data-phase="ringing"] .cv-ring-photo::after{animation-delay:.35s}
+[data-phase="noanswer"] .cv-ring-photo{filter:saturate(.7) brightness(.85)}
+.cv-ring-gemini{margin:0;display:flex;align-items:flex-start;gap:8px;max-width:420px;font-size:13px;line-height:18px;color:var(--cv-soft);text-align:left}
+.cv-ring-gemini .ms,.cv-ring-gemini svg{flex:none;margin-top:1px}
+.cv-ring-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px}
+.cv-pip{position:absolute;right:16px;bottom:76px;width:min(30cqw,200px);aspect-ratio:16/10;border-radius:var(--r-s);overflow:hidden;background:var(--call-surface);box-shadow:var(--shadow-2);isolation:isolate;display:flex;align-items:center;justify-content:center}
+.cv-pip .cv-self-video{z-index:0}
+.cv-ring-bar{grid-template-columns:1fr}
+.cv-ring-bar .cv-controls{grid-column:1}
+@container cvstage (max-width:520px){.cv-pip{width:112px;bottom:72px;right:10px}.cv-ring-center h2{font-size:18px;line-height:26px}}
+@container cvstage (max-height:440px){.cv-ring-photo{width:88px;height:88px}.cv-ring-center{gap:6px;padding:8px}.cv-pip{width:104px}}
+@keyframes cv-ring-out{0%{opacity:.5;transform:scale(1)}60%,100%{opacity:0;transform:scale(1.5)}}
+@media (prefers-reduced-motion:reduce){.cv-ring-photo::before,.cv-ring-photo::after{animation:none!important}}

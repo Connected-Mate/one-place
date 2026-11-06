@@ -3,19 +3,81 @@
  * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CallState, MeetingMessage, Project, Txt } from '../data/types'
 import { fmtDay, fmtTime, useT } from '../i18n'
 import { personById, ME_ID, paneOf, useStore, useViewer } from '../store'
 import { Avatar, AvatarStack, Button, Icon, Sparkle } from '../ui/kit'
 import { Logo } from '../ui/Logo'
-import { endCall, expectedIds, guestAsPerson, joinParticipants, returnToCall, scriptFor, startCall, useCallUi } from './callActions'
+import { callAgain, endCall, expectedIds, guestAsPerson, joinParticipants, leaveNote, returnToCall, scriptFor, startCall, unansweredPeer, useCallUi } from './callActions'
 import { InviteDialog } from './InviteDialog'
-import { setCamera, setMicrophone, useLiveMedia } from './media'
+import { setCamera, setMicrophone, useLiveMedia, useMedia, useTabVisible } from './media'
+import { playSound, startLoop, stopLoop, unlockSounds } from './sounds'
 import { buildGuestTimeline, buildTimeline } from './openings'
 import { unlockAudio } from './voice'
-import { CtlButton, MediaNotice, Stage, Tile, useElapsed, type StagePerson } from './Stage'
+import { CtlButton, MediaNotice, SelfVideo, Stage, Tile, useCallKeys, useElapsed, type StagePerson } from './Stage'
 import './call.css'
+
+/* ---- Calling someone who won't pick up ---- */
+const DRY_LINES = [
+  'He’s probably telling someone to stop adding features.',
+  'Still nothing. Maybe he heard you say "disrupt".',
+  'Third try. I could just send him the two-minute pitch.',
+]
+
+function RingStage({ call, peerId, phase, attempt }: { call: CallState; peerId: string; phase: 'ringing' | 'noanswer'; attempt: number }) {
+  const t = useT()
+  const patchCall = useStore((s) => s.patchCall)
+  const viewer = useViewer()
+  const peer = personById(peerId)
+  const first = peer.name.split(' ')[0]
+  const video = useMedia((m) => (call.cam ? m.video : null))
+  const root = useRef<HTMLDivElement>(null)
+  const visible = useTabVisible()
+  useLiveMedia(true, call.cam, call.mic, (what) => patchCall(what === 'cam' ? { cam: false } : { mic: false }))
+  useEffect(() => {
+    if (phase !== 'ringing' || !visible) return
+    startLoop('ring')
+    return stopLoop
+  }, [phase, visible, attempt])
+  const announced = useRef(attempt)
+  useEffect(() => {
+    if (phase === 'noanswer') playSound('noAnswer')
+    announced.current = attempt
+  }, [phase, attempt])
+  const toggleMic = () => { playSound(call.mic ? 'micOff' : 'micOn'); void setMicrophone(!call.mic); patchCall({ mic: !call.mic }) }
+  const toggleCam = () => { playSound(call.cam ? 'camOff' : 'camOn'); void setCamera(!call.cam); patchCall({ cam: !call.cam }) }
+  useCallKeys(root, toggleMic, toggleCam)
+
+  return (
+    <div ref={root} className="cv-stage cv-ring" data-phase={phase}>
+      <div className="cv-ring-center">
+        <span className="cv-ring-photo"><Avatar person={peer} size={160} /></span>
+        <h2 role="status">{phase === 'ringing' ? t({ fr: `Appel de ${first}…`, en: `Calling ${first}…` }) : t({ fr: `${first} n’a pas répondu`, en: `${first} didn’t answer` })}</h2>
+        {phase === 'noanswer' && (
+          <>
+            <p className="cv-ring-gemini"><Sparkle size={16} /><span>{DRY_LINES[Math.min(attempt - 1, DRY_LINES.length - 1)]}</span></p>
+            <div className="cv-ring-actions">
+              <button type="button" className="cv-pill-primary" onClick={callAgain}>{t({ fr: 'Rappeler', en: 'Call again' })}</button>
+              <button type="button" className="cv-pill-ghost" onClick={leaveNote}>{t({ fr: 'Laisser un mot', en: 'Leave a note' })}</button>
+            </div>
+          </>
+        )}
+      </div>
+      <div className="cv-pip" aria-label={t({ fr: 'Votre caméra', en: 'Your camera' })}>
+        {video ? <SelfVideo track={video} /> : <span className="cv-pip-off"><Avatar person={viewer} size={48} /></span>}
+      </div>
+      <MediaNotice />
+      <div className="cv-bar cv-ring-bar">
+        <div className="cv-controls" role="toolbar" aria-label={t({ fr: 'Commandes de l’appel', en: 'Call controls' })}>
+          <CtlButton icon={call.mic ? 'mic' : 'mic_off'} label={call.mic ? t({ fr: 'Couper le micro', en: 'Turn off microphone' }) : t({ fr: 'Activer le micro', en: 'Turn on microphone' })} shortcut="M" tone={call.mic ? undefined : 'off'} onClick={toggleMic} />
+          <CtlButton icon={call.cam ? 'videocam' : 'videocam_off'} label={call.cam ? t({ fr: 'Couper la caméra', en: 'Turn off camera' }) : t({ fr: 'Activer la caméra', en: 'Turn on camera' })} shortcut="C" tone={call.cam ? undefined : 'off'} onClick={toggleCam} />
+          <button type="button" className="cv-hangup" aria-label={phase === 'ringing' ? t({ fr: 'Annuler l’appel', en: 'Cancel call' }) : t({ fr: 'Fermer', en: 'Close' })} title={phase === 'ringing' ? t({ fr: 'Annuler l’appel', en: 'Cancel call' }) : t({ fr: 'Fermer', en: 'Close' })} onClick={endCall}><Icon name="call_end" fill size={24} /></button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /* ---- The call inside the project ---- */
 function ProjectStage({ call, project }: { call: CallState; project: Project }) {
@@ -23,6 +85,8 @@ function ProjectStage({ call, project }: { call: CallState; project: Project }) 
   const patchCall = useStore((s) => s.patchCall)
   const toast = useStore((s) => s.toast)
   const hand = useCallUi((u) => u.hand)
+  const camsOn = useCallUi((u) => u.camsOn)
+  const leftIds = useCallUi((u) => u.leftIds)
   const line = useCallUi((u) => u.captionLine)
   const pending = useCallUi((u) => u.pendingInvites.length)
   const [inviting, setInviting] = useState(false)
@@ -33,10 +97,10 @@ function ProjectStage({ call, project }: { call: CallState; project: Project }) 
   const people = useMemo<StagePerson[]>(() => {
     const ids = call.participantIds.includes(viewerId) ? call.participantIds : [viewerId, ...call.participantIds]
     return [
-      ...ids.map((id) => ({ person: personById(id), callOnly: !project.memberIds.includes(id) })),
+      ...ids.filter((id) => !leftIds.includes(id)).map((id) => ({ person: personById(id), callOnly: !project.memberIds.includes(id) })),
       ...call.guests.map((g) => ({ person: guestAsPerson(g), callOnly: true })),
     ]
-  }, [call.participantIds, call.guests, viewerId, project.memberIds])
+  }, [call.participantIds, call.guests, viewerId, project.memberIds, leftIds])
   const expected = expectedIds(project, viewerId, script.captions)
   const waiting = expected.filter((id) => !call.participantIds.includes(id)).length + pending
   // Fixed for the whole call: it must not shift under the player if the project changes meanwhile.
@@ -48,6 +112,8 @@ function ProjectStage({ call, project }: { call: CallState; project: Project }) 
       <Stage mode="project" title={call.title} startedAt={call.startedAt} selfId={viewerId} people={people} waiting={waiting}
         mic={call.mic} cam={call.cam} captions={call.captions} sharing={call.sharing} hand={hand} doc={doc}
         timeline={timeline} line={line} onLine={(n) => useCallUi.setState({ captionLine: n })} onJoin={joinParticipants}
+        camsOn={camsOn} onCamOn={(ids) => useCallUi.setState((u) => ({ camsOn: [...new Set([...u.camsOn, ...ids])] }))}
+        onLeave={(ids) => useCallUi.setState((u) => ({ leftIds: [...new Set([...u.leftIds, ...ids])] }))}
         onMic={() => { void setMicrophone(!call.mic); patchCall({ mic: !call.mic }) }}
         onCam={() => { void setCamera(!call.cam); patchCall({ cam: !call.cam }) }}
         onCaptions={() => patchCall({ captions: !call.captions })} onHand={() => useCallUi.setState({ hand: !hand })}
@@ -66,7 +132,13 @@ export function CallView() {
   const call = useStore((s) => s.call)
   const project = useStore((s) => s.projects.find((p) => p.id === s.activeProjectId))
   const setPane = useStore((s) => s.setPane)
-  if (call && project && call.projectId === project.id) return <ProjectStage key={call.startedAt} call={call} project={project} />
+  const ring = useCallUi((u) => u.ring)
+  const viewerId = useStore((s) => s.viewerId)
+  if (call && project && call.projectId === project.id) {
+    const peer = ring && unansweredPeer(project, viewerId)
+    if (ring && peer) return <RingStage call={call} peerId={peer} phase={ring.phase} attempt={ring.attempt} />
+    return <ProjectStage key={call.startedAt} call={call} project={project} />
+  }
   // Pane left on "call" while nothing runs here: say so rather than show an empty stage.
   return (
     <div className="cv-stage cv-empty">
@@ -196,6 +268,7 @@ export function GuestScreen() {
   const [startedAt, setStartedAt] = useState(0)
   const [line, setLine] = useState(0)
   const [joinedIds, setJoinedIds] = useState<string[]>([])
+  const [guestCams, setGuestCams] = useState<string[]>([])
 
   // A guest's meeting is frozen once joined: the project moving on must not change her stage.
   const [held, setHeld] = useState<GuestMeeting | null>(null)
@@ -213,7 +286,7 @@ export function GuestScreen() {
   // Pre-join shows a real preview, as Meet does; leaving lets go of the camera at once.
   useLiveMedia(phase !== 'left' && !!current, cam, mic, (what) => (what === 'cam' ? setCam(false) : setMic(false)))
 
-  const join = () => { unlockAudio(); setHeld(meeting); setStartedAt(Date.now()); setLine(0); setJoinedIds([]); setHand(false); setPhase('joined') }
+  const join = () => { unlockAudio(); unlockSounds(); setHeld(meeting); setStartedAt(Date.now()); setLine(0); setJoinedIds([]); setGuestCams([]); playSound('enter'); setHand(false); setPhase('joined') }
 
   if (phase === 'joined' && current) {
     const inCall: StagePerson[] = [
@@ -224,8 +297,9 @@ export function GuestScreen() {
       <div className="cv-guest-stage">
         <Stage mode="guest" title={current.title} startedAt={startedAt} selfId={viewer.id} people={inCall} waiting={others.length - joinedIds.length}
           mic={mic} cam={cam} captions={captions} hand={hand} timeline={timeline} line={line} onLine={setLine} onJoin={(ids) => setJoinedIds((j) => [...new Set([...j, ...ids])])}
+          camsOn={guestCams} onCamOn={(ids) => setGuestCams((c) => [...new Set([...c, ...ids])])} onLeave={() => {}}
           onMic={() => { void setMicrophone(!mic); setMic(!mic) }} onCam={() => { void setCamera(!cam); setCam(!cam) }} onCaptions={() => setCaptions((v) => !v)} onHand={() => setHand((v) => !v)}
-          onHangUp={() => setPhase('left')} topSlot={<ViewAsAlex compact />} />
+          onHangUp={() => { playSound('hangup'); setPhase('left') }} topSlot={<ViewAsAlex compact />} />
       </div>
     )
   }

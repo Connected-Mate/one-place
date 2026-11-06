@@ -6,11 +6,13 @@
 // The call's life cycle: everything that must survive the stage being unmounted
 // (switching project, reload) lives here, not in a component.
 import { create } from 'zustand'
+import { useChat } from '../chat/chatState'
 import { people } from '../data/seed'
 import type { Block, CallState, CallSummaryMessage, MeetingMessage, Message, PaneView, Person, Project, ProjectScript, Todo, Txt } from '../data/types'
 import { tx } from '../i18n'
 import { GEMINI_ID, personById, roleIn, uid, useStore } from '../store'
 import { stopMedia } from './media'
+import { playSound, stopLoop, unlockSounds } from './sounds'
 import { stopVoice, unlockAudio } from './voice'
 
 const INVITE_JOIN_MS = 2200
@@ -25,8 +27,16 @@ interface CallUi {
   captionLine: number
   pendingInvites: { name: string; email: string }[]
   writingUp: number
+  /** cameras turned on so far: everyone arrives with theirs off */
+  camsOn: string[]
+  /** people who have dropped off at the end of the meeting */
+  leftIds: string[]
+  /** a 1:1 call nobody picks up: see startRinging */
+  ring: { phase: 'ringing' | 'noanswer'; attempt: number; posted: boolean } | null
 }
-export const useCallUi = create<CallUi>(() => ({ hand: false, captionLine: 0, pendingInvites: [], writingUp: 0 }))
+export const useCallUi = create<CallUi>(() => ({ hand: false, captionLine: 0, pendingInvites: [], writingUp: 0, camsOn: [], leftIds: [], ring: null }))
+
+const FRESH_CALL = { hand: false, captionLine: 0, pendingInvites: [], camsOn: [], leftIds: [], ring: null }
 
 let callTimers: ReturnType<typeof setTimeout>[] = []
 const clearCallTimers = () => { callTimers.forEach(clearTimeout); callTimers = [] }
@@ -79,24 +89,100 @@ export function joinParticipants(ids: string[]) {
   if (fresh.length) patchCall({ participantIds: [...call.participantIds, ...fresh] })
 }
 
+/* ---- A 1:1 with a real person: their voice is never synthesized, so they simply don't pick up. ---- */
+const REAL_PEOPLE = ['alex', 'damien']
+const RING_MS = 13500
+const offeredHelp = new Set<string>()
+
+export function unansweredPeer(project: Project, viewerId: string): string | null {
+  if (project.memberIds.length !== 2 || !project.memberIds.includes(viewerId)) return null
+  const other = project.memberIds.find((id) => id !== viewerId)!
+  return REAL_PEOPLE.includes(other) ? other : null
+}
+
+function postMissedCall(projectId: string, peerId: string) {
+  const ui = useCallUi.getState()
+  if (!ui.ring || ui.ring.posted) return
+  useCallUi.setState({ ring: { ...ui.ring, posted: true } })
+  const s = useStore.getState()
+  const first = personById(peerId).name.split(' ')[0]
+  s.push(projectId, {
+    id: uid('m'), kind: 'system', authorId: s.viewerId, at: Date.now(), visibility: { type: 'all' }, icon: 'call_end',
+    text: { fr: `Appel manqué : ${first} n’a pas répondu.`, en: `Missed call: ${first} didn’t answer.` },
+  })
+  if (offeredHelp.has(projectId)) return
+  offeredHelp.add(projectId)
+  s.push(projectId, {
+    id: uid('m'), kind: 'text', authorId: GEMINI_ID, at: Date.now() + 1, visibility: { type: 'all' },
+    text: { fr: 'Je lui dis de quoi il s’agit ?', en: 'Want me to tell him what it’s about?' },
+  })
+}
+
+function ringFor(projectId: string, peerId: string, attempt: number) {
+  useCallUi.setState({ ring: { phase: 'ringing', attempt, posted: false } })
+  callTimers.push(setTimeout(() => {
+    const ui = useCallUi.getState()
+    if (!ui.ring || useStore.getState().call?.projectId !== projectId) return
+    postMissedCall(projectId, peerId)
+    useCallUi.setState((u) => ({ ring: u.ring && { ...u.ring, phase: 'noanswer' } }))
+  }, RING_MS))
+}
+
+function startRinging(project: Project, peerId: string) {
+  const s = useStore.getState()
+  useCallUi.setState(FRESH_CALL)
+  s.setCall({
+    projectId: project.id, title: { fr: `Appel de ${personById(peerId).name.split(' ')[0]}`, en: `Calling ${personById(peerId).name.split(' ')[0]}` },
+    startedAt: Date.now(), participantIds: [s.viewerId], guests: [], mic: true, cam: true, captions: false, sharing: false,
+  })
+  openCallPane(project.id)
+  s.markTour('call')
+  ringFor(project.id, peerId, 1)
+}
+
+export function callAgain() {
+  const s = useStore.getState()
+  const ui = useCallUi.getState()
+  const project = s.call && projectById(s.call.projectId)
+  const peer = project && unansweredPeer(project, s.viewerId)
+  if (!project || !peer || ui.ring?.phase !== 'noanswer') return // double click safe
+  unlockAudio()
+  unlockSounds()
+  ringFor(project.id, peer, ui.ring.attempt + 1)
+}
+
+/** Back to the chat, with the composer ready. */
+export function leaveNote() {
+  const s = useStore.getState()
+  const projectId = s.call?.projectId
+  endCall()
+  if (!projectId) return
+  useStore.getState().setMobilePane('chat')
+  useChat.getState().focusComposer()
+}
+
 export function startCall(projectId: string) {
   const s = useStore.getState()
   const project = projectById(projectId)
   if (!project || roleIn(project, s.viewerId) === 'guest') return
   unlockAudio() // we are inside the click: sound can then play on its own
+  unlockSounds()
   if (s.call?.projectId === projectId) { // already running here: rejoin, nothing else
     openCallPane(projectId)
     s.markTour('call')
     return
   }
   if (s.call) endCall() // running elsewhere: that call gets its one summary, then we move on
+  playSound('enter')
+  const peer = unansweredPeer(project, s.viewerId)
+  if (peer) { startRinging(project, peer); return }
 
   const now = Date.now()
   const script = scriptFor(project, s.viewerId)
   const existing = liveMeetingOf(project)
   const title = existing?.title ?? script.callTitle
   const expected = expectedIds(project, s.viewerId, script.captions)
-  useCallUi.setState({ hand: false, captionLine: 0, pendingInvites: [] })
+  useCallUi.setState(FRESH_CALL)
   s.setCall({ projectId, title, startedAt: now, participantIds: [s.viewerId], guests: [], mic: true, cam: true, captions: true, sharing: false })
   openCallPane(projectId)
   if (!existing) {
@@ -114,6 +200,7 @@ export function returnToCall() {
   const { call } = useStore.getState()
   if (!call) return
   unlockAudio()
+  unlockSounds()
   openCallPane(call.projectId)
 }
 
@@ -123,9 +210,21 @@ export function endCall() {
   if (!call) return // second click on hang-up: nothing left to do
   clearCallTimers()
   stopVoice()
+  stopLoop()
   stopMedia()
+  playSound('hangup')
+  const ring = useCallUi.getState().ring
+  if (ring) { // nobody picked up: a missed call, not a meeting. No summary, no to-dos.
+    const project = projectById(call.projectId)
+    const peer = project && unansweredPeer(project, s.viewerId)
+    if (peer) postMissedCall(call.projectId, peer)
+    s.setCall(null)
+    useCallUi.setState(FRESH_CALL)
+    if (s.panes[call.projectId]?.type === 'call') setPaneFor(call.projectId, { type: 'board' })
+    return
+  }
   s.setCall(null)
-  useCallUi.setState({ hand: false, captionLine: 0, pendingInvites: [] })
+  useCallUi.setState(FRESH_CALL)
   if (s.panes[call.projectId]?.type === 'call') setPaneFor(call.projectId, { type: 'board' })
 
   const project = projectById(call.projectId)
@@ -307,11 +406,11 @@ export async function copyCallLink(startedAt: number) {
 function saveCall() {
   try {
     const call = useStore.getState().call
-    if (call) sessionStorage.setItem(SAVED_KEY, JSON.stringify({ call, line: useCallUi.getState().captionLine }))
+    if (call) sessionStorage.setItem(SAVED_KEY, JSON.stringify({ call, line: useCallUi.getState().captionLine, camsOn: useCallUi.getState().camsOn, leftIds: useCallUi.getState().leftIds }))
     else sessionStorage.removeItem(SAVED_KEY)
   } catch { /* private mode: the call just won't survive a reload */ }
 }
-function readSavedCall(): { call: CallState; line: number } | null {
+function readSavedCall(): { call: CallState; line: number; camsOn?: string[]; leftIds?: string[] } | null {
   try {
     const raw = sessionStorage.getItem(SAVED_KEY)
     return raw ? JSON.parse(raw) : null
@@ -324,7 +423,7 @@ function restoreOrSweep() {
   const saved = readSavedCall()
   const savedProject = saved && projectById(saved.call.projectId)
   if (saved && savedProject && liveMeetingOf(savedProject)) {
-    useCallUi.setState({ captionLine: saved.line ?? 0 })
+    useCallUi.setState({ captionLine: saved.line ?? 0, camsOn: saved.camsOn ?? [], leftIds: saved.leftIds ?? [] })
     s.setCall(saved.call)
   }
   for (const p of useStore.getState().projects) {
@@ -348,7 +447,7 @@ useStore.subscribe((s, prev) => {
   saveCall()
   if (!s.call) { // also covers the demo's reset, which clears the call without going through endCall
     clearCallTimers()
-    useCallUi.setState({ hand: false, captionLine: 0, pendingInvites: [] })
+    useCallUi.setState(FRESH_CALL)
   }
 })
-useCallUi.subscribe((u, prev) => { if (u.captionLine !== prev.captionLine) saveCall() })
+useCallUi.subscribe((u, prev) => { if (u.captionLine !== prev.captionLine || u.camsOn !== prev.camsOn || u.leftIds !== prev.leftIds) saveCall() })
