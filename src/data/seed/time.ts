@@ -20,7 +20,7 @@ export const week = (w: number, h = 9): number => {
 
 /** Short date like "12 nov." / "Nov 12" to embed in texts. */
 export const fmtDay = (t: number, lang: 'fr' | 'en'): string =>
-  new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' }).format(new Date(t))
+  new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' }).format(new Date(t))
 
 export const weekday = (t: number, lang: 'fr' | 'en'): string =>
-  new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-GB', { weekday: 'long' }).format(new Date(t))
+  new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long' }).format(new Date(t))
