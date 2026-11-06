@@ -7,7 +7,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { fmtDay, tx, useT } from '../i18n'
 import { canSee, GEMINI_ID, personById, roleIn, useProject, useStore } from '../store'
-import { startCall } from '../call/callActions'
+import { startCall, useCallUi } from '../call/callActions'
 import { Avatar, AvatarStack, Button, Icon, IconButton, Menu, Sparkle } from '../ui/kit'
 import type { Message, Project } from '../data/types'
 import { attachFake, sendChat, useChat } from './chatState'
@@ -25,6 +25,7 @@ const sameAudience = (a: Message, b: Message) => a.visibility.type === b.visibil
 
 function Header({ project }: { project: Project }) {
   const t = useT()
+  const ring = useCallUi((u) => u.ring?.phase)
   const pid = project.id
   const viewerId = useStore((s) => s.viewerId)
   const inThisCall = useStore((s) => s.call?.projectId === pid)
@@ -53,7 +54,7 @@ function Header({ project }: { project: Project }) {
       </div>
       <button type="button" className="chat-faces" title={t({ fr: 'Voir l’équipe', en: 'See the team' })} aria-label={t({ fr: `Voir l’équipe, ${peopleCount} personnes`, en: `See the team, ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'}` })} onClick={() => openPeople(pid)}><AvatarStack ids={project.memberIds.filter((id) => id !== GEMINI_ID)} size={26} max={3} more={false} /></button>
       {inThisCall
-        ? <button type="button" className="in-call-note" onClick={() => setPane({ type: 'call' })}><Icon name="check_circle" size={16} />{t({ fr: 'Tu es dans cet appel', en: 'You’re in this call' })}</button>
+        ? <button type="button" className="in-call-note" onClick={() => setPane({ type: 'call' })}><Icon name={ring ? 'call' : 'check_circle'} size={16} />{ring === 'ringing' ? 'Calling…' : ring === 'noanswer' ? 'No answer' : t({ fr: 'Tu es dans cet appel', en: 'You’re in this call' })}</button>
         : live
         ? <Button variant="filled" size="s" icon="videocam" onClick={() => startCall(pid)}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>
         : <IconButton icon="videocam" label={t({ fr: 'Lancer un appel', en: 'Start a call' })} onClick={() => startCall(pid)} />}
