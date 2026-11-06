@@ -31,7 +31,7 @@ export function Welcome({ onClose }: { onClose: () => void }) {
       </ul>
       <p className="wel-body">{t({
         fr: 'Un projet, c’est un chat et une vue partagée. Tout se passe là : les messages, les mails qui arrivent, les documents, les appels. Une seule IA, que tu appelles avec @.',
-        en: 'A project is one chat and one shared view. Everything happens there: messages, incoming mail, documents, calls. One AI, called with @.',
+        en: 'A project is one chat and one shared view. Everything happens there: messages, incoming email, documents, calls. One AI, called with @.',
       })}</p>
       <p className="wel-note"><Sparkle size={16} /> <span>{t({
         fr: 'Une démo d’interface : tout est simulé, rien n’est envoyé, aucun compte. Un concept d’',

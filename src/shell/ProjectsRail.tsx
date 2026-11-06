@@ -95,7 +95,7 @@ function NewProject({ onClose }: { onClose: () => void }) {
             </button>
           ))}
         </div>
-        <p className="np-note">{t({ fr: 'Le chat, le tableau et une adresse mail du projet sont prêts tout de suite.', en: 'The chat, the board and a project mail address are ready right away.' })}</p>
+        <p className="np-note">{t({ fr: 'Le chat, le tableau et une adresse mail du projet sont prêts tout de suite.', en: 'The chat, the board and a project email address are ready right away.' })}</p>
       </form>
     </Dialog>
   )

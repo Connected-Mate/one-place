@@ -152,7 +152,7 @@ const guestLines = (hostId: string, otherId: string | undefined, guestName: stri
 function ViewAsAlex({ compact }: { compact?: boolean }) {
   const t = useT()
   const setViewer = useStore((s) => s.setViewer)
-  const label = t({ fr: 'Démo : revenir à la vue d’Alex', en: 'Demo: back to View as Alex' })
+  const label = t({ fr: 'Démo : revenir à la vue d’Alex', en: 'Back to Alex’s view' })
   return (
     <button type="button" className={`cv-viewas${compact ? ' compact' : ''}`} aria-label={label} title={label} onClick={() => setViewer(ME_ID)}>
       <Icon name="visibility" size={16} /><span>{label}</span>

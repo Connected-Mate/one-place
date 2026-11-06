@@ -73,7 +73,7 @@ function Search() {
       <Icon name="search" className="search-icon" />
       <input
         ref={input} value={q} aria-label={t({ fr: 'Rechercher', en: 'Search' })}
-        placeholder={t({ fr: 'Rechercher partout, ou demander à Gemini', en: 'Search everything, or ask Gemini' })}
+        placeholder={t({ fr: 'Rechercher partout, ou demander à Gemini', en: 'Search or ask Gemini' })}
         onChange={(e) => { setQ(e.target.value); setSel(0); setOpen(true) }} onFocus={() => setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === 'Escape') { setOpen(false); input.current?.blur() }
@@ -150,7 +150,6 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
         />
         <span className="me"><Avatar person={viewer} size={28} /></span>
       </div>
-      <Button className="sr-only" onClick={onAbout}>{t({ fr: 'À propos', en: 'About' })}</Button>
     </header>
   )
 }

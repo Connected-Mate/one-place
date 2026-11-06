@@ -163,7 +163,7 @@ export function geminiBrief(items: Need[], lang: Lang): string {
   const parts = [
     soon ? (soon > 1 ? `${soon} to-dos are due soon` : '1 to-do is due soon') : '',
     of('proposal').length ? (of('proposal').length > 1 ? `${of('proposal').length} proposals need your decision` : '1 proposal needs your decision') : '',
-    of('mail').length ? (of('mail').length > 1 ? `${of('mail').length} mails have no reply` : '1 mail has no reply') : '',
+    of('mail').length ? (of('mail').length > 1 ? `${of('mail').length} emails have no reply` : '1 email has no reply') : '',
     of('meeting').length ? `${plural(of('meeting').length, 'meeting', 'meetings')} to get ready for` : '',
     of('mention').length ? (of('mention').length > 1 ? `${of('mention').length} people are waiting on you` : '1 person is waiting on you') : '',
   ].filter(Boolean).slice(0, 3)

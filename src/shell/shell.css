@@ -48,7 +48,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .app[data-home] .chat-pane,.app[data-home] .splitter,.app[data-home] .right-pane{display:none}
 .rail-head{padding:0 16px 8px 24px;font-size:14px;font-weight:500;color:var(--text-2);white-space:nowrap}
 .rail-list{list-style:none;margin:0;padding:0;overflow:auto;flex:1;padding-right:16px;min-height:0}
-.rail-item{display:flex;align-items:center;gap:16px;width:100%;height:36px;padding:0 12px 0 24px;border-radius:0 18px 18px 0;text-align:left;color:var(--text);transition:background var(--t-fast) var(--ease)}
+.rail-item{display:flex;align-items:center;gap:16px;width:100%;height:32px;padding:0 12px 0 24px;border-radius:0 16px 16px 0;text-align:left;color:var(--text);transition:background var(--t-fast) var(--ease)}
 .rail-item:hover{background:var(--hover)}
 .rail-item.on{background:var(--primary-soft);color:var(--on-primary-soft);font-weight:500}
 .rail-item.unread{font-weight:700}
@@ -79,7 +79,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .wel-note{display:flex;gap:8px;font-size:13px;color:var(--text-3);margin:0}
 
 /* toasts */
-.toasts{position:fixed;left:24px;bottom:24px;display:flex;flex-direction:column;gap:8px;z-index:90;max-width:min(480px,calc(100vw - 48px))}
+.toasts{position:fixed;right:24px;bottom:24px;display:flex;flex-direction:column;gap:8px;z-index:90;max-width:min(480px,calc(100vw - 48px))}
 .toast{display:flex;align-items:center;gap:12px;background:#303030;color:#f2f2f2;border-radius:var(--r-xs);min-height:48px;padding:6px 16px;box-shadow:var(--shadow-2);animation:rise var(--t-slow) var(--ease-out)}
 .toast-text{flex:1;min-width:0}
 .toast-action{color:#a8c7fa!important;padding:0 8px!important}
@@ -126,6 +126,7 @@ body.resizing{cursor:col-resize;user-select:none}
   .nav-count{position:absolute;top:-2px;left:calc(50% + 8px);min-width:16px;height:16px;padding:0 4px;border-radius:var(--r-pill);background:var(--red-strong);color:var(--panel);font-size:11px;line-height:16px;font-weight:500;text-align:center}
   .try,.try-fab{display:none}
   .toasts{left:16px;right:16px;bottom:80px;max-width:none}
+  .rail-item.rail-item{height:48px}
   .wel-lead{font-size:22px;line-height:28px}
 }
 @media (max-width:480px){.wordmark{display:none}.brand{gap:6px}}

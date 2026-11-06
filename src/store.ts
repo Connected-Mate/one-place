@@ -118,7 +118,7 @@ export const useStore = create<State>()(persist((set, get) => ({
 
   setLang: (lang) => set({ lang }),
   setTheme: (theme) => set({ theme }),
-  setViewer: (viewerId) => set({ viewerId, privateTo: null, quoteId: null }),
+  setViewer: (viewerId) => set({ viewerId, privateTo: null, quoteId: null, toasts: [] }),
   selectProject: (id) => set((s) => ({ ...mapP(s, id, (p) => ({ ...p, unread: 0, mentions: 0 })), activeProjectId: id, home: false, mobilePane: 'chat', privateTo: null, quoteId: null })),
   // The call stays alive behind Home: without its pane open, CallChip shows the way back to it.
   goHome: () => set((s) => ({ home: true, mobilePane: 'chat', privateTo: null, quoteId: null, panes: s.panes[s.activeProjectId]?.type === 'call' ? { ...s.panes, [s.activeProjectId]: { type: 'board' } } : s.panes })),

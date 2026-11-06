@@ -9,20 +9,21 @@ export function TryPanel() {
   const t = useT()
   const done = useStore((s) => s.tourDone)
   const project = useProject()
-  const [open, setOpen] = useState(true)
+  const [open, setOpenState] = useState(() => { try { return localStorage.getItem('one-place-try') !== 'min' } catch { return true } })
+  const setOpen = (v: boolean) => { setOpenState(v); try { localStorage.setItem('one-place-try', v ? 'open' : 'min') } catch { /* private mode */ } }
   const s = useStore.getState()
   // From Home the composer is still hidden at this point: wait for the frame that shows it, or it can't take focus.
   const compose = (text: string) => requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('oneplace:compose', { detail: { text } })))
   const steps = [
     { id: 'gemini', icon: 'alternate_email', l: { fr: 'Demande quelque chose à @Gemini', en: 'Ask @Gemini for something' }, run: () => { s.setMobilePane('chat'); compose('@') } },
-    { id: 'private', icon: 'lock', l: { fr: 'Envoie un message privé dans le fil', en: 'Send a private message in the thread' }, run: () => { s.setMobilePane('chat'); s.setPrivateTo(project.memberIds.find((m) => m !== s.viewerId) ?? null) } },
+    { id: 'private', icon: 'lock', l: { fr: 'Envoie un message privé dans le fil', en: 'Send a private message in the thread' }, run: () => { s.setMobilePane('chat'); s.setPrivateTo(project.memberIds.find((m) => m !== s.viewerId) ?? null); compose('') } },
     { id: 'proposal', icon: 'how_to_vote', l: { fr: 'Valide une proposition', en: 'Approve a proposal' }, run: () => {
       const m = [...project.messages].reverse().find((x) => x.kind === 'proposal' && x.status === 'pending')
       s.setMobilePane('chat')
       if (m) s.focusMessage(m.id); else s.toast({ text: { fr: 'Aucune proposition en attente ici.', en: 'No pending proposal here.' } })
     } },
     { id: 'call', icon: 'call', l: { fr: 'Lance un appel et raccroche', en: 'Start a call, then hang up' }, run: () => startCall(project.id) },
-    { id: 'viewas', icon: 'visibility', l: { fr: 'Regarde avec les yeux de Tom', en: 'See it through Tom’s eyes' }, run: () => s.setViewer(s.viewerId === ME_ID ? 'tom' : ME_ID) },
+    { id: 'viewas', icon: 'visibility', l: s.viewerId === ME_ID ? { fr: 'Regarde avec les yeux de Tom', en: 'See it through Tom’s eyes' } : { fr: 'Reviens à Alex', en: 'Back to Alex’s view' }, run: () => s.setViewer(s.viewerId === ME_ID ? 'tom' : ME_ID) },
   ]
   const count = steps.filter((x) => done.includes(x.id)).length
   if (!open) {
