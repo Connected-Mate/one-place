@@ -12,7 +12,7 @@ const av = (id: string) => `avatars/${id}.webp`
 
 export const people: Person[] = [
   { id: 'gemini', name: 'Gemini', title: { fr: 'IA du projet', en: 'Project AI' }, email: '', hue: '#4285f4', role: 'ai', presence: 'online' },
-  { id: 'alex', name: 'Alex Cormeraie', title: { fr: 'Product manager', en: 'Product manager' }, email: 'alex@oneplace.example', avatar: av('alex'), hue: '#0b57d0', role: 'owner', presence: 'online', fullName: 'Alexandre Cormeraie', company: 'One Place (concept)', linkedin: 'https://www.linkedin.com/in/alex-cormeraie/' },
+  { id: 'alex', name: 'Alex Cormeraie', title: { fr: 'Product manager', en: 'Product manager' }, email: 'alex.connectedmate@gmail.com', avatar: av('alex'), hue: '#0b57d0', role: 'owner', presence: 'online', fullName: 'Alexandre Cormeraie', company: 'One Place (concept)', linkedin: 'https://www.linkedin.com/in/alex-cormeraie/' },
   { id: 'damien', name: 'Damien Wattez', title: { fr: 'Manager d’équipe agentique', en: 'Agentic team manager' }, email: 'damien@oneplace.example', avatar: av('damien'), hue: '#546e7a', role: 'member', presence: 'online', minimal: true },
   { id: 'maya', name: 'Maya Chen', title: { fr: 'Produit', en: 'Product' }, email: 'maya@oneplace.example', avatar: av('maya'), hue: '#8430ce', role: 'member', presence: 'online', company: 'Aurora Lamps', team: 'Product', location: 'Lyon', timeZone: 'Europe/Paris' },
   { id: 'tom', name: 'Tom Laurent', title: { fr: 'Design', en: 'Design' }, email: 'tom@oneplace.example', avatar: av('tom'), hue: '#e37400', role: 'member', presence: 'online', company: 'Aurora Lamps', team: 'Design studio', location: 'Nantes', timeZone: 'Europe/Paris' },
