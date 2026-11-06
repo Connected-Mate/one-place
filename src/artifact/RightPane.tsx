@@ -203,7 +203,7 @@ export function RightPane() {
   return (
     <section className="pane right-pane" aria-label={t({ fr: 'Vue partagée du projet', en: 'Shared project view' })}>
       <BoardContext.Provider value={{ project, role, viewerId }}>
-      <div className="rp-tabbar">
+      <div className={`rp-tabbar${overflow.left ? ' scrolled' : ''}`}>
       {overflow.on && <button type="button" className="rp-tab-scroll prev" tabIndex={-1} aria-hidden="true" disabled={!overflow.left} onClick={() => scrollTabs(-1)}><Icon name="chevron_left" size={20} /></button>}
       <div ref={tablist} className="rp-tabs" role="tablist" aria-label={t({ fr: 'Parties du projet', en: 'Parts of this project' })} onKeyDown={onTabsKey} onScroll={readOverflow}>
         <div className={`rp-tab rp-tab-pinned${activeKey === 'overview' ? ' on' : ''}`} role="presentation" data-tab="overview">
