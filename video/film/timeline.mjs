@@ -11,11 +11,11 @@ import { join } from 'node:path'
 export function timeline(scratch) {
   const mini = existsSync(join(scratch, 'cap/mini/meta.json'))
   const list = [
-    ['hello', 2], ['spent', 2.75], ['gmail', 2], ['chaos', 4], ['first', 2.25], ['merge', 2.75], ['agents', 2.75],
-    ['w1', 1], ['chat', 3], ['w2', 1.4], ['type', 2.3], ['answer', 1.8], ['block', 1.6],
-    ...(mini ? [['wf', 1.2], ['mini', 3.6]] : []),
-    ['w3', 1.6], ['docs', 4], ['w4', 1.2], ['call', 7.8], ['w5', 1.2], ['overview', 2], ['home', 2],
-    ['every', 1.5], ['people', 2.5], ['only1', 2.5], ['only2', 1.7], ['hey', 2], ['hire', 2.5], ['end', 4.9],
+    ['hello', 1.6], ['spent', 2.4], ['gmail', 1.7], ['chaos', 3.4], ['first', 1.9], ['stop', 1.7],
+    ['merge', 1.6], ['conv', 1.7], ['proj', 1.7], ['files', 1.7], ['connected', 2.4], ['everyone', 2.6], ['surface', 3],
+    ['ai', 1.6], ['nosub', 1.8], ['type', 1.9], ['answer', 1.3], ['block', 1.6],
+    ...(mini ? [['mini', 2.6]] : []),
+    ['callsT', .9], ['call', 5], ['every', 1.2], ['people', 2], ['only1', 2], ['only2', 1.3], ['hey', 1.6], ['hire', 2], ['end', 4],
   ]
   const T = {}; let t = 0
   for (const [n, d] of list) { T[n] = [+t.toFixed(3), +(t + d).toFixed(3)]; t += d }

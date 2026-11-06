@@ -35,7 +35,7 @@ export async function loadTrack(id, scratch, here) {
   if (id === 'custom') {
     const f = readdirSync(here).find((x) => x.startsWith('music-custom.'))
     if (!f) throw new Error('--music custom: put the file at video/audio/music-custom.<ext>')
-    return { track: { id: 'custom', path: join(here, f), start: 0, enter: 'land' } }
+    return { track: { id: 'custom', path: join(here, f) } }
   }
   const t = TRACKS[id]; if (!t) throw new Error('unknown track ' + id)
   const dir = join(scratch, 'music'); mkdirSync(dir, { recursive: true })

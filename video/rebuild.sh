@@ -7,7 +7,8 @@
 #   FILM_OUT     where the finished files go (default ~/Documents/Perso/One Place)
 #   FILM_SCRATCH where raw captures go (default: this session's scratch folder)
 #   FILM_SKIP_CAPTURE=1  keeps the existing captures, for a change in the edit or the sound only
-#   FILM_MUSIC=a|b|c|custom  the track of the main film (custom: audio/music-custom.<ext>, a track licensed by Alex)
+#   FILM_MUSIC=custom|temp  the track of the main film (custom: audio/music-custom.<ext>)
+#   FILM_DROP=<seconds>  where the drop is in that track, landing on the One Place mark (found by itself when not given)
 #   FILM_SAMPLES=8  motion blur samples per frame
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/.." && pwd)"
@@ -39,10 +40,9 @@ if [ -z "${FILM_SKIP_CAPTURE:-}" ]; then
   kill "$SERVER" 2>/dev/null || true; SERVER=""
 fi
 
-SAMPLES="${FILM_SAMPLES:-8}"; MAIN="${FILM_MUSIC:-a}"
+SAMPLES="${FILM_SAMPLES:-8}"; MAIN="${FILM_MUSIC:-custom}"
 echo "== sound"
-for m in a b c; do (cd "$HERE" && node audio/make-audio.mjs --music "$m" --out "$FILM_SCRATCH/mix-$m.wav" | grep -E "^music|I:|Peak"); done
-if ls "$HERE"/audio/music-custom.* >/dev/null 2>&1; then (cd "$HERE" && node audio/make-audio.mjs --music custom --out "$FILM_SCRATCH/mix-custom.wav" | grep -E "^music|I:|Peak"); fi
+(cd "$HERE" && node audio/make-audio.mjs --music "$MAIN" ${FILM_DROP:+--drop "$FILM_DROP"} --out "$FILM_SCRATCH/mix-$MAIN.wav" | grep -E "^music|I:|Peak")
 echo "== films"
 for f in 16x9 1x1; do
   (cd "$HERE" && node render.mjs --format "$f" --audit 0.1 | tail -1)
@@ -51,16 +51,11 @@ for f in 16x9 1x1; do
   S="1920:1080"; [ "$f" = 1x1 ] && S="1080:1080"
   "$FF" -hide_banner -loglevel error -y -i "$M" -vf "scale=$S:flags=lanczos,format=yuv420p" -c:v libx264 -preset slow -crf 16 -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart "$L"
 done
-# Other music: the same picture, 1080p 16:9
-for m in b c custom; do
-  [ "$m" = "$MAIN" ] && continue; [ -f "$FILM_SCRATCH/mix-$m.wav" ] || continue
-  "$FF" -hide_banner -loglevel error -y -i "$OUT/one-place-film-v2-16x9-1080.mp4" -i "$FILM_SCRATCH/mix-$m.wav" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k -shortest -movflags +faststart "$OUT/one-place-film-v2-16x9-1080-music-$m.mp4"
-done
 echo "== posters and proof"
 TL() { (cd "$HERE" && node -e "import('./film/timeline.mjs').then(m=>console.log(m.timeline(process.env.FILM_SCRATCH).$1[0]+$2))"); }
 for f in 16x9 1x1; do
   M="$OUT/one-place-film-v2-$f-4k.mp4"
-  for p in "mark merge 2.3" "wow call 3.9" "people people 2" "end-card end 3"; do set -- $p; "$FF" -hide_banner -loglevel error -y -ss "$(TL "$2" "$3")" -i "$M" -frames:v 1 -q:v 1 -update 1 "$OUT/poster-v2-$f-$1.jpg"; done
+  for p in "mark merge 1.1" "wow call 2.6" "people people 1.7" "end-card end 2.6"; do set -- $p; "$FF" -hide_banner -loglevel error -y -ss "$(TL "$2" "$3")" -i "$M" -frames:v 1 -q:v 1 -update 1 "$OUT/poster-v2-$f-$1.jpg"; done
   (cd "$HERE" && SC=480 ./sheet-video.sh "$M" "$OUT/proof/contact-sheet-v2-$f-2s.jpg" 2 6 0 76)
   "$FF" -hide_banner -nostats -i "$M" -af ebur128=peak=true -f null - 2>&1 | awk '/Summary/{p=1} p' | grep -E "I:|Peak:" || true
 done
