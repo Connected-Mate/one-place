@@ -4,44 +4,56 @@
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
 import { useEffect, useState } from 'react'
-import { Button, Dialog, Icon, Sparkle } from '../ui/kit'
+import { Button, Dialog, Icon } from '../ui/kit'
 import { Logo } from '../ui/Logo'
 import { useT } from '../i18n'
 
-const OLD = [
-  { icon: 'mail', l: { fr: 'Boîte mail', en: 'Inbox' } },
-  { icon: 'forum', l: { fr: 'Chats', en: 'Chats' } },
-  { icon: 'description', l: { fr: 'Documents', en: 'Docs' } },
-  { icon: 'folder_open', l: { fr: 'Drive', en: 'Drive' } },
-  { icon: 'videocam', l: { fr: 'Visio', en: 'Video calls' } },
-  { icon: 'checklist', l: { fr: 'Tâches', en: 'Tasks' } },
-  { icon: 'calendar_month', l: { fr: 'Agenda', en: 'Calendar' } },
-  { icon: 'smart_toy', l: { fr: 'Dix agents IA', en: 'Ten AI agents' } },
+// Google's products, named descriptively. Drawn with our own icons, never their logo files.
+const APPS = [
+  { name: 'Gmail', icon: 'mail', color: '#ea4335' },
+  { name: 'Chat', icon: 'chat_bubble', color: '#34a853' },
+  { name: 'Calendar', icon: 'calendar_month', color: '#4285f4' },
+  { name: 'Meet', icon: 'videocam', color: '#00897b' },
+  { name: 'Docs', icon: 'description', color: '#4285f4' },
+  { name: 'Sheets', icon: 'table_chart', color: '#34a853' },
+  { name: 'Slides', icon: 'slideshow', color: '#fbbc04' },
+  { name: 'Drive', icon: 'folder_open', color: '#fbbc04' },
+  { name: 'Tasks', icon: 'task_alt', color: '#4285f4' },
+  { name: 'Keep', icon: 'lightbulb', color: '#fbbc04' },
 ]
 
 export function Welcome({ onClose }: { onClose: () => void }) {
   const t = useT()
-  const [gone, setGone] = useState(false)
-  useEffect(() => { const x = setTimeout(() => setGone(true), 700); return () => clearTimeout(x) }, [])
+  const [merged, setMerged] = useState(false)
+  useEffect(() => { const x = setTimeout(() => setMerged(true), 1100); return () => clearTimeout(x) }, [])
+  const mid = (APPS.length - 1) / 2
   return (
     <Dialog
-      width={640}
+      width={620}
       onClose={onClose}
-      title={<span className="wel-title"><Logo size={36} /> One Place</span>}
+      title={t({ fr: 'Et si c’était le dernier endroit où travailler ?', en: 'What if this was the last place you work?' })}
       footer={<Button variant="filled" data-autofocus onClick={onClose}>{t({ fr: 'Entrer', en: 'Step in' })}</Button>}
     >
-      <p className="wel-lead">{t({ fr: 'Et si c’était la dernière appli ?', en: 'What if this was the last app?' })}</p>
-      <ul className={`wel-apps${gone ? ' gone' : ''}`} aria-label={t({ fr: 'Ce que ça remplace', en: 'What it replaces' })}>
-        {OLD.map((a, i) => <li key={a.icon} style={{ transitionDelay: `${i * 70}ms` }}><Icon name={a.icon} size={18} />{t(a.l)}</li>)}
-      </ul>
-      <p className="wel-body">{t({
-        fr: 'Un projet, c’est un chat et une vue partagée. Tout se passe là : les messages, les mails qui arrivent, les documents, les appels. Une seule IA, que tu appelles avec @.',
-        en: 'A project is one chat and one shared view. Everything happens there: messages, incoming email, documents, calls. One AI, called with @.',
+      <div className={`wel-stage${merged ? ' merged' : ''}`} aria-hidden="true">
+        <ul className="wel-apps">
+          {APPS.map((a, i) => (
+            <li key={a.name} style={{ '--i': i - mid, '--d': `${Math.abs(i - mid) * 45}ms` } as React.CSSProperties}>
+              <span className="wel-app" style={{ color: a.color }}><Icon name={a.icon} size={24} /></span>
+              <span className="wel-app-name">{a.name}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="wel-one"><Logo size={56} /><span>One Place</span></div>
+      </div>
+      <p className="wel-lead">{t({
+        fr: 'Gmail, Chat, Calendar, Meet, Docs, Sheets, Slides, Drive, Tasks et Keep fusionnent en un seul endroit, avec Gemini partout.',
+        en: 'Gmail, Chat, Calendar, Meet, Docs, Sheets, Slides, Drive, Tasks and Keep merge into one place, with Gemini throughout.',
       })}</p>
-      <p className="wel-note"><Sparkle size={16} /> <span>{t({
-        fr: 'Une démo d’interface : tout est simulé, rien n’est envoyé, aucun compte. Un concept d’',
-        en: 'An interface demo: everything is simulated, nothing is sent, no account. A concept by ',
-      })}<a href="https://www.linkedin.com/in/alex-cormeraie/" target="_blank" rel="noopener">Alexandre Cormeraie</a>{t({ fr: '. Pas un produit Google.', en: '. Not a Google product.' })}</span></p>
+      <p className="wel-body">{t({
+        fr: 'Concentrons-nous sur l’humain, pas sur l’IA. L’IA est partout pour nous rendre du temps pour ce qui compte : les relations, les discussions, les idées.',
+        en: 'Let’s focus on humans, not on AI. AI is everywhere so we can spend more time on what matters: relationships, conversations, ideas.',
+      })}</p>
+      <p className="wel-note">{t({ fr: 'Démo d’interface, tout est simulé. Un concept d’', en: 'An interface demo, everything is simulated. A concept by ' })}<a href="https://www.linkedin.com/in/alex-cormeraie/" target="_blank" rel="noopener">Alexandre Cormeraie</a>{t({ fr: '. Pas un produit Google.', en: '. Not a Google product.' })}</p>
     </Dialog>
   )
 }
