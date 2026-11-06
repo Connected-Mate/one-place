@@ -481,7 +481,7 @@
 .rp-tab.fresh::after{background:var(--gemini);transform:scaleX(1);animation:rp-glow 2s var(--ease) both}
 .rp-tab.fresh::before{content:'';position:absolute;inset:0;background:var(--gemini-soft);animation:rp-glow 2s var(--ease) both;pointer-events:none}
 .rp-advice-slot{position:relative;display:flex;align-items:center;flex:none;padding:0 12px 0 8px}
-.rp-tab-scroll.next{right:0;position:relative;top:0;flex:none;align-self:center;box-shadow:none}
+
 .rp-tab-scroll.prev{top:6px}
 .rp-advice-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:var(--r-pill);background:var(--gemini-soft);color:var(--text-2);font-size:13px;font-weight:500;white-space:nowrap;transition:box-shadow var(--t-fast) var(--ease)}
 .rp-advice-chip:hover,.rp-advice-chip.on{box-shadow:inset 0 0 0 1px var(--outline)}
@@ -613,3 +613,26 @@
 .rp-advice-pop ul{list-style:none}
 .rp-t-g-bar em,.rp-t-g-ms em{text-shadow:0 0 2px var(--surface-1),0 0 2px var(--surface-1),0 0 2px var(--surface-1)}
 @container ov (max-width:460px){.rp-ov-head .rp-board-faces{display:none}.rp-ov-title{flex:1}}
+
+/* QA: Overview stays pinned in the row, chevrons sit beside the tabs and never over them */
+.rp-tab-pinned{position:sticky;left:0;z-index:1;background:var(--panel)}
+.rp-tab-pinned:hover{background:color-mix(in srgb,var(--panel) 92%,var(--text))}
+.rp-tab-scroll.prev,.rp-tab-scroll.next{position:relative;top:0;left:0;right:0;flex:none;align-self:center;box-shadow:none}
+.rp-tabbar .rp-tabs{scroll-behavior:auto}
+@container pane (max-width:520px){.rp-tab-word{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}}
+/* kanban tags get their own line and never break mid-word */
+.rp-card-tag{display:inline-block;height:auto;max-width:100%;margin-top:6px;padding:2px 6px;line-height:14px;white-space:normal;overflow-wrap:break-word}
+/* long unbroken text must stay inside its block */
+.rp-poll-q,.rp-poll-label,.rp-summary-text,.rp-summary-list li,.rp-t-summary,.rp-t-note,.rp-notes{overflow-wrap:anywhere}
+.rp-section .rp-poll-q{overflow-wrap:anywhere}
+/* timeline bars: flat tints in light, stronger fills in dark so they stay clean on the dark panel */
+.right-pane{--g-track:22%;--g-prog:36%;--g-mini:32%}
+:root[data-theme="dark"] .right-pane{--g-track:48%;--g-prog:72%;--g-mini:55%}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .right-pane{--g-track:48%;--g-prog:72%;--g-mini:55%}}
+.rp-g-track{background:color-mix(in srgb,var(--c) var(--g-track),var(--panel));box-shadow:none}
+.rp-g-progress{background:color-mix(in srgb,var(--c) var(--g-prog),var(--panel))}
+.rp-g-label{color:var(--text)}
+.rp-t-g-bar{background:color-mix(in srgb,var(--c) var(--g-mini),var(--surface-1))}
+
+.rp-tabbar .rp-tabs{padding:0}
+.rp-tab-scroll:disabled{color:var(--text-disabled);cursor:default;background:none}

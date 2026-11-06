@@ -44,6 +44,12 @@ function sectionTabs(blocks: Block[], t: (v: { fr: string; en: string } | string
     return { block: b, label }
   })
 }
+/** Overview is pinned at the left of the row: a tab counts as visible only clear of it. */
+function revealTab(list: HTMLElement | null, tab: Element | null | undefined) {
+  if (!list || !tab) return
+  const pinned = list.querySelector<HTMLElement>('[data-tab="overview"]')
+  revealIn(list, tab, { top: 0, right: 4, bottom: 0, left: tab === pinned ? 0 : (pinned?.offsetWidth ?? 0) + 4 })
+}
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
@@ -72,7 +78,7 @@ export function RightPane() {
   const setBlockGallery = useStore((s) => s.setBlockGallery)
   const [tabMap, setTabMap] = useState<TabMap>(loadTabs)
   const [sectionMap, setSectionMap] = useState<Record<string, string>>(loadSections)
-  const [overflow, setOverflow] = useState({ left: false, right: false })
+  const [overflow, setOverflow] = useState({ on: false, left: false, right: false })
   const [now, setNow] = useState(() => Date.now())
   const tablist = useRef<HTMLDivElement>(null)
   const warned = useRef<string | null>(null)
@@ -131,8 +137,7 @@ export function RightPane() {
     if (known.pid !== pid) return
     const arrived = freshIds.filter((id) => !known.ids.includes(id))
     if (arrived.length && view === 'board' && section !== 'overview') pickSection(arrived[0])
-    const tab = tablist.current?.querySelector(`[data-tab="${CSS.escape(arrived[0] ?? '')}"]`)
-    if (tab) revealIn(tablist.current, tab, { top: 0, right: 40, bottom: 0, left: 40 })
+    revealTab(tablist.current, tablist.current?.querySelector(`[data-tab="${CSS.escape(arrived[0] ?? '')}"]`))
   }, [freshIds, pid, view, section, pickSection])
   // The flag can outlive its timer (a reload in mid-animation, a block that is not on screen).
   useEffect(() => {
@@ -146,7 +151,8 @@ export function RightPane() {
     const el = tablist.current
     if (!el) return
     const left = el.scrollLeft > 2, right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
-    setOverflow((o) => (o.left === left && o.right === right ? o : { left, right }))
+    const on = el.scrollWidth > el.clientWidth + 1
+    setOverflow((o) => (o.on === on && o.left === left && o.right === right ? o : { on, left, right }))
   }, [])
   useLayoutEffect(() => {
     const el = tablist.current
@@ -157,8 +163,9 @@ export function RightPane() {
     return () => ro.disconnect()
   }, [readOverflow, tabCount, pid])
   useEffect(() => {
-    revealIn(tablist.current, tablist.current?.querySelector('[aria-selected="true"]')?.parentElement, { top: 0, right: 40, bottom: 0, left: 40 })
-  }, [activeKey, tabCount])
+    revealTab(tablist.current, tablist.current?.querySelector('[aria-selected="true"]')?.parentElement)
+    // showing the chevrons narrows the row: reveal again when they appear, not when one merely goes disabled
+  }, [activeKey, tabCount, overflow.on])
   const scrollTabs = (dir: -1 | 1) => tablist.current?.scrollBy({ left: dir * tablist.current.clientWidth * 0.7 })
 
   if (!project) return <section className="pane right-pane" />
@@ -192,11 +199,11 @@ export function RightPane() {
     <section className="pane right-pane" aria-label={t({ fr: 'Vue partagée du projet', en: 'Shared project view' })}>
       <BoardContext.Provider value={{ project, role, viewerId }}>
       <div className="rp-tabbar">
-      {overflow.left && <button type="button" className="rp-tab-scroll prev" tabIndex={-1} aria-hidden="true" onClick={() => scrollTabs(-1)}><Icon name="chevron_left" size={20} /></button>}
+      {overflow.on && <button type="button" className="rp-tab-scroll prev" tabIndex={-1} aria-hidden="true" disabled={!overflow.left} onClick={() => scrollTabs(-1)}><Icon name="chevron_left" size={20} /></button>}
       <div ref={tablist} className="rp-tabs" role="tablist" aria-label={t({ fr: 'Parties du projet', en: 'Parts of this project' })} onKeyDown={onTabsKey} onScroll={readOverflow}>
-        <div className={`rp-tab${activeKey === 'overview' ? ' on' : ''}`} role="presentation" data-tab="overview">
+        <div className={`rp-tab rp-tab-pinned${activeKey === 'overview' ? ' on' : ''}`} role="presentation" data-tab="overview">
           <button type="button" role="tab" aria-selected={activeKey === 'overview'} tabIndex={activeKey === 'overview' ? 0 : -1} className="rp-tab-btn" onClick={() => openSection('overview')}>
-            <Icon name="dashboard" size={18} fill={activeKey === 'overview'} />{t({ fr: 'Vue d’ensemble', en: 'Overview' })}
+            <Icon name="dashboard" size={18} fill={activeKey === 'overview'} /><span className="rp-tab-word">{t({ fr: 'Vue d’ensemble', en: 'Overview' })}</span>
           </button>
         </div>
         {sectionTabs(project.blocks, t).map(({ block, label }) => {
@@ -230,7 +237,7 @@ export function RightPane() {
           </div>
         )}
       </div>
-      {overflow.right && <button type="button" className="rp-tab-scroll next" tabIndex={-1} aria-hidden="true" onClick={() => scrollTabs(1)}><Icon name="chevron_right" size={20} /></button>}
+      {overflow.on && <button type="button" className="rp-tab-scroll next" tabIndex={-1} aria-hidden="true" disabled={!overflow.right} onClick={() => scrollTabs(1)}><Icon name="chevron_right" size={20} /></button>}
       {role !== 'guest' && <div className="rp-advice-slot"><AdviceChip key={project.id} onOpenSection={openSection} /></div>}
       </div>
         <div className="rp-body">

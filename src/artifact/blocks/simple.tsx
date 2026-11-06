@@ -60,7 +60,7 @@ export function FilesBlock({ block }: { block: Of<'files'> }) {
   return (
     <Frame block={block}>
       {files.length === 0 ? (
-        <Empty icon="folder_open" title={t({ fr: 'Aucun fichier', en: 'No files yet' })} hint={t({ fr: 'Partagez un fichier dans le chat : il arrive ici.', en: 'Share a file in the chat and it lands here.' })} />
+        <Empty icon="folder_open" title={t({ fr: 'Aucun fichier', en: 'No files yet' })} hint={t({ fr: 'Partagez un fichier dans le chat : il arrive ici.', en: 'Share a file in the chat and it shows up here.' })} />
       ) : (
         <ul className="rp-rows">
           {files.map((a) => {
@@ -109,7 +109,7 @@ export function PeopleBlock({ block }: { block: Of<'people'> }) {
                   <span className="rp-trunc" title={p.name}>{p.name}{p.id === viewerId && <span className="rp-row-sub"> {t({ fr: '(vous)', en: '(you)' })}</span>}</span>
                   <span className="rp-row-sub rp-trunc">{t(p.title)}{t(p.title) ? ', ' : ''}<span className="rp-lower">{presence(p)}</span></span>
                 </span>
-                {byMail && <span className="rp-tag"><Icon name="mail" size={14} />{t({ fr: 'Par mail', en: 'By mail' })}</span>}
+                {byMail && <span className="rp-tag"><Icon name="mail" size={14} />{t({ fr: 'Par mail', en: 'By email' })}</span>}
                 {guest && <span className="rp-tag"><Icon name="videocam" size={14} />{t({ fr: 'Appel seul', en: 'Call only' })}</span>}
                 {p.id !== viewerId && !guest && role !== 'guest' && (
                   <IconButton icon="chat_bubble" size={32} label={t({ fr: `Écrire en privé à ${p.name}`, en: `Message ${p.name} privately` })} onClick={() => write(p)} />

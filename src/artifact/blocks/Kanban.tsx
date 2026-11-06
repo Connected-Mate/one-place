@@ -98,8 +98,8 @@ export function KanbanBlock({ block }: { block: Extract<Block, { type: 'kanban' 
       <>
         <p className="rp-card-title">{title}</p>
         {c.note && <p className="rp-card-note">{t(c.note)}</p>}
+        {c.tag && <span className="rp-tag rp-card-tag">{t(c.tag)}</span>}
         <div className="rp-card-foot">
-          {c.tag && <span className="rp-tag rp-trunc">{t(c.tag)}</span>}
           <span className="rp-card-moves">
             {!readOnly && !inert && (
               <>

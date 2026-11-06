@@ -62,15 +62,15 @@ export function computeAdvice(p: Project, viewerId: string, role: 'owner' | 'mem
     }
   }
 
-  // Mail that came in with nothing sent back since.
+  // Email that came in with nothing sent back since.
   const mails = p.messages.filter((m) => m.kind === 'email' && seen(m))
   const lastMail = mails[mails.length - 1]
   if (lastMail && lastMail.kind === 'email' && lastMail.direction === 'in') {
     const who = first(lastMail.authorId)
     out.push({
       id: `mail:${lastMail.id}`, group: 'broken', settles: true, label: 'Draft a reply',
-      action: { kind: 'compose', text: `@Gemini draft a reply to ${who}'s mail` },
-      text: `${who}'s mail ${quoted(lastMail.subject)} has had no reply ${ago(lastMail.at, now)}.`,
+      action: { kind: 'compose', text: `@Gemini draft a reply to ${who}'s email` },
+      text: `${who}'s email ${quoted(lastMail.subject)} has had no reply ${ago(lastMail.at, now)}.`,
     })
   }
 
@@ -172,7 +172,7 @@ export function computeAdvice(p: Project, viewerId: string, role: 'owner' | 'mem
   if (p.memberIds.filter((id) => personById(id).role !== 'ai').length <= 1) {
     out.push({
       id: `alone:${p.id}`, group: 'next', settles: true, label: 'Ask Gemini', action: { kind: 'compose', text: '@Gemini who should join this project?' },
-      text: 'You are alone on this project for now. Mail sent to its address lands here too.',
+      text: 'You are alone on this project for now. Email sent to its address shows up here too.',
     })
   }
   return out

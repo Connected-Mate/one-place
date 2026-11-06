@@ -127,7 +127,7 @@ export function BlockGallery({ project }: { project: Project }) {
     push(project.id, {
       id: uid('m'), kind: 'proposal', authorId: viewerId, at: Date.now(), visibility: { type: 'all' }, status: 'pending',
       title: { fr: `Ajouter le bloc « ${name.fr} »`, en: `Add the "${name.en}" block` },
-      description: { fr: `${tpl.hint.fr}. Il arrivera sur le tableau de tout le monde.`, en: `${tpl.hint.en}. It will land on everyone's board.` },
+      description: { fr: `${tpl.hint.fr}. Il arrivera sur le tableau de tout le monde.`, en: `${tpl.hint.en}. It will appear on everyone's board.` },
       action: { type: 'add-block', block },
     })
     toast({ text: { fr: `Proposition envoyée : ${owner} décide dans le chat`, en: `Proposal sent: ${owner} decides in the chat` }, icon: 'how_to_vote' })
@@ -139,7 +139,9 @@ export function BlockGallery({ project }: { project: Project }) {
     used.current = true
     close()
     askGemini(project.id, text)
-    toast({ text: { fr: 'Gemini s’en occupe, suivez dans le chat', en: 'Gemini is on it, follow along in the chat' }, icon: 'auto_awesome' })
+    // Gemini answers in the chat: take the viewer there, on a phone the chat is another screen.
+    useStore.getState().setMobilePane('chat')
+    toast({ text: { fr: 'Gemini répond dans le chat', en: 'Gemini is answering in the chat' }, icon: 'auto_awesome' })
   }
 
   const faces = project.memberIds.filter((id) => personById(id).role !== 'ai').slice(0, 3)

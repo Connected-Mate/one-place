@@ -247,7 +247,7 @@ export function Overview({ onOpen }: { onOpen: (blockId: string) => void }) {
           title={t({ fr: 'Ce tableau est encore vide', en: 'This board is still empty' })}
           hint={role === 'owner'
             ? t({ fr: 'Ajoutez un premier bloc, ou demandez à Gemini de le faire.', en: 'Add a first block, or ask Gemini to do it.' })
-            : t({ fr: `Tout le monde voit le même tableau. ${owner} décide de ce qui y arrive : proposez-lui un bloc.`, en: `Everyone sees the same board. ${owner} decides what lands on it: propose a block.` })}
+            : t({ fr: `Tout le monde voit le même tableau. ${owner} décide de ce qui y arrive : proposez-lui un bloc.`, en: `Everyone sees the same board. ${owner} decides what goes on it: propose a block.` })}
         >
           {add}
         </Empty>
