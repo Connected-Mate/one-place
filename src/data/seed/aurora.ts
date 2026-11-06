@@ -115,7 +115,7 @@ export function aurora(): Project {
     },
     { id: 'aurora-todo', type: 'todo', span: 2, title: { fr: 'À faire', en: 'To do' }, todos },
     {
-      id: 'aurora-chart', type: 'chart', span: 1, title: { fr: 'Budget engagé vs prévu', en: 'Committed vs planned' }, unit: 'k€',
+      id: 'aurora-chart', type: 'chart', span: 1, title: { fr: 'Budget', en: 'Budget' }, unit: 'k€',
       series: [
         { label: { fr: 'Outillage', en: 'Tooling' }, value: 118.5, target: 110 },
         { label: { fr: 'Électronique', en: 'Electronics' }, value: 61.2, target: 64 },
@@ -123,6 +123,7 @@ export function aurora(): Project {
         { label: { fr: 'Shooting', en: 'Shoot' }, value: 38.2, target: 25 },
         { label: { fr: 'Packaging', en: 'Packaging' }, value: 31, target: 30 },
         { label: { fr: 'Keynote', en: 'Keynote' }, value: 21.5, target: 20 },
+        { label: { fr: 'Autres', en: 'Everything else' }, value: 96.8, target: 106 },
       ],
     },
     { id: 'aurora-files', type: 'files', span: 1, title: { fr: 'Fichiers', en: 'Files' }, artifactIds: ['a-doc-brief', 'a-sheet-budget', 'a-slides-keynote', 'a-pdf-diffuser'] },
