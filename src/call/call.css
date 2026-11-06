@@ -387,3 +387,6 @@ button.cv-gemini:hover{transform:scale(1.06)}
 @container cvstage (max-height:440px){.cv-ring-photo{width:88px;height:88px}.cv-ring-center{gap:6px;padding:8px}.cv-pip{width:104px}}
 @keyframes cv-ring-out{0%{opacity:.5;transform:scale(1)}60%,100%{opacity:0;transform:scale(1.5)}}
 @media (prefers-reduced-motion:reduce){.cv-ring-photo::before,.cv-ring-photo::after{animation:none!important}}
+
+/* An elevated, solid pill: it must read clearly above the panes and their seam. */
+.cv-chip{background:#303134;border:1px solid rgba(232,234,237,.14);box-shadow:0 4px 12px rgba(0,0,0,.35)}

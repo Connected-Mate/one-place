@@ -25,3 +25,7 @@ Object.assign(window, { hireMe: () => window.open('https://www.linkedin.com/in/a
 
 // Lets the layout audit (scripts/layout-audit.mjs) walk every screen.
 Object.assign(window, { __opStore: useStore })
+
+// The focus ring is for keyboard users only: on with Tab or arrows, off at the next click or touch.
+addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key.startsWith('Arrow')) document.documentElement.classList.add('kbd') }, true)
+addEventListener('pointerdown', () => document.documentElement.classList.remove('kbd'), true)

@@ -41,9 +41,6 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
         <Logo size={26} /><span className="wordmark">One Place</span>
         <IconButton icon="close" label={t({ fr: 'Fermer', en: 'Close' })} onClick={onCloseDrawer} />
       </div>
-      <button type="button" className="compose" onClick={() => setCreate(true)}>
-        <Icon name="add" size={24} /><span className="rail-label">{t({ fr: 'Nouveau projet', en: 'New project' })}</span>
-      </button>
       <ul className="rail-list rail-home">
         <li>
           <button type="button" className={`rail-item${home ? ' on' : ''}${needs ? ' unread' : ''}`} aria-current={home ? 'page' : undefined} onClick={goHome} title={t({ fr: 'Accueil', en: 'Home' })}>
@@ -73,6 +70,9 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
           )
         })}
       </ul>
+      <button type="button" className="compose" onClick={() => setCreate(true)}>
+        <Icon name="add" size={20} /><span className="rail-label">{t({ fr: 'Nouveau projet', en: 'New project' })}</span>
+      </button>
       <TryPanel />
       {create && <NewProject onClose={() => setCreate(false)} />}
     </nav>
