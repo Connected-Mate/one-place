@@ -19,7 +19,7 @@ const SIZES = [
 /** Runs in the page. Returns the defects on the current screen. */
 const inspect = () => {
   const out = []
-  const name = (el) => `${el.tagName.toLowerCase()}.${String(el.className).split(' ').filter(Boolean).slice(0, 2).join('.')}`
+  const name = (el) => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}.${String(el.className).split(' ').filter(Boolean).slice(0, 2).join('.')}`
   const shown = (el) => {
     const r = el.getBoundingClientRect(); const c = getComputedStyle(el)
     return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none' && +c.opacity > 0.05 && !el.closest('[hidden],[inert],.sr-only')
@@ -87,6 +87,7 @@ for (const [device, width, height] of SIZES) {
   }
   await page.goto(URL_)
   await page.waitForSelector('.wel-stage')
+  await page.waitForSelector('#splash', { state: 'detached' }) // the loading logo may take longer on a slow machine
   await page.waitForTimeout(1800)
   await check('welcome')
   await page.keyboard.press('Escape')
