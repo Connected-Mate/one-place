@@ -157,7 +157,7 @@ export function hiring(): Project {
   }
 
   return {
-    id: 'hiring', name: { fr: 'Recrutement Design lead', en: 'Design lead hiring' }, icon: 'person_search', color: '#8430ce',
+    id: 'hiring', name: { fr: 'Recrutement Design lead', en: 'Hiring: Design lead' }, icon: 'person_search', color: '#8430ce',
     description: { fr: 'Un ou une Design lead pour Aurora et la suite. Entretien demain.', en: 'A Design lead for Aurora and what comes next. Interview tomorrow.' },
     ownerId: 'maya', memberIds: ['maya', 'alex', 'tom', 'lea'], externalIds: ['ben'],
     unread: 5, mentions: 2, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts, script, address: 'recrutement@oneplace.example',

@@ -58,7 +58,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .rail-min .rail-label{display:none}
 .rail-min .rail-list{padding-right:8px}
 .rail-min .rail-item{padding-left:24px}
-.rail-foot{padding:16px 24px;font-size:12px;line-height:16px;color:var(--text-3)}
+.rail-foot{padding:12px 24px 8px;font-size:12px;line-height:16px;color:var(--text-3)}
 .tpl-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .tpl{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border:1px solid var(--outline);border-radius:var(--r-m);font-weight:500;transition:background var(--t-fast)}
 .tpl:hover{background:var(--hover)}.tpl.on{background:var(--primary-soft);color:var(--on-primary-soft);border-color:transparent}
@@ -81,14 +81,15 @@ body.resizing{cursor:col-resize;user-select:none}
 .toast-action{color:#a8c7fa!important;padding:0 8px!important}
 
 /* things to try */
-.try{position:fixed;right:24px;bottom:24px;width:300px;background:var(--panel);border-radius:var(--r-l);box-shadow:var(--shadow-3);z-index:60;animation:rise var(--t-slow) var(--ease-out)}
+.try{margin:8px 8px 0 8px;background:var(--panel);border-radius:var(--r-l);flex:none;animation:rise var(--t-slow) var(--ease-out)}
+.rail-min .try,.rail-min .try-fab{display:none}
 .try header{display:flex;align-items:center;gap:8px;padding:8px 8px 4px 16px}
 .try-count{color:var(--text-3);font-size:12px;margin-right:auto}
 .try ul{list-style:none;margin:0;padding:0 8px 8px}
 .try li button{display:flex;align-items:center;gap:12px;width:100%;min-height:36px;padding:6px 8px;border-radius:var(--r-s);text-align:left;font-size:13px;line-height:18px;color:var(--text-2)}
 .try li button:hover{background:var(--hover)}
 .try li button.on{color:var(--text-3);text-decoration:line-through}.try li button.on .ms{color:var(--green);text-decoration:none}
-.try-fab{position:fixed;right:24px;bottom:24px;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;background:var(--panel);box-shadow:var(--shadow-2);border-radius:var(--r-pill);font-weight:500;z-index:60}
+.try-fab{margin:8px 8px 0 16px;align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:var(--r-pill);color:var(--text-2);font-weight:500;flex:none}.try-fab:hover{background:var(--hover)}
 
 .mobile-nav{display:none}
 .only-wide{display:inline-flex}

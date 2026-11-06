@@ -82,7 +82,7 @@ const isAddTodo = (n: string) => /^\s*(to-?do|tache|task)\s*:/.test(n)
 const isMove = (n: string) => /\b(decal\w*|delay\w*|postpone\w*|repouss\w*|reporte[rz]?|push back|move\w*|retard\w*|avance[rz]?|bring forward)\b/.test(n)
 const isDoc = (n: string) => /\b(redige\w*|draft|brief|document|memo|compte[- ]rendu|note de cadrage)\b/.test(n)
 const isMeeting = (n: string) => /\b(meeting|reunion|call|appel|rdv|rendez-?vous|schedule|planifie\w*|book|cale)\b/.test(n)
-const isRecap = (n: string) => /\b(recap\w*|resume\w*|catch ?up|summar\w*|synthese|point|ou on en est|ou en est|where (are|do) we|where things stand|what.*missed|quoi de neuf)\b/.test(n)
+const isRecap = (n: string) => /\b(recap\w*|resume\w*|catch( \w+)? up|catch ?up|fill me in|brief me|summar\w*|synthese|point|ou on en est|ou en est|where (are|do) we|where things stand|what.*missed|quoi de neuf)\b/.test(n)
 
 function wantedBlock(n: string) {
   const hit = BLOCK_WORDS.find(([, re]) => re.test(n))

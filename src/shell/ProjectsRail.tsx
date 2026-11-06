@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, Dialog, Icon } from '../ui/kit'
 import { useStore } from '../store'
 import { useT } from '../i18n'
+import { TryPanel } from './TryPanel'
 
 export function ProjectsRail() {
   const t = useT()
@@ -34,6 +35,7 @@ export function ProjectsRail() {
           )
         })}
       </ul>
+      <TryPanel />
       <div className="rail-foot rail-label">
         {t({ fr: 'Pas de boîte mail. Pas d’autres applis. Une seule vue.', en: 'No inbox. No other apps. One view.' })}
       </div>

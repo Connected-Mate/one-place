@@ -273,7 +273,6 @@
 @keyframes cv-dot{50%{opacity:.4}}
 
 /* The demo's floating "Things to try" must never sit on the call controls. */
-.app:has(.rp-view:not([hidden]) .cv-stage) :is(.try,.try-fab){display:none}
 
 /* In the project the pane's "Call" tab already shows the time: one clock, not two out of step. */
 .rp-view :is(.cv-timer,.cv-bar-time,.cv-bar-sep){display:none}

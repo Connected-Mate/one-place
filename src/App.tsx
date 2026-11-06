@@ -5,7 +5,6 @@ import { CallChip, GuestScreen } from './call/CallView'
 import { TopBar } from './shell/TopBar'
 import { ProjectsRail } from './shell/ProjectsRail'
 import { Welcome } from './shell/Welcome'
-import { TryPanel } from './shell/TryPanel'
 import { Toasts } from './shell/Toasts'
 import { MobileNav } from './shell/MobileNav'
 import { Splitter } from './shell/Splitter'
@@ -53,7 +52,6 @@ export default function App() {
           </main>
           <MobileNav />
           <CallChip />
-          <TryPanel />
         </div>
       )}
       <Toasts />

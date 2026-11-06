@@ -1,4 +1,5 @@
 // One renderer per message kind, the action bar, threads and the private treatment.
+import { inviteGuest } from '../call/callActions'
 import { memo, useCallback, useState } from 'react'
 import { fmtDate, fmtTime, useT } from '../i18n'
 import { canSee, GEMINI_ID, personById, useStore } from '../store'
@@ -107,6 +108,8 @@ function GuestDialog({ m, pid, onClose }: { m: MeetingMessage; pid: string; onCl
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { setBad(true); return }
     const guests = m.guestEmails ?? []
     if (!guests.includes(v)) updateMessage(pid, m.id, { guestEmails: [...guests, v] })
+    // On a live call the guest really joins the stage, not just the card.
+    if (m.live && useStore.getState().call?.projectId === pid) inviteGuest(v.split('@')[0].replace(/[._-]+/g, ' '), v)
     onClose()
   }
   return (
