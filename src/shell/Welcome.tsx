@@ -4,23 +4,12 @@
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
 import { useEffect, useState } from 'react'
-import { Button, Dialog, Icon } from '../ui/kit'
+import { Button, Dialog } from '../ui/kit'
+import { APP_NAME, WorkspaceIcon, type WorkspaceApp } from '../ui/WorkspaceIcon'
 import { Logo } from '../ui/Logo'
 import { useT } from '../i18n'
 
-// Google's products, named descriptively. Drawn with our own icons, never their logo files.
-const APPS = [
-  { name: 'Gmail', icon: 'mail', color: '#ea4335' },
-  { name: 'Chat', icon: 'chat_bubble', color: '#34a853' },
-  { name: 'Calendar', icon: 'calendar_month', color: '#4285f4' },
-  { name: 'Meet', icon: 'videocam', color: '#00897b' },
-  { name: 'Docs', icon: 'description', color: '#4285f4' },
-  { name: 'Sheets', icon: 'table_chart', color: '#34a853' },
-  { name: 'Slides', icon: 'slideshow', color: '#fbbc04' },
-  { name: 'Drive', icon: 'folder_open', color: '#fbbc04' },
-  { name: 'Tasks', icon: 'task_alt', color: '#4285f4' },
-  { name: 'Keep', icon: 'lightbulb', color: '#fbbc04' },
-]
+const APPS: WorkspaceApp[] = ['gmail', 'chat', 'calendar', 'meet', 'docs', 'sheets', 'slides', 'drive', 'tasks', 'keep']
 
 export function Welcome({ onClose }: { onClose: () => void }) {
   const t = useT()
@@ -42,9 +31,9 @@ export function Welcome({ onClose }: { onClose: () => void }) {
       <div className={`wel-stage${merged ? ' merged' : ''}`} aria-hidden="true">
         <ul className="wel-apps">
           {APPS.map((a, i) => (
-            <li key={a.name} style={{ '--i': i - mid, '--d': `${Math.abs(i - mid) * 45}ms` } as React.CSSProperties}>
-              <span className="wel-app" style={{ color: a.color }}><Icon name={a.icon} size={24} /></span>
-              <span className="wel-app-name">{a.name}</span>
+            <li key={a} style={{ '--i': i - mid, '--d': `${Math.abs(i - mid) * 45}ms` } as React.CSSProperties}>
+              <span className="wel-app"><WorkspaceIcon app={a} size={32} /></span>
+              <span className="wel-app-name">{APP_NAME[a]}</span>
             </li>
           ))}
         </ul>

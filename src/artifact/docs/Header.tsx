@@ -8,19 +8,31 @@ import type { Artifact } from '../../data/types'
 import { useT } from '../../i18n'
 import { useStore } from '../../store'
 import { Button, Icon } from '../../ui/kit'
+import { APP_NAME, appOfKind, WorkspaceIcon } from '../../ui/WorkspaceIcon'
 import { KindIcon } from '../shared'
 
-/** Same header on every document. There is no "Open original" on purpose: the pane is the original. */
+/** Same header on every document. It lives here, and "Open in" is there for the moments you want the full app. */
 export function ArtifactHeader({ artifact, children }: { artifact: Artifact; children?: ReactNode }) {
   const t = useT()
   const toast = useStore((s) => s.toast)
   const title = t(artifact.title)
+  const app = artifact.kind === 'pdf' ? null : appOfKind[artifact.kind]
   return (
     <header className="rp-doc-head">
       <KindIcon kind={artifact.kind} size={24} />
       <h2 className="rp-doc-title rp-trunc" title={title}>{title}</h2>
-      <span className="rp-drive"><Icon name="add_to_drive" size={16} />{t({ fr: 'Dans Drive', en: 'In Drive' })}</span>
+      <span className="rp-drive"><WorkspaceIcon app="drive" size={14} />{t({ fr: 'Dans Drive', en: 'In Drive' })}</span>
       <span className="rp-doc-head-extra">{children}</span>
+      {app && (
+        <button
+          type="button"
+          className="rp-open-in"
+          title={`Open in ${APP_NAME[app]}`}
+          onClick={() => toast({ text: { fr: `S’ouvrirait dans ${APP_NAME[app]}. Simulé dans cette démo.`, en: `This would open in ${APP_NAME[app]}. Simulated in this demo.` } })}
+        >
+          <WorkspaceIcon app={app} size={18} /><span>{`Open in ${APP_NAME[app]}`}</span>
+        </button>
+      )}
       <Button
         variant="tonal"
         className="rp-share"

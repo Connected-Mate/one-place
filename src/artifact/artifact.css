@@ -749,3 +749,7 @@
   .rp-sheet-foot,.rp-notes-speaker{display:none}
   .rp-stage{padding:8px}
 }
+
+.rp-open-in{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 10px;border:1px solid var(--outline);border-radius:var(--r-pill);font-size:13px;font-weight:500;color:var(--text-2);flex:none;white-space:nowrap;transition:background var(--t-fast) var(--ease)}
+.rp-open-in:hover{background:var(--hover)}
+@container doc (max-width:560px){.rp-open-in{padding:0;width:36px;justify-content:center}.rp-open-in span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}}

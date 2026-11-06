@@ -75,7 +75,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .wel-stage{position:relative;height:132px;margin:4px 0 20px;container-type:inline-size;overflow:hidden}
 .wel-apps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);row-gap:12px;position:absolute;inset:0;--step:18cqw}
 .wel-apps li{display:flex;flex-direction:column;align-items:center;gap:2px;transition:transform 620ms var(--ease) var(--d),opacity 420ms var(--ease) calc(var(--d) + 200ms)}
-.wel-app{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface-1)}
+.wel-app{width:36px;height:36px;display:flex;align-items:center;justify-content:center}
 .wel-app-name{font-size:12px;line-height:16px;color:var(--text-2)}
 .wel-stage.merged .wel-apps li{opacity:0;transform:translate(calc(var(--i) * -3cqw),0) scale(.4)}
 .wel-one{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:22px;color:var(--text-2);opacity:0;transform:scale(.8);transition:opacity 320ms var(--ease) 480ms,transform 420ms var(--ease-out) 480ms}

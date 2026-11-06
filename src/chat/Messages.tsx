@@ -13,6 +13,7 @@ import { Avatar, AvatarStack, Button, Chip, Dialog, Icon, IconButton, Sparkle } 
 import type { Artifact, CallSummaryMessage, EmailMessage, L, Lang, MeetingMessage, Message, ProposalMessage, Visibility } from '../data/types'
 import { blockOfTodo, goBoard, sendChat, sendDraft, useChat } from './chatState'
 import { findMessage, firstName, isDraftMail, mailAddress, mailName, reactTo, snippet, updateMessage } from './helpers'
+import { appOfKind, WorkspaceIcon } from '../ui/WorkspaceIcon'
 import { RichText } from './rich'
 import { MentionInput } from './MentionInput'
 
@@ -40,7 +41,7 @@ function ArtifactChip({ pid, id }: { pid: string; id: string }) {
   const setPane = useStore((s) => s.setPane)
   if (!a) return null
   const k = ARTIFACT_ICON[a.kind]
-  return <Chip icon={<span className={`file-glyph ${k.className}`}><Icon name={k.icon} fill size={16} /></span>} onClick={() => setPane({ type: 'artifact', id: a.id })} className="attach-chip"><span className="ellipsis">{t(a.title)}</span></Chip>
+  return <Chip icon={<span className={`file-glyph ${k.className}`}>{a.kind === 'pdf' ? <Icon name={k.icon} fill size={16} /> : <WorkspaceIcon app={appOfKind[a.kind]} size={16} />}</span>} onClick={() => setPane({ type: 'artifact', id: a.id })} className="attach-chip"><span className="ellipsis">{t(a.title)}</span></Chip>
 }
 
 /* ---------- text ---------- */
@@ -213,7 +214,7 @@ function FileCard({ m, pid }: { m: Extract<Message, { kind: 'file' }>; pid: stri
     <>
       {m.text && <div className="msg-text"><RichText text={t(m.text)} pid={pid} /></div>}
       <button type="button" className="ocard file-card" onClick={() => setPane({ type: 'artifact', id: a.id })}>
-        <span className={`file-icon ${k.className}`}><Icon name={k.icon} fill size={22} /></span>
+        <span className={`file-icon ${k.className}`}>{a.kind === 'pdf' ? <Icon name={k.icon} fill size={22} /> : <WorkspaceIcon app={appOfKind[a.kind]} size={22} />}</span>
         <span className="file-info">
           <span className="file-title">{t(a.title)}</span>
           <span className="file-meta">{t(k.label)} · {firstName(a.ownerId)} · {fmtDate(a.updatedAt, lang)}</span>

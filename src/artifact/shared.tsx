@@ -4,6 +4,7 @@
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
 // Pieces shared by every board block and document view.
+import { appOfKind, WorkspaceIcon } from '../ui/WorkspaceIcon'
 import { Component, createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Artifact, Block, BlockType, L, Project } from '../data/types'
@@ -53,6 +54,7 @@ export const BLOCK_META: Record<BlockType, { icon: string; label: L }> = {
 }
 
 export function KindIcon({ kind, size = 20 }: { kind: Artifact['kind']; size?: number }) {
+  if (kind !== 'pdf') return <WorkspaceIcon app={appOfKind[kind]} size={size} />
   return <Icon name={KINDS[kind].icon} fill size={size} style={{ color: KINDS[kind].color }} />
 }
 
