@@ -169,6 +169,7 @@ export const useStore = create<State>()(persist((set, get) => ({
     const p = s.projects.find((x) => x.id === pid); const m = p?.messages.find((x) => x.id === mid)
     if (!p || !m || m.kind !== 'proposal' || m.status !== 'pending') return // double click safe
     s.patch(pid, mid, { status: approved ? 'approved' : 'declined', decidedBy: s.viewerId } as Partial<Message>)
+    s.markTour('proposal')
     if (!approved) return
     const a = m.action
     if (a.type === 'add-block') s.addBlock(pid, a.block)
