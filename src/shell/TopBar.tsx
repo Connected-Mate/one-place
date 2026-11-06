@@ -119,8 +119,10 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
     <header className="topbar">
       <div className="brand">
         <span className="only-wide"><IconButton icon="menu" size={36} label={t({ fr: 'Réduire les projets', en: 'Collapse projects' })} onClick={() => s.toggleRail()} /></span>
-        <Logo size={26} />
-        <span className="wordmark">One Place</span>
+        <button type="button" className="brand-home" onClick={() => s.goHome()} aria-label={t({ fr: 'One Place, accueil', en: 'One Place, home' })}>
+          <Logo size={26} />
+          <span className="wordmark">One Place</span>
+        </button>
         <button type="button" className="concept" onClick={onAbout} title={t({ fr: 'À propos de ce concept', en: 'About this concept' })}>{t({ fr: 'Concept', en: 'Concept' })}</button>
       </div>
       <Search />

@@ -15,6 +15,10 @@ export interface State {
   viewerId: string
   projects: Project[]
   activeProjectId: string
+  /** the personal dashboard is showing instead of the active project */
+  home: boolean
+  /** rows of Home set aside by hand, as `viewerId:itemId` */
+  homeDone: string[]
   panes: Record<string, PaneView> // per project
   mobilePane: MobilePane
   railCollapsed: boolean
@@ -35,6 +39,8 @@ export interface State {
   setTheme(t: Theme): void
   setViewer(id: string): void
   selectProject(id: string): void
+  goHome(): void
+  markHomeDone(key: string): void
   setPane(v: PaneView): void
   setMobilePane(p: MobilePane): void
   toggleRail(): void
@@ -82,12 +88,17 @@ const safe = createJSONStorage(() => ({
   removeItem: (k) => { try { localStorage.removeItem(k) } catch { /* ignore */ } },
 }))
 
+/** Going back into the active project from Home: it counts as reading it, like selectProject. */
+const leaveHome = (s: State): Partial<State> => (s.home ? { home: false, ...mapP(s, s.activeProjectId, (p) => ({ ...p, unread: 0, mentions: 0 })) } : {})
+
 const initial = () => ({
   lang: detectLang(),
   theme: 'auto' as Theme,
   viewerId: ME_ID,
   projects: seedProjects(),
   activeProjectId: 'aurora',
+  home: true,
+  homeDone: [] as string[],
   panes: {} as Record<string, PaneView>,
   mobilePane: 'chat' as MobilePane,
   railCollapsed: false,
@@ -108,9 +119,13 @@ export const useStore = create<State>()(persist((set, get) => ({
   setLang: (lang) => set({ lang }),
   setTheme: (theme) => set({ theme }),
   setViewer: (viewerId) => set({ viewerId, privateTo: null, quoteId: null }),
-  selectProject: (id) => set((s) => ({ ...mapP(s, id, (p) => ({ ...p, unread: 0, mentions: 0 })), activeProjectId: id, mobilePane: 'chat', privateTo: null, quoteId: null })),
-  setPane: (v) => set((s) => ({ panes: { ...s.panes, [s.activeProjectId]: v }, mobilePane: 'pane' })),
-  setMobilePane: (mobilePane) => set({ mobilePane }),
+  selectProject: (id) => set((s) => ({ ...mapP(s, id, (p) => ({ ...p, unread: 0, mentions: 0 })), activeProjectId: id, home: false, mobilePane: 'chat', privateTo: null, quoteId: null })),
+  // The call stays alive behind Home: without its pane open, CallChip shows the way back to it.
+  goHome: () => set((s) => ({ home: true, mobilePane: 'chat', privateTo: null, quoteId: null, panes: s.panes[s.activeProjectId]?.type === 'call' ? { ...s.panes, [s.activeProjectId]: { type: 'board' } } : s.panes })),
+  markHomeDone: (key) => set((s) => (s.homeDone.includes(key) ? s : { homeDone: [...s.homeDone, key] })),
+  setPane: (v) => set((s) => ({ ...leaveHome(s), panes: { ...s.panes, [s.activeProjectId]: v }, mobilePane: 'pane' })),
+  // 'projects' is only the phone's list of projects, over whatever is current; the others show the project.
+  setMobilePane: (mobilePane) => set((s) => (mobilePane === 'projects' ? { mobilePane } : { ...leaveHome(s), mobilePane })),
   toggleRail: () => set((s) => ({ railCollapsed: !s.railCollapsed })),
   setChatWidth: (chatWidth) => set({ chatWidth }),
   dismissWelcome: () => set({ welcomeSeen: true }),
@@ -127,7 +142,7 @@ export const useStore = create<State>()(persist((set, get) => ({
 
   push: (pid, m) => set((s) => mapP(s, pid, (p) => ({
     ...p, messages: [...p.messages, m],
-    unread: pid === s.activeProjectId ? p.unread : p.unread + 1,
+    unread: pid === s.activeProjectId && !s.home ? p.unread : p.unread + 1,
   }))),
   patch: (pid, mid, patch) => set((s) => mapP(s, pid, (p) => ({ ...p, messages: p.messages.map((m) => (m.id === mid ? ({ ...m, ...patch } as Message) : m)) }))),
   reply: (pid, parent, m) => set((s) => mapP(s, pid, (p) => ({ ...p, messages: p.messages.map((x) => (x.id === parent ? { ...x, replies: [...(x.replies ?? []), m] } : x)) }))),
@@ -203,7 +218,7 @@ export const useStore = create<State>()(persist((set, get) => ({
       createdByUser: true,
       messages: [{ id: uid('m'), kind: 'system', authorId: me, at: Date.now(), visibility: { type: 'all' }, text: { fr: 'Projet créé. Tout ce qui le concerne se passera ici.', en: 'Project created. Everything about it happens here.' }, icon: 'celebration' }],
     }
-    set((s) => ({ projects: [project, ...s.projects], activeProjectId: id, mobilePane: 'chat', privateTo: null, quoteId: null }))
+    set((s) => ({ projects: [project, ...s.projects], activeProjectId: id, home: false, mobilePane: 'chat', privateTo: null, quoteId: null }))
     return id
   },
   addMember: (pid, personId) => set((s) => mapP(s, pid, (p) => (p.memberIds.includes(personId) ? p : { ...p, memberIds: [...p.memberIds, personId] }))),
@@ -217,7 +232,7 @@ export const useStore = create<State>()(persist((set, get) => ({
   version: SEED_VERSION,
   storage: safe,
   migrate: () => initial() as unknown as State, // new seed: start clean rather than crash
-  partialize: (s) => ({ theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
+  partialize: (s) => ({ theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, home: s.home, homeDone: s.homeDone, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
 }))
 
 /* ------- selectors / helpers used everywhere ------- */
@@ -229,4 +244,6 @@ export const canSee = (v: Visibility, viewerId: string) => v.type === 'all' || v
 export const roleIn = (p: Project, viewerId: string): 'owner' | 'member' | 'guest' => (p.ownerId === viewerId ? 'owner' : p.memberIds.includes(viewerId) ? 'member' : 'guest')
 export { GEMINI_ID, ME_ID }
 const BOARD: PaneView = { type: 'board' } // same object each read: safe as a store selector
+/** What the phone shows: Home has no tab state of its own, it sits over the chat and board tabs. */
+export const mobileView = (s: State): MobilePane | 'home' => (s.home && s.mobilePane !== 'projects' ? 'home' : s.mobilePane)
 export const paneOf = (s: State): PaneView => s.panes[s.activeProjectId] ?? BOARD

@@ -11,7 +11,8 @@ export function TryPanel() {
   const project = useProject()
   const [open, setOpen] = useState(true)
   const s = useStore.getState()
-  const compose = (text: string) => window.dispatchEvent(new CustomEvent('oneplace:compose', { detail: { text } }))
+  // From Home the composer is still hidden at this point: wait for the frame that shows it, or it can't take focus.
+  const compose = (text: string) => requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('oneplace:compose', { detail: { text } })))
   const steps = [
     { id: 'gemini', icon: 'alternate_email', l: { fr: 'Demande quelque chose à @Gemini', en: 'Ask @Gemini for something' }, run: () => { s.setMobilePane('chat'); compose('@') } },
     { id: 'private', icon: 'lock', l: { fr: 'Envoie un message privé dans le fil', en: 'Send a private message in the thread' }, run: () => { s.setMobilePane('chat'); s.setPrivateTo(project.memberIds.find((m) => m !== s.viewerId) ?? null) } },

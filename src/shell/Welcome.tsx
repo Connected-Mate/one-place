@@ -23,7 +23,7 @@ export function Welcome({ onClose }: { onClose: () => void }) {
       width={640}
       onClose={onClose}
       title={<span className="wel-title"><Logo size={36} /> One Place</span>}
-      footer={<Button variant="filled" data-autofocus onClick={onClose}>{t({ fr: 'Entrer dans le projet', en: 'Step into the project' })}</Button>}
+      footer={<Button variant="filled" data-autofocus onClick={onClose}>{t({ fr: 'Entrer', en: 'Step in' })}</Button>}
     >
       <p className="wel-lead">{t({ fr: 'Et si c’était la dernière appli ?', en: 'What if this was the last app?' })}</p>
       <ul className={`wel-apps${gone ? ' gone' : ''}`} aria-label={t({ fr: 'Ce que ça remplace', en: 'What it replaces' })}>

@@ -3,6 +3,7 @@ import { Button, Dialog, Icon } from '../ui/kit'
 import { useStore } from '../store'
 import { useT } from '../i18n'
 import { TryPanel } from './TryPanel'
+import { useNeeds } from '../home/needs'
 
 export function ProjectsRail() {
   const t = useT()
@@ -10,6 +11,9 @@ export function ProjectsRail() {
   const activeId = useStore((s) => s.activeProjectId)
   const viewerId = useStore((s) => s.viewerId)
   const select = useStore((s) => s.selectProject)
+  const home = useStore((s) => s.home)
+  const goHome = useStore((s) => s.goHome)
+  const needs = useNeeds().count
   const live = useStore((s) => s.call?.projectId)
   const [create, setCreate] = useState(false)
   const mine = projects.filter((p) => p.memberIds.includes(viewerId))
@@ -18,14 +22,24 @@ export function ProjectsRail() {
       <button type="button" className="compose" onClick={() => setCreate(true)}>
         <Icon name="add" size={24} /><span className="rail-label">{t({ fr: 'Nouveau projet', en: 'New project' })}</span>
       </button>
+      <ul className="rail-list rail-home">
+        <li>
+          <button type="button" className={`rail-item${home ? ' on' : ''}${needs ? ' unread' : ''}`} aria-current={home ? 'page' : undefined} onClick={goHome} title={t({ fr: 'Accueil', en: 'Home' })}>
+            <span className="rail-icon"><Icon name="home" fill={home} />{needs > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
+            <span className="rail-label rail-name">{t({ fr: 'Accueil', en: 'Home' })}</span>
+            {needs > 0 && <span className="rail-count rail-label">{needs}<span className="sr-only"> {t({ fr: 'à traiter', en: 'need you' })}</span></span>}
+          </button>
+        </li>
+      </ul>
       <div className="rail-head rail-label">{t({ fr: 'Projets', en: 'Projects' })}</div>
       <ul className="rail-list">
         {mine.map((p) => {
           const name = t(p.name)
+          const on = !home && p.id === activeId
           return (
             <li key={p.id}>
-              <button type="button" className={`rail-item${p.id === activeId ? ' on' : ''}${p.unread ? ' unread' : ''}`} aria-current={p.id === activeId ? 'page' : undefined} onClick={() => select(p.id)} title={name}>
-                <span className="rail-icon" style={{ color: p.color }}><Icon name={p.icon} fill={p.id === activeId} />{p.unread > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
+              <button type="button" className={`rail-item${on ? ' on' : ''}${p.unread ? ' unread' : ''}`} aria-current={on ? 'page' : undefined} onClick={() => select(p.id)} title={name}>
+                <span className="rail-icon" style={{ color: p.color }}><Icon name={p.icon} fill={on} />{p.unread > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
                 <span className="rail-label rail-name">{name}</span>
                 {live === p.id && <Icon name="call" size={16} className="rail-live" />}
                 {p.mentions > 0 && <span className="rail-at rail-label" aria-label={t({ fr: `${p.mentions} mentions`, en: `${p.mentions} mentions` })}>@</span>}

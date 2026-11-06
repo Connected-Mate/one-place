@@ -2,20 +2,22 @@ import { useEffect, useState } from 'react'
 import { ChatPane } from './chat/ChatPane'
 import { RightPane } from './artifact/RightPane'
 import { CallChip, GuestScreen } from './call/CallView'
+import { Home } from './home/Home'
 import { TopBar } from './shell/TopBar'
 import { ProjectsRail } from './shell/ProjectsRail'
 import { Welcome } from './shell/Welcome'
 import { Toasts } from './shell/Toasts'
 import { MobileNav } from './shell/MobileNav'
 import { Splitter } from './shell/Splitter'
-import { personById, ME_ID, useStore } from './store'
+import { mobileView, personById, ME_ID, useStore } from './store'
 import './shell/shell.css'
 
 export default function App() {
   const theme = useStore((s) => s.theme)
   const lang = useStore((s) => s.lang)
   const viewerId = useStore((s) => s.viewerId)
-  const mobilePane = useStore((s) => s.mobilePane)
+  const mobilePane = useStore(mobileView)
+  const home = useStore((s) => s.home)
   const railCollapsed = useStore((s) => s.railCollapsed)
   const chatWidth = useStore((s) => s.chatWidth)
   const welcomeSeen = useStore((s) => s.welcomeSeen)
@@ -36,16 +38,20 @@ export default function App() {
     const s = useStore.getState()
     if (viewerId !== ME_ID) s.markTour('viewas')
     const mine = s.projects.filter((p) => p.memberIds.includes(viewerId))
-    if (mine.length && !mine.some((p) => p.id === s.activeProjectId)) s.selectProject(mine[0].id)
+    if (!mine.length || mine.some((p) => p.id === s.activeProjectId)) return
+    if (s.home) useStore.setState({ activeProjectId: mine[0].id }) // stay on Home, and leave that project's unread alone
+    else s.selectProject(mine[0].id)
   }, [viewerId])
 
   return (
     <>
       {isGuest ? <GuestScreen /> : (
-        <div className={`app${railCollapsed ? ' rail-min' : ''}`} data-mobile={mobilePane} style={{ '--chat-w': `${chatWidth}px` } as React.CSSProperties}>
+        <div className={`app${railCollapsed ? ' rail-min' : ''}`} data-mobile={mobilePane} data-home={home || undefined} style={{ '--chat-w': `${chatWidth}px` } as React.CSSProperties}>
           <TopBar onAbout={() => setAbout(true)} />
           <main className="app-main">
             <ProjectsRail />
+            {/* The project stays mounted under Home: its scroll, its drafts and a running call all survive. */}
+            {home && <Home />}
             <ChatPane />
             <Splitter />
             <RightPane />

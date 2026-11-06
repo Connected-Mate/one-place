@@ -18,6 +18,7 @@ export function move(): Project {
     { id: 'mv-t4', text: { fr: 'Prévenir les voisins du 3e pour l’ascenseur samedi', en: 'Warn the 3rd-floor neighbours about the lift on Saturday' }, assigneeId: 'sofia', due: dayAt(5, 18), done: false },
     { id: 'mv-t5', text: { fr: 'Changer l’adresse du siège (greffe, banque, assurance)', en: 'Update the registered address (registry, bank, insurance)' }, assigneeId: 'lea', due: firstDay, done: false },
     { id: 'mv-t6', text: { fr: 'Trier la salle d’archives : on ne déménage pas 14 cartons de 2019', en: 'Sort the archive room: we are not moving 14 boxes from 2019' }, assigneeId: 'alex', due: week(2), done: false },
+    { id: 'mv-t8', text: { fr: 'Confirmer le créneau de livraison du mobilier avec Delta', en: 'Confirm the furniture delivery slot with Delta' }, assigneeId: 'alex', due: dayAt(-1, 18), done: false, source: { fr: 'Plan de déménagement', en: 'Move plan' } },
     { id: 'mv-t7', text: { fr: 'Étiquettes couleur par équipe pour les cartons', en: 'Colour labels per team for the boxes' }, assigneeId: 'sofia', due: week(2) + 2 * DAY, done: false },
   ]
 
