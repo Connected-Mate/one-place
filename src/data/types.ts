@@ -72,7 +72,7 @@ export type Message = TextMessage | EmailMessage | MeetingMessage | CallSummaryM
 export type ProposalAction =
   | { type: 'add-block'; block: Block }
   | { type: 'add-todo'; blockId: string; todo: Todo }
-  | { type: 'move-milestone'; blockId: string; itemId: string; deltaDays: number }
+  | { type: 'move-milestone'; blockId: string; itemId: string; deltaDays: number; /** items that move with it, like a keynote with its launch */ alsoItemIds?: string[] }
   | { type: 'none' }
 
 export interface Subtask { id: string; text: Txt; done: boolean }
@@ -109,7 +109,10 @@ export type Block =
   | (BlockBase & { type: 'model3d'; model: 'lamp' | 'desk' | 'badge'; caption?: Txt })
   | (BlockBase & { type: 'notes'; text: Txt })
   | (BlockBase & { type: 'poll'; question: Txt; options: { id: string; label: Txt; votes: string[] }[] })
+  /** A small tool Gemini built for this exact project. `data` holds the facts it starts from, `state` what people did with it. */
+  | (BlockBase & { type: 'app'; app: AppId; data?: Record<string, unknown>; state?: Record<string, unknown> })
 export type BlockType = Block['type']
+export type AppId = 'launch-sim' | 'colorway' | 'seats' | 'candidates' | 'deal' | 'odds' | 'pitch'
 
 export interface TranscriptLine { at: number; who?: string; text: Txt }
 export interface NotebookSource { id: string; title: Txt; type: 'pdf' | 'doc' | 'web' | 'slides' | 'audio' | 'text'; note?: Txt }

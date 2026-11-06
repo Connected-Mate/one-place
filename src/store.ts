@@ -211,7 +211,7 @@ export const useStore = create<State>()(persist((set, get) => ({
       set((st) => mapP(st, pid, (pr) => ({
         ...pr,
         blocks: pr.blocks.map((b) => (b.id === a.blockId && b.type === 'timeline'
-          ? { ...b, fresh: true, items: b.items.map((it) => (it.id === a.itemId ? { ...it, start: it.start + a.deltaDays * 864e5, end: it.end + a.deltaDays * 864e5 } : it)) }
+          ? { ...b, fresh: true, items: b.items.map((it) => (it.id === a.itemId || a.alsoItemIds?.includes(it.id) ? { ...it, start: it.start + a.deltaDays * 864e5, end: it.end + a.deltaDays * 864e5 } : it)) }
           : b)),
       })))
       setTimeout(() => get().patchBlock(pid, a.blockId, { fresh: false }), 1800)

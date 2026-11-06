@@ -68,13 +68,11 @@ export function northwind(): Project {
       ],
     },
     {
-      id: 'northwind-chart', type: 'chart', span: 2, title: { fr: 'Chiffre d’affaires par hôtel', en: 'Revenue by hotel' }, unit: 'k€',
-      series: [
-        { label: { fr: 'Lyon (400)', en: 'Lyon (400)' }, value: 44.8, target: 47.6 },
-        { label: { fr: 'Bordeaux (250)', en: 'Bordeaux (250)' }, value: 0, target: 28 },
-        { label: { fr: 'Lille (180)', en: 'Lille (180)' }, value: 0, target: 20.2 },
-        { label: { fr: 'Marseille (320)', en: 'Marseille (320)' }, value: 0, target: 35.8 },
-      ],
+      id: 'northwind-deal', type: 'app', app: 'deal', span: 3, title: 'Deal calculator',
+      data: {
+        sheetId: 'n-sheet-pricing', floor: 110, list: 149, counter: 105, lastOffer: 119,
+        rollout: [{ label: 'Lyon', rooms: 400, signed: true }, { label: 'Bordeaux', rooms: 250, signed: true }, { label: 'Lille', rooms: 180, signed: false }, { label: 'Marseille', rooms: 320, signed: false }],
+      },
     },
     { id: 'northwind-todo', type: 'todo', span: 1, title: { fr: 'À faire', en: 'To do' }, todos },
     { id: 'northwind-files', type: 'files', span: 1, title: { fr: 'Fichiers', en: 'Files' }, artifactIds: ['n-sheet-pricing', 'n-slides-proposal'] },

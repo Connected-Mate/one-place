@@ -97,7 +97,8 @@ export function hired(): Project {
       ],
     },
     { id: 'hired-todo', type: 'todo', span: 2, title: { fr: 'À faire', en: 'To do' }, todos },
-    { id: 'hired-notes', type: 'notes', span: 1, title: { fr: 'Pourquoi ça marche', en: 'Why this works' }, text: { fr: 'Un CV se lit. Une démo se transfère.\nLe produit est l’argument : si l’idée est bonne, la candidature l’est aussi.\nConstruit avec des agents IA, pour Google : le moyen est le message.\nC’est drôle, et c’est sérieux. Les deux à la fois, c’est la partie difficile.\nSi ça ne marche pas, j’ai quand même le produit que je voulais voir exister.', en: 'A résumé gets read. A demo gets forwarded.\nThe product is the argument: if the idea is good, so is the application.\nBuilt with AI agents, for Google: the medium is the message.\nIt is funny and it is serious. Both at once is the hard part.\nIf it does not work, I still have the product I wanted to exist.' } },
+    { id: 'hired-odds', type: 'app', app: 'odds', span: 3, title: 'Odds machine' },
+    { id: 'hired-pitch', type: 'app', app: 'pitch', span: 3, title: 'Pitch timer', data: { deckId: 'hd-slides-pitch' } },
     {
       id: 'hired-kanban', type: 'kanban', span: 3, title: { fr: 'Les portes d’entrée', en: 'Ways in' },
       columns: [

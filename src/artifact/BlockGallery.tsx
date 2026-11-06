@@ -6,10 +6,12 @@
 // The gallery of block templates. The owner adds directly; a member's pick becomes a proposal in the chat.
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { askGemini } from '../chat/gemini'
+import { appSuggestions } from './apps/catalog'
 import type { Artifact, Block, BlockType, L, Project, Txt } from '../data/types'
 import { useT } from '../i18n'
 import { personById, uid, useStore } from '../store'
 import { Avatar, Dialog, Icon, IconButton, Sparkle } from '../ui/kit'
+import './apps/apps.css'
 import { DAY, KINDS, startOfDay } from './shared'
 
 interface Template { id: string; name: L; hint: L; type: BlockType; mini: (faces: string[]) => ReactNode; make: (p: Project, artifact?: Artifact) => Block; artifact?: () => Omit<Artifact, 'ownerId'> }
@@ -137,9 +139,7 @@ export function BlockGallery({ project }: { project: Project }) {
     })
     toast({ text: { fr: `Envoyé à ${owner}`, en: `Sent to ${owner}` }, icon: 'how_to_vote' })
   }
-  const submitAsk = (e: React.FormEvent) => {
-    e.preventDefault()
-    const text = ask.trim()
+  const sendToGemini = (text: string) => {
     if (!text || used.current) return
     used.current = true
     close()
@@ -147,6 +147,11 @@ export function BlockGallery({ project }: { project: Project }) {
     // Gemini answers in the chat: take the viewer there, on a phone the chat is another screen.
     useStore.getState().setMobilePane('chat')
   }
+  const submitAsk = (e: React.FormEvent) => {
+    e.preventDefault()
+    sendToGemini(ask.trim())
+  }
+  const ideas = appSuggestions(project)
 
   const faces = project.memberIds.filter((id) => personById(id).role !== 'ai').slice(0, 3)
   return (
@@ -164,6 +169,21 @@ export function BlockGallery({ project }: { project: Project }) {
         />
         <IconButton type="submit" icon="arrow_upward" size={32} disabled={!ask.trim()} label={t({ fr: 'Envoyer à Gemini', en: 'Send to Gemini' })} />
       </form>
+      {ideas.length > 0 && (
+        <section className="ap-gal" aria-label={t({ fr: 'Demander à Gemini de le construire', en: 'Ask Gemini to build it' })}>
+          <h3 className="ap-gal-h"><Sparkle size={16} />{t({ fr: 'Demander à Gemini de le construire', en: 'Ask Gemini to build it' })}</h3>
+          <ul>
+            {ideas.map((idea) => (
+              <li key={idea.id}>
+                <button type="button" data-idea={idea.id} onClick={() => sendToGemini(idea.ask)}>
+                  <Icon name={idea.icon} size={20} />
+                  <span><b>{idea.title}</b><small>{idea.hint}</small></span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <ul className="rp-gal-grid">
         {TEMPLATES.map((tpl) => (
           <li key={tpl.id}>

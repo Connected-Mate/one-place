@@ -98,6 +98,20 @@ export function aurora(): Project {
     },
   ]
 
+  /* ---------------- the budget chart Sofia proposed: the Launch date simulator took its place on the board, its numbers stay in Léa's sheet ---------------- */
+  const budgetChart: Block = {
+      id: 'aurora-chart', type: 'chart', span: 1, title: { fr: 'Budget', en: 'Budget' }, unit: 'k€',
+      series: [
+        { label: { fr: 'Outillage', en: 'Tooling' }, value: 118.5, target: 110 },
+        { label: { fr: 'Électronique', en: 'Electronics' }, value: 61.2, target: 64 },
+        { label: { fr: 'Diffuseurs', en: 'Diffusers' }, value: 45, target: 45 },
+        { label: { fr: 'Shooting', en: 'Shoot' }, value: 38.2, target: 25 },
+        { label: { fr: 'Packaging', en: 'Packaging' }, value: 31, target: 30 },
+        { label: { fr: 'Keynote', en: 'Keynote' }, value: 21.5, target: 20 },
+        { label: { fr: 'Autres', en: 'Everything else' }, value: 96.8, target: 106 },
+      ],
+    }
+
   /* ---------------- blocks ---------------- */
   const blocks: Block[] = [
     {
@@ -126,18 +140,6 @@ export function aurora(): Project {
       ],
     },
     { id: 'aurora-todo', type: 'todo', span: 2, title: { fr: 'À faire', en: 'To do' }, todos },
-    {
-      id: 'aurora-chart', type: 'chart', span: 1, title: { fr: 'Budget', en: 'Budget' }, unit: 'k€',
-      series: [
-        { label: { fr: 'Outillage', en: 'Tooling' }, value: 118.5, target: 110 },
-        { label: { fr: 'Électronique', en: 'Electronics' }, value: 61.2, target: 64 },
-        { label: { fr: 'Diffuseurs', en: 'Diffusers' }, value: 45, target: 45 },
-        { label: { fr: 'Shooting', en: 'Shoot' }, value: 38.2, target: 25 },
-        { label: { fr: 'Packaging', en: 'Packaging' }, value: 31, target: 30 },
-        { label: { fr: 'Keynote', en: 'Keynote' }, value: 21.5, target: 20 },
-        { label: { fr: 'Autres', en: 'Everything else' }, value: 96.8, target: 106 },
-      ],
-    },
     { id: 'aurora-files', type: 'files', span: 1, title: { fr: 'Fichiers', en: 'Files' }, artifactIds: ['a-doc-brief', 'a-sheet-budget', 'a-slides-keynote', 'a-pdf-diffuser'] },
     { id: 'aurora-people', type: 'people', span: 1, title: { fr: 'Équipe', en: 'Team' } },
     {
@@ -154,8 +156,14 @@ export function aurora(): Project {
         { id: 'a-ev8', title: 'Lumen Works weekly', start: dayAt(3, 15), durationMin: 30, attendeeIds: ['karim', 'jun'] },
       ],
     },
-    { id: 'aurora-model', type: 'model3d', span: 1, title: { fr: 'Aurora, coloris Sable', en: 'Aurora, Sand colorway' }, model: 'lamp', caption: { fr: 'Rendu du gel de design. Base tournante, diffuseur opalin sans LED visible.', en: 'Design freeze render. Turning base, opal diffuser with no visible LED.' } },
-    { id: 'aurora-notes', type: 'notes', span: 1, title: { fr: 'Questions ouvertes', en: 'Open questions' }, text: { fr: 'Un ou deux coloris au lancement ? (un, le second deux mois plus tard)\nQui parle à la keynote après Alex ? Tom pour le design, 4 minutes max.\nLe mode « nuit blanche » de Maya : pas pour la 1.0.', en: 'One or two colorways at launch? (one, the second two months later)\nWho speaks at the keynote after Alex? Tom on design, 4 minutes max.\nMaya’s "all-nighter" mode: not for 1.0.' } },
+    {
+      id: 'aurora-launch-sim', type: 'app', app: 'launch-sim', span: 3, title: 'Launch date simulator',
+      data: {
+        itemId: 'tl-launch', anchor: launch, chain: ['tl-diffusers', 'tl-pilot', 'tl-preorders', 'tl-keynote', 'tl-launch', 'tl-shipping'], moving: ['tl-keynote', 'tl-launch', 'tl-shipping'], stretch: ['tl-preorders'],
+        shiftPerDay: 500, shiftPriced: 7, airFreight: 2400, preordersItem: 'tl-preorders', preordersPerDay: 40, slipRisk: 0.01, unitPrice: 149, pressBy: noraDeadline, pressName: 'Nora',
+      },
+    },
+    { id: 'aurora-colorway', type: 'app', app: 'colorway', span: 3, title: 'Colorway studio' },
   ]
 
   /* ---------------- messages (3 business days, in order) ---------------- */
@@ -177,7 +185,7 @@ export function aurora(): Project {
       id: 'a-m03', kind: 'proposal', authorId: 'sofia', at: dayAt(-3, 11, 2), visibility: all, status: 'approved', decidedBy: 'alex',
       title: { fr: 'Ajouter un graphique budget', en: 'Add a budget chart' },
       description: { fr: 'Engagé vs prévu par poste, pour arrêter de rouvrir la feuille de Léa à chaque point.', en: 'Committed vs planned by item, so we stop reopening Léa’s sheet at every meeting.' },
-      action: { type: 'add-block', block: blocks.find((b) => b.id === 'aurora-chart')! },
+      action: { type: 'add-block', block: budgetChart },
     },
     t('a-m04', 'karim', dayAt(-3, 14, 22), { fr: `Lumen Works confirme le créneau de pré-série : ${fr(pilotRun)}, 500 unités. Les diffuseurs du lot 2 doivent arriver le ${fr(diffusersPlanned)}, soit une semaine avant. Ça passe.`, en: `Lumen Works confirms the pilot run slot: ${en(pilotRun)}, 500 units. Batch 2 diffusers are due on ${en(diffusersPlanned)}, a week before. We’re fine.` }),
     { id: 'a-m05', kind: 'meeting', authorId: 'alex', at: dayAt(-3, 15, 30), visibility: all, title: { fr: 'Point hebdo Aurora', en: 'Aurora weekly' }, start: dayAt(-3, 16), durationMin: 45, attendeeIds: ['alex', 'maya', 'tom', 'sofia', 'karim', 'lea'], ended: true },

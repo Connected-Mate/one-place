@@ -67,6 +67,11 @@ export function move(): Project {
       ],
     },
     { id: 'move-todo', type: 'todo', span: 1, title: { fr: 'À faire', en: 'To do' }, todos },
+    {
+      id: 'move-seats', type: 'app', app: 'seats', span: 3, title: 'Who sits where',
+      data: { team: ['alex', 'maya', 'tom', 'sofia', 'karim', 'lea'] },
+      state: { seats: { alex: 'd1', karim: 'd6', tom: 'd16', maya: 'd3' }, checked: { neighbors: false } },
+    },
     { id: 'move-model', type: 'model3d', span: 1, title: { fr: 'Bureau Pont, chêne clair', en: 'Pont desk, light oak' }, model: 'desk', caption: { fr: '18 exemplaires, assis-debout. Le modèle choisi lors de la visite du showroom.', en: '18 units, sit-stand. The model picked at the showroom visit.' } },
     { id: 'move-files', type: 'files', span: 1, title: { fr: 'Fichiers', en: 'Files' }, artifactIds: ['mv-doc-plan'] },
     { id: 'move-people', type: 'people', span: 1, title: { fr: 'Équipe', en: 'Team' } },

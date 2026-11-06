@@ -47,6 +47,17 @@ export function hiring(): Project {
       ],
     },
     {
+      id: 'hiring-candidates', type: 'app', app: 'candidates', span: 3, title: 'Candidate compare',
+      // Scores from the portfolio read and Maya's call. The design interview has not happened yet.
+      state: {
+        selected: ['c-ben', 'c-hanna'], interviewer: 'tom',
+        scores: {
+          'c-ben': { tom: { ship: 3, detail: 4, no: 3, lead: 3, factory: 3 }, maya: { ship: 3, detail: 3, no: 2, lead: 3, factory: 3 } },
+          'c-hanna': { tom: { ship: 3, detail: 3, no: 3, lead: 2, factory: 1 }, maya: { ship: 3, detail: 4, no: 3, lead: 3, factory: 3 } },
+        },
+      },
+    },
+    {
       id: 'hiring-kanban', type: 'kanban', span: 3, title: { fr: 'Candidats', en: 'Candidates' },
       columns: [
         { id: 'sourced', title: { fr: 'Sourcés', en: 'Sourced' }, cards: [

@@ -5,6 +5,7 @@
  */
 import type { Block } from '../data/types'
 import { useT } from '../i18n'
+import { AppBlock } from './apps/AppBlock'
 import { ChartBlock } from './blocks/Chart'
 import { KanbanBlock } from './blocks/Kanban'
 import { Model3DBlock } from './blocks/Model3D'
@@ -28,6 +29,7 @@ function BlockSwitch({ block }: { block: Block }) {
     case 'model3d': return <Model3DBlock block={block} />
     case 'notes': return <NotesBlock block={block} />
     case 'poll': return <PollBlock block={block} />
+    case 'app': return <AppBlock block={block} />
     default: return null
   }
 }

@@ -384,7 +384,7 @@ function MadeLine({ block, canAsk }: { block: Block; canAsk: boolean }) {
   const ask = () => window.dispatchEvent(new CustomEvent('oneplace:compose', { detail: { text: `@Gemini update ${t(block.title)}: ` } }))
   return (
     <div className="rp-viewbar rp-made-line">
-      <span><Sparkle size={14} />{t({ fr: `Fait par Gemini · mis à jour ${when}`, en: `Made by Gemini · updated ${when}` })}</span>
+      <span><Sparkle size={14} />{t({ fr: `Fait par Gemini · mis à jour ${when}`, en: block.type === 'app' ? `Made by Gemini for this project · updated ${when}` : `Made by Gemini · updated ${when}` })}</span>
       {canAsk && <Button size="s" variant="gemini" onClick={ask}><Sparkle size={14} />{t({ fr: 'Demander une mise à jour', en: 'Ask Gemini to update' })}</Button>}
     </div>
   )

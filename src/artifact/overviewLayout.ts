@@ -15,6 +15,7 @@ const WANT: Record<Block['type'], { wide: Want; narrow: Want; rank: number }> = 
   summary: { rank: 0, wide: { w: 8, h: 2, min: 5 }, narrow: { w: 2, h: 2, min: 2 } },
   calendar: { rank: 1, wide: { w: 4, h: 2, min: 3 }, narrow: { w: 1, h: 2, min: 1 } },
   timeline: { rank: 2, wide: { w: 8, h: 4, min: 5 }, narrow: { w: 2, h: 3, min: 2 } },
+  app: { rank: 3, wide: { w: 4, h: 2, min: 3 }, narrow: { w: 1, h: 2, min: 1 } },
   model3d: { rank: 3, wide: { w: 4, h: 4, min: 3 }, narrow: { w: 1, h: 3, min: 1 } },
   kanban: { rank: 4, wide: { w: 8, h: 3, min: 6 }, narrow: { w: 2, h: 2, min: 2 } },
   todo: { rank: 5, wide: { w: 5, h: 3, min: 4 }, narrow: { w: 2, h: 3, min: 2 } },

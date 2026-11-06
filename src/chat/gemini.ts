@@ -12,9 +12,10 @@
 //
 // Callers post the user's own message themselves; askGemini only posts the answer.
 import { tx } from '../i18n'
+import { appUpdate, hasApp, makeApp, TOOLS, wantedApp } from '../artifact/apps/catalog'
 import { people } from '../data/seed'
 import { canSee, GEMINI_ID, personById, roleIn, uid, useStore } from '../store'
-import type { Artifact, Block, EmailMessage, Message, Project, ProposalAction, ProposalMessage, TimelineItem, Todo, Txt, Visibility } from '../data/types'
+import type { AppId, Artifact, Block, EmailMessage, Message, Project, ProposalAction, ProposalMessage, TimelineItem, Todo, Txt, Visibility } from '../data/types'
 import { findMessage, firstName, mailAddress, mailName, MENTION_RE, snippet, stripMarkup, updateMessage } from './helpers'
 
 export interface AskOptions {
@@ -434,6 +435,22 @@ function planBlock(type: BlockKind, ctx: Ctx, p: Project): Plan {
   }
 }
 
+/* ---------------- tools built for this project ---------------- */
+function planApp(id: AppId, ctx: Ctx, p: Project): Plan {
+  const tool = TOOLS[id]
+  const have = hasApp(p, id)
+  if (have) return { say: `${capitalize(tool.name)} is already on this project. ${boardLink(have.id, 'Open it')}` }
+  if (!tool.fits(p)) return { say: `I can’t build ${tool.name} here yet. ${tool.missing}` }
+  const block = makeApp(id, p)
+  if (ctx.owner) return { before: () => get().addBlock(ctx.pid, block), say: `Built it. ${capitalize(tool.name)}, made for ${en(p.name)} from what is in this project. ${boardLink(block.id, 'Open it')}` }
+  const same = pendingProposals(ctx, p).find((m) => m.action.type === 'add-block' && m.action.block.type === 'app' && m.action.block.app === id)
+  if (same) return { say: `There’s already a proposal for that, waiting for ${firstName(p.ownerId)}. ${msgLink(same.id, 'See the proposal')}` }
+  return {
+    say: `I built ${tool.name} and sent it to ${firstName(p.ownerId)} as a proposal. On this project, ${firstName(p.ownerId)} decides what goes on the board.`,
+    after: () => postProposal(ctx, p, `Add ${tool.name} to the board`, `${tool.hint}. ${firstName(ctx.viewer)} asked: "${oneLine(ctx.plain, 90)}"`, { type: 'add-block', block }),
+  }
+}
+
 /* ---------------- moving dates ---------------- */
 const NOT_A_LABEL = new Set(['move', 'moved', 'delay', 'push', 'back', 'postpone', 'reschedule', 'should', 'could', 'would', 'with', 'this', 'that', 'week', 'weeks', 'days', 'earlier', 'later', 'bring', 'forward', 'please', 'have', 'there', 'what', 'decaler', 'avancer', 'reporter', 'repousser', 'date', 'semaine', 'semaines', 'jours'])
 function itemNamed(ctx: Ctx, p: Project): TimelineItem | undefined {
@@ -659,7 +676,11 @@ function planDraftMail(ctx: Ctx, p: Project): Plan {
     const topic = stripRe(en(target.subject))
     subject = `Re: ${topic}`
     const key = keySentence(en(target.body))
-    body = `Hi ${name},\n\nThanks for your update on ${shortTopic(topic)}. We’ve noted this: "${oneLine(key, 160)}"\n\nThe team is on it, and I’ll confirm our next steps shortly.\n\nBest,\n${me}`
+    // "draft a reply to Priya: €112 per unit, ..." comes with its terms, from a tool or typed by hand
+    const terms = ctx.plain.match(/^[^:]*\b(?:reply|respond|answer)\b[^:]*:\s*([\s\S]+)$/i)?.[1]?.trim().replace(/[.\s]+$/, '')
+    body = terms
+      ? `Hi ${name},\n\nThanks for your message on ${shortTopic(topic)}. Here is what we can offer: ${terms}.\n\nLet me know if that works for you, and I’ll send the paperwork.\n\nBest,\n${me}`
+      : `Hi ${name},\n\nThanks for your update on ${shortTopic(topic)}. We’ve noted this: "${oneLine(key, 160)}"\n\nThe team is on it, and I’ll confirm our next steps shortly.\n\nBest,\n${me}`
   } else {
     subject = en(p.name)
     body = `Hi ${name},\n\nI’m reaching out about ${en(p.name)}. ${firstSentence(en(p.description))}\n\nCould we find time to talk this week?\n\nBest,\n${me}`
@@ -1002,6 +1023,12 @@ function planUpdateBlock(ctx: Ctx, p: Project): Plan | null {
   const tail = ask.match(/^(?:add\s+(?:a\s+|an\s+)?(?:line|row|bar|option|card|item)?\s*(?:for\s+)?)?(.+?)(?:[,:\s]+(\d+(?:\.\d+)?))?$/i)
   const label = (tail?.[1] ?? ask).replace(/^["']|["']$/g, '').trim()
   const value = tail?.[2] ? Number(tail[2]) : undefined
+  if (block.type === 'app') {
+    const change = appUpdate(block, ask)
+    if (!change) return { say: `**${name}** is yours to drag: every control saves for everyone on the project. I can set numbers from here, for example "@Gemini update ${name}: 7".` }
+    if (!ctx.owner) return { say: `I sent ${firstName(p.ownerId)} a proposal to update **${name}** with: ${ask}.`, after: () => postProposal(ctx, p, `Update ${name}`, ask, { type: 'none' }) }
+    return { say: `Set **${name}** to ${change.say}.`, before: () => { get().patchBlock(ctx.pid, block.id, { state: change.state, fresh: true } as Partial<Block>); setTimeout(() => get().patchBlock(ctx.pid, block.id, { fresh: false } as Partial<Block>), 1800) } }
+  }
   let patch: Partial<Block> | null = null
   if (block.type === 'chart') patch = { series: [...block.series, { label, value: value ?? 0 }] } as Partial<Block>
   else if (block.type === 'poll') patch = { options: [...block.options, { id: uid('o'), label, votes: [] }] } as Partial<Block>
@@ -1031,6 +1058,8 @@ function decide(ctx: Ctx, p: Project): Plan {
   const talk = smallTalk(ctx, p)
   if (talk) return talk
   if (isQuestion(n)) return answer(ctx, p)
+  const app = wantedApp(n)
+  if (app) return planApp(app, ctx, p)
   // read-only requests first: nothing to confirm, nothing to change
   if (isLastCallAsk(n)) return planLastCall(ctx, p)
   if (isTodoAsk(n)) return planTodo(ctx, p)

@@ -55,6 +55,7 @@ export const BLOCK_META: Record<BlockType, { icon: string; label: L }> = {
   model3d: { icon: 'view_in_ar', label: { fr: '3D', en: '3D' } },
   notes: { icon: 'notes', label: { fr: 'Notes', en: 'Notes' } },
   poll: { icon: 'ballot', label: { fr: 'Sondage', en: 'Poll' } },
+  app: { icon: 'auto_awesome', label: { fr: 'Outil fait par Gemini', en: 'Tool made by Gemini' } },
 }
 
 export function KindIcon({ kind, size = 20 }: { kind: Artifact['kind']; size?: number }) {

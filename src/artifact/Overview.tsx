@@ -9,6 +9,7 @@ import type { Block } from '../data/types'
 import { fmtDate, fmtDay, fmtTime, useT, withUnit } from '../i18n'
 import { personById, useStore } from '../store'
 import { Avatar, AvatarStack, Button, Icon, Sparkle } from '../ui/kit'
+import { AppTile } from './apps/AppTile'
 import { ModelTilePreview } from './blocks/Model3D'
 import { layout, type Slot } from './overviewLayout'
 import { DAY, Empty, KindIcon, revealIn, startOfDay, upcomingEvents, useBoard } from './shared'
@@ -211,6 +212,7 @@ function TileBody({ block }: { block: Block }) {
     case 'people': return <PeopleTile />
     case 'kanban': return <KanbanTile block={block} />
     case 'poll': return <PollTile block={block} />
+    case 'app': return <AppTile block={block} />
     case 'model3d': return <ModelTilePreview model={block.model} />
     case 'notes': { const text = t(block.text); return text ? <span className="rp-t-note">{text}</span> : <span className="rp-t-none">{t({ fr: 'Pas encore de note', en: 'No notes yet' })}</span> }
   }
