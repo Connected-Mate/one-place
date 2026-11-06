@@ -217,7 +217,7 @@ export const useStore = create<State>()(persist((set, get) => ({
   version: SEED_VERSION,
   storage: safe,
   migrate: () => initial() as unknown as State, // new seed: start clean rather than crash
-  partialize: (s) => ({ lang: s.lang, theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
+  partialize: (s) => ({ theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
 }))
 
 /* ------- selectors / helpers used everywhere ------- */

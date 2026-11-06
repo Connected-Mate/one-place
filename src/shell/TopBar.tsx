@@ -108,7 +108,6 @@ function Search() {
 export function TopBar({ onAbout }: { onAbout: () => void }) {
   const t = useT()
   const viewer = useViewer()
-  const lang = useStore((s) => s.lang)
   const theme = useStore((s) => s.theme)
   const s = useStore.getState()
   const personas = [
@@ -140,9 +139,6 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
           align="right"
           items={[
             { icon: 'info', label: t({ fr: 'À propos de ce concept', en: 'About this concept' }), onSelect: onAbout },
-            { divider: true, label: '' },
-            { icon: 'language', label: 'Français', selected: lang === 'fr', onSelect: () => s.setLang('fr') },
-            { icon: 'language', label: 'English', selected: lang === 'en', onSelect: () => s.setLang('en') },
             { divider: true, label: '' },
             { icon: 'brightness_auto', label: t({ fr: 'Thème automatique', en: 'Automatic theme' }), selected: theme === 'auto', onSelect: () => s.setTheme('auto') },
             { icon: 'light_mode', label: t({ fr: 'Clair', en: 'Light' }), selected: theme === 'light', onSelect: () => s.setTheme('light') },

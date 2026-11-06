@@ -9,6 +9,6 @@ import { northwind } from './seed/northwind'
 export { GEMINI_ID, ME_ID, people } from './seed/people'
 
 /** Bump when the seed changes shape: the persisted store starts clean. */
-export const SEED_VERSION = 2
+export const SEED_VERSION = 3
 
 export const seedProjects = (): Project[] => [aurora(), move(), hiring(), northwind()]

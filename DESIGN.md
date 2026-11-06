@@ -32,7 +32,7 @@ Font Google Sans (self-hosted), body 14/20. Icons Material Symbols Outlined (`<I
 
 ## Craft rules
 - Google restraint: flat, airy, white. No heavy shadows, no gradient except Gemini. No cards in cards. Emphasized easing `--ease`, `--ease-out`; 120-350 ms; things arrive, they don't bounce. Respect reduced motion (global rule exists).
-- Everything in FR and EN, inline: `const t = useT(); t({fr:'…',en:'…'})`. Never hardcode a single language.
+- **The product is English only** (Alex, 06/11/2026): the language is forced to `en` and there is no language switch. The code keeps the `t({fr,en})` form and the French texts are simply not shown. Every visible string must be natural English.
 - All colors via tokens (dark mode must work). Reuse `src/ui/kit.tsx` (Icon, Sparkle, Avatar, AvatarStack, Button, IconButton, Chip, Dialog, Menu) and classes `.input .field .card .gemini-text`.
 - Keyboard & screen reader: real buttons, aria-labels (both languages via t), visible focus, Esc closes, chat is `role="log"`. Touch targets ≥ 40px on mobile. No horizontal page scroll.
 - Long text must truncate or wrap, never break layouts. Empty states exist. Double clicks safe.
