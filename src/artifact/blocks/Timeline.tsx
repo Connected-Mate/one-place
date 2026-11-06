@@ -1,4 +1,4 @@
-// A real Gantt: positions are percentages of a track that is at least 14px per day, so it
+// A real Gantt: positions are percentages of a track that is at least 10px per day, so it
 // fills wide columns and scrolls inside the block on narrow ones.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Block, TimelineItem } from '../../data/types'
@@ -7,7 +7,7 @@ import { personById, useStore } from '../../store'
 import { Avatar } from '../../ui/kit'
 import { DAY, Empty, Frame, prefersReducedMotion, startOfDay, useBoard, useTip } from '../shared'
 
-const PX_PER_DAY = 14
+const PX_PER_DAY = 10
 const monday = (at: number) => { const d = new Date(startOfDay(at)); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime() }
 const addDays = (at: number, n: number) => { const d = new Date(at); d.setDate(d.getDate() + n); return d.getTime() }
 
@@ -19,12 +19,13 @@ export function TimelineBlock({ block }: { block: Extract<Block, { type: 'timeli
   const scroller = useRef<HTMLDivElement>(null)
   const seen = useRef(new Map<string, number>())
   const [moved, setMoved] = useState<string[]>([])
+  const [trackWidth, setTrackWidth] = useState(0)
   const now = Date.now()
   const items = block.items
 
   const { from, to, weeks, groups } = useMemo(() => {
     const starts = items.map((i) => i.start), ends = items.map((i) => Math.max(i.start, i.end))
-    const from = addDays(monday(Math.min(now, ...starts)), -7)
+    const from = monday(Math.min(now, ...starts))
     const to = addDays(monday(Math.max(now, ...ends)), 14)
     const weeks: number[] = []
     for (let w = from; w < to; w = addDays(w, 7)) weeks.push(w)
@@ -41,6 +42,15 @@ export function TimelineBlock({ block }: { block: Extract<Block, { type: 'timeli
   }, [items])
   const totalDays = Math.round((to - from) / DAY)
   const pct = (at: number) => ((at - from) / (to - from)) * 100
+
+  const pxPerDay = Math.max(PX_PER_DAY, trackWidth / Math.max(totalDays, 1))
+  useEffect(() => {
+    const el = scroller.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setTrackWidth(el.clientWidth))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [items.length === 0]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const placeToday = () => {
     const el = scroller.current
@@ -119,7 +129,7 @@ export function TimelineBlock({ block }: { block: Extract<Block, { type: 'timeli
                     )
                   }
                   const end = Math.max(i.end, i.start + DAY)
-                  const widthPx = ((end - i.start) / DAY) * PX_PER_DAY
+                  const widthPx = ((end - i.start) / DAY) * pxPerDay
                   const fits = d.label.length * 7.2 + (i.ownerId ? 38 : 16) < widthPx
                   const flip = !fits && pct(end) > 68
                   const progress = progressOf(i)

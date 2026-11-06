@@ -18,7 +18,7 @@ export function ArtifactHeader({ artifact, children }: { artifact: Artifact; chi
       <span className="rp-doc-head-extra">{children}</span>
       <Button
         variant="tonal"
-        size="s"
+        className="rp-share"
         icon="group"
         onClick={() => toast({ text: { fr: 'Tout le monde dans le projet l’a déjà', en: 'Everyone in the project already has it' }, icon: 'group' })}
       >
@@ -27,6 +27,25 @@ export function ArtifactHeader({ artifact, children }: { artifact: Artifact; chi
     </header>
   )
 }
+
+/** The Workspace toolbar: a soft pill under the title. Square-ish 28px buttons, thin separators. */
+export function TB({ icon, label, onClick, disabled, pressed, children }: { icon?: string; label: string; onClick?: () => void; disabled?: boolean; pressed?: boolean; children?: ReactNode }) {
+  return (
+    <button
+      type="button"
+      className={`rp-tb${pressed ? ' on' : ''}${children ? ' wide' : ''}`}
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      disabled={disabled}
+      onMouseDown={(e) => e.preventDefault()} // keep the text selection and the caret where they are
+      onClick={onClick}
+    >
+      {icon && <Icon name={icon} size={18} />}{children}
+    </button>
+  )
+}
+export const TBSep = () => <span className="rp-tb-sep" aria-hidden="true" />
 
 /** Give the keyboard to a document, unless the person is typing somewhere else (the chat composer, say). */
 export function takeFocus(el: HTMLElement | null) {

@@ -2,16 +2,22 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Artifact } from '../../data/types'
 import { useT } from '../../i18n'
 import { useStore } from '../../store'
-import { Button } from '../../ui/kit'
+import { Button, Icon } from '../../ui/kit'
 import { useBoard } from '../shared'
 import { colName, computeCell, parseInput, type Cell } from './formula'
-import { ArtifactHeader, takeFocus } from './Header'
+import { ArtifactHeader, takeFocus, TB, TBSep } from './Header'
 
 type Sheet = Extract<Artifact, { kind: 'sheet' }>
 /** r = 0 is the row of column names, r >= 1 the data. */
 interface Pos { r: number; c: number }
+interface ColFormat { style?: 'currency' | 'percent'; decimals?: number }
+const safe = (get: (r: number, c: number) => Cell, r: number, c: number): Cell => { try { return get(r, c) } catch { return '#REF' } }
 
-export function SheetView({ sheet }: { sheet: Sheet }) {
+/** A typed "Total" line would be counted twice: the grid derives its own, always right. */
+const isTotalRow = (row: Cell[]) => typeof row[0] === 'string' && /^\s*(total|sum|somme)\b/i.test(row[0])
+
+export function SheetView({ sheet: source }: { sheet: Sheet }) {
+  const sheet = useMemo(() => ({ ...source, rows: source.rows.filter((r) => !isTotalRow(r)) }), [source])
   const t = useT()
   const lang = useStore((s) => s.lang)
   const { project, role } = useBoard()
@@ -21,7 +27,37 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
   const [edit, setEdit] = useState<{ value: string; from: 'cell' | 'bar' } | null>(null)
   const grid = useRef<HTMLTableElement>(null)
   const skipBlur = useRef(false)
-  const nf = useMemo(() => new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 }), [lang])
+  // Undo and redo are whole snapshots: small data, simple and right.
+  const past = useRef<Pick<Sheet, 'rows' | 'columns'>[]>([])
+  const future = useRef<Pick<Sheet, 'rows' | 'columns'>[]>([])
+  const [, bump] = useState(0)
+  const [formats, setFormats] = useState<Record<number, ColFormat>>({})
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-US'
+  const fmtNum = (v: number, c: number) => {
+    const f = formats[c]
+    const options: Intl.NumberFormatOptions = { maximumFractionDigits: f?.decimals ?? 2, minimumFractionDigits: f?.decimals ?? 0 }
+    if (f?.style === 'currency') return new Intl.NumberFormat(locale, { ...options, style: 'currency', currency: 'EUR' }).format(v)
+    if (f?.style === 'percent') return new Intl.NumberFormat(locale, { ...options, style: 'percent' }).format(v)
+    return new Intl.NumberFormat(locale, options).format(v)
+  }
+  const write = (patch: Partial<Pick<Sheet, 'rows' | 'columns'>>) => {
+    past.current = [...past.current.slice(-49), { rows: sheet.rows, columns: sheet.columns }]
+    future.current = []
+    patchArtifact(project.id, sheet.id, { ...patch, updatedAt: Date.now() })
+    bump((n) => n + 1)
+  }
+  const travel = (from: typeof past, to: typeof past) => {
+    const snap = from.current[from.current.length - 1]
+    if (!snap) return
+    from.current = from.current.slice(0, -1)
+    to.current = [...to.current, { rows: sheet.rows, columns: sheet.columns }]
+    patchArtifact(project.id, sheet.id, { ...snap, updatedAt: Date.now() })
+    bump((n) => n + 1)
+    grid.current?.focus({ preventScroll: true })
+  }
+  const undo = () => travel(past, future)
+  const redo = () => travel(future, past)
+  const setFormat = (c: number, change: (f: ColFormat) => ColFormat) => setFormats((m) => ({ ...m, [c]: change(m[c] ?? {}) }))
 
   const nCols = Math.max(sheet.columns.length, ...sheet.rows.map((r) => r.length), 1)
   const nRows = sheet.rows.length
@@ -52,7 +88,7 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
     for (let c = 0; c < nCols; c++) {
       if (c === 0) { out.push(null); continue }
       const nums: number[] = []
-      for (let r = 1; r <= nRows; r++) { const v = computed(r, c); if (typeof v === 'number') nums.push(v) }
+      for (let r = 1; r <= nRows; r++) { const v = safe(computed, r, c); if (typeof v === 'number') nums.push(v) }
       out.push(nums.length > 0 && nums.length * 2 >= nRows ? nums.reduce((a, b) => a + b, 0) : null)
     }
     return out
@@ -68,7 +104,7 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
     if (p.r === 0) {
       const columns = Array.from({ length: nCols }, (_, c) => sheet.columns[c] ?? '')
       columns[p.c] = value
-      patchArtifact(project.id, sheet.id, { columns, updatedAt: Date.now() })
+      write({ columns })
       return
     }
     const rows = sheet.rows.map((row, r) => {
@@ -77,7 +113,7 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
       next[p.c] = parseInput(value)
       return next
     })
-    patchArtifact(project.id, sheet.id, { rows, updatedAt: Date.now() })
+    write({ rows })
   }
   const go = (r: number, c: number) => setSel({ r: Math.max(0, Math.min(nRows, r)), c: Math.max(0, Math.min(nCols - 1, c)) })
   const commit = (move?: [number, number]) => {
@@ -96,6 +132,7 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
   const onGridKey = (e: React.KeyboardEvent) => {
     if (edit) return
     const k = e.key
+    if ((e.metaKey || e.ctrlKey) && k.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return }
     if (k === 'ArrowUp') { e.preventDefault(); go(sel.r - 1, sel.c) }
     else if (k === 'ArrowDown') { e.preventDefault(); go(sel.r + 1, sel.c) }
     else if (k === 'ArrowLeft') { e.preventDefault(); go(sel.r, sel.c - 1) }
@@ -113,25 +150,45 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
   }
 
   const display = (r: number, c: number): { text: string; numeric: boolean; error: boolean } => {
-    let v: Cell
-    try { v = computed(r, c) } catch { v = '#REF' }
-    if (typeof v === 'number') return { text: nf.format(v), numeric: true, error: false }
+    const v = safe(computed, r, c)
+    if (typeof v === 'number') return { text: fmtNum(v, c), numeric: true, error: false }
     return { text: v, numeric: false, error: v.startsWith('#') && v.length <= 7 }
   }
   const addRow = () => {
     const rows = [...sheet.rows, Array.from({ length: nCols }, () => '' as Cell)]
-    patchArtifact(project.id, sheet.id, { rows, updatedAt: Date.now() })
+    write({ rows })
     setSel({ r: rows.length, c: 0 })
     grid.current?.focus({ preventScroll: true })
   }
 
   const ref = `${colName(sel.c)}${sel.r + 1}`
+  const autoSum = () => {
+    if (readOnly || sel.r < 2) return
+    const col = colName(sel.c)
+    save(sel, `=SUM(${col}2:${col}${sel.r})`)
+    grid.current?.focus({ preventScroll: true })
+  }
+  const fmt = formats[sel.c] ?? {}
+  const selValue = sel.r > 0 ? display(sel.r, sel.c) : null
+  const colNums: number[] = []
+  for (let r = 1; r <= nRows; r++) { const v = safe(computed, r, sel.c); if (typeof v === 'number') colNums.push(v) }
   return (
     <div className="rp-doc">
       <ArtifactHeader artifact={sheet} />
+      <div className="rp-toolbar" role="toolbar" aria-label={t({ fr: 'Outils de la feuille', en: 'Sheet tools' })}>
+        <TB icon="undo" label={t({ fr: 'Annuler', en: 'Undo' })} disabled={!past.current.length} onClick={undo} />
+        <TB icon="redo" label={t({ fr: 'Rétablir', en: 'Redo' })} disabled={!future.current.length} onClick={redo} />
+        <TBSep />
+        <TB icon="euro" label={t({ fr: 'Format monétaire', en: 'Currency format' })} pressed={fmt.style === 'currency'} onClick={() => setFormat(sel.c, (f) => ({ ...f, style: f.style === 'currency' ? undefined : 'currency' }))} />
+        <TB icon="percent" label={t({ fr: 'Format pourcentage', en: 'Percent format' })} pressed={fmt.style === 'percent'} onClick={() => setFormat(sel.c, (f) => ({ ...f, style: f.style === 'percent' ? undefined : 'percent' }))} />
+        <TB icon="decimal_decrease" label={t({ fr: 'Moins de décimales', en: 'Fewer decimals' })} onClick={() => setFormat(sel.c, (f) => ({ ...f, decimals: Math.max(0, (f.decimals ?? 2) - 1) }))} />
+        <TB icon="decimal_increase" label={t({ fr: 'Plus de décimales', en: 'More decimals' })} onClick={() => setFormat(sel.c, (f) => ({ ...f, decimals: Math.min(4, (f.decimals ?? 0) + 1) }))} />
+        <TBSep />
+        <TB icon="functions" label={t({ fr: 'Somme de la colonne au-dessus', en: 'Sum of the column above' })} disabled={readOnly || sel.r < 2} onClick={autoSum} />
+      </div>
       <div className="rp-formula">
         <span className="rp-formula-ref" aria-label={t({ fr: 'Cellule sélectionnée', en: 'Selected cell' })}>{ref}</span>
-        <span className="rp-formula-fx" aria-hidden="true">fx</span>
+        <Icon name="function" size={18} className="rp-formula-fx" />
         <input
           className="rp-formula-input"
           aria-label={t({ fr: `Contenu de la cellule ${ref}`, en: `Content of cell ${ref}` })}
@@ -208,13 +265,19 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
               <th scope="row" className="rp-sh-row" aria-hidden="true">{'Σ'}</th>
               {Array.from({ length: nCols }, (_, c) => (
                 <td key={c} className={totals[c] != null ? 'num' : undefined} aria-readonly="true">
-                  {c === 0 ? t({ fr: 'Total', en: 'Total' }) : totals[c] != null ? nf.format(totals[c]!) : ''}
+                  {c === 0 ? t({ fr: 'Total', en: 'Total' }) : totals[c] != null ? fmtNum(totals[c]!, c) : ''}
                 </td>
               ))}
             </tr>
           </tfoot>
         </table>
         {!readOnly && <Button size="s" icon="add" className="rp-sh-add" onClick={addRow}>{t({ fr: 'Ajouter une ligne', en: 'Add a row' })}</Button>}
+      </div>
+      <div className="rp-sheet-foot">
+        <span className="rp-sheet-tab">{t({ fr: 'Feuille 1', en: 'Sheet 1' })}</span>
+        {selValue?.numeric && colNums.length > 1 && (
+          <span className="rp-sheet-sum" aria-live="polite">{t({ fr: 'Somme de la colonne', en: 'Column sum' })}: {fmtNum(colNums.reduce((a, b) => a + b, 0), sel.c)}</span>
+        )}
       </div>
     </div>
   )

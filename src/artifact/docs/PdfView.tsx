@@ -57,15 +57,6 @@ export function PdfView({ pdf }: { pdf: Pdf }) {
       <ArtifactHeader artifact={pdf} />
       {pages === 0 ? <Empty icon="picture_as_pdf" title={t({ fr: 'Ce PDF n’a aucune page', en: 'This PDF has no pages' })} /> : (
         <>
-          <div className="rp-pdf-bar">
-            <IconButton icon="keyboard_arrow_up" size={32} disabled={page <= 1} label={t({ fr: 'Page précédente', en: 'Previous page' })} onClick={() => goTo(page - 1)} />
-            <span className="rp-pdf-count" aria-live="polite">{t({ fr: `Page ${page} sur ${pages}`, en: `Page ${page} of ${pages}` })}</span>
-            <IconButton icon="keyboard_arrow_down" size={32} disabled={page >= pages} label={t({ fr: 'Page suivante', en: 'Next page' })} onClick={() => goTo(page + 1)} />
-            <span className="rp-pdf-sep" />
-            <IconButton icon="remove" size={32} disabled={zoom === ZOOMS[0]} label={t({ fr: 'Dézoomer', en: 'Zoom out' })} onClick={() => stepZoom(-1)} />
-            <span className="rp-pdf-zoom" aria-live="polite">{Math.round(zoom * 100)}%</span>
-            <IconButton icon="add" size={32} disabled={zoom === ZOOMS[ZOOMS.length - 1]} label={t({ fr: 'Zoomer', en: 'Zoom in' })} onClick={() => stepZoom(1)} />
-          </div>
           <div ref={scroller} className="rp-pdf-scroll" tabIndex={0} role="region" aria-label={title} onKeyDown={onKey}>
             <div className="rp-pdf-pages" style={{ '--z': zoom } as React.CSSProperties}>
               {Array.from({ length: pages }, (_, i) => {
@@ -91,6 +82,15 @@ export function PdfView({ pdf }: { pdf: Pdf }) {
                 )
               })}
             </div>
+          </div>
+          <div className="rp-pdf-bar">
+            <IconButton icon="keyboard_arrow_up" size={32} disabled={page <= 1} label={t({ fr: 'Page précédente', en: 'Previous page' })} onClick={() => goTo(page - 1)} />
+            <span className="rp-pdf-count" aria-live="polite">{t({ fr: `Page ${page} sur ${pages}`, en: `Page ${page} of ${pages}` })}</span>
+            <IconButton icon="keyboard_arrow_down" size={32} disabled={page >= pages} label={t({ fr: 'Page suivante', en: 'Next page' })} onClick={() => goTo(page + 1)} />
+            <span className="rp-pdf-sep" />
+            <IconButton icon="remove" size={32} disabled={zoom === ZOOMS[0]} label={t({ fr: 'Dézoomer', en: 'Zoom out' })} onClick={() => stepZoom(-1)} />
+            <span className="rp-pdf-zoom" aria-live="polite">{Math.round(zoom * 100)}%</span>
+            <IconButton icon="add" size={32} disabled={zoom === ZOOMS[ZOOMS.length - 1]} label={t({ fr: 'Zoomer', en: 'Zoom in' })} onClick={() => stepZoom(1)} />
           </div>
         </>
       )}
