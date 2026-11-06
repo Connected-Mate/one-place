@@ -142,7 +142,6 @@ export function hired(): Project {
     {
       id: 'hd-m08', kind: 'text', authorId: 'alex', at: dayAt(-1, 17, 30), visibility: all,
       text: { fr: 'La démo tourne sur téléphone et tablette. @[Damien Wattez](damien) casse-la. Tape partout.', en: 'The demo runs on phone and tablet now. @[Damien Wattez](damien) break it. Tap everything.' },
-      reactions: [{ emoji: '🔨', by: ['damien'] }],
       replies: [
         t('hd-m08-r1', 'damien', dayAt(-1, 18, 12), { fr: 'Cassé la réponse privée sur tablette en tapant deux fois. Sinon la lampe en 3D frime et j’adore.', en: 'Broke the private reply on tablet by tapping twice. Other than that, the 3D lamp is showing off and I love it.' }),
         t('hd-m08-r2', 'alex', dayAt(-1, 18, 40), { fr: 'Corrigé. Le double tap est maintenant un simple tap.', en: 'Fixed. The double tap is now a single tap.' }),

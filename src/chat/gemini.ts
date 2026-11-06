@@ -989,8 +989,45 @@ function answer(ctx: Ctx, p: Project): Plan {
 }
 
 /* ---------------- the decision ---------------- */
+/* ---------------- updating a block Gemini made ("Ask Gemini to update") ---------------- */
+function planUpdateBlock(ctx: Ctx, p: Project): Plan | null {
+  const m = ctx.plain.trim().match(/^update\s+([^:]+?)(?:\s*:\s*([\s\S]*))?$/i)
+  if (!m) return null
+  const wanted = m[1].trim().toLowerCase()
+  const block = p.blocks.find((b) => en(b.title).toLowerCase() === wanted) ?? p.blocks.find((b) => en(b.title).toLowerCase().includes(wanted))
+  if (!block) return null
+  const name = en(block.title)
+  const ask = (m[2] ?? '').trim()
+  if (!ask) return { say: `Sure. What should change in **${name}**? For example: "@Gemini update ${name}: add a line for shipping, 12".` }
+  const tail = ask.match(/^(?:add\s+(?:a\s+|an\s+)?(?:line|row|bar|option|card|item)?\s*(?:for\s+)?)?(.+?)(?:[,:\s]+(\d+(?:\.\d+)?))?$/i)
+  const label = (tail?.[1] ?? ask).replace(/^["']|["']$/g, '').trim()
+  const value = tail?.[2] ? Number(tail[2]) : undefined
+  let patch: Partial<Block> | null = null
+  if (block.type === 'chart') patch = { series: [...block.series, { label, value: value ?? 0 }] } as Partial<Block>
+  else if (block.type === 'poll') patch = { options: [...block.options, { id: uid('o'), label, votes: [] }] } as Partial<Block>
+  else if (block.type === 'notes') patch = { text: `${en(block.text)}\n${ask}` } as Partial<Block>
+  else if (block.type === 'kanban' && block.columns.length) patch = { columns: block.columns.map((c, i) => (i ? c : { ...c, cards: [...c.cards, { id: uid('k'), title: label }] })) } as Partial<Block>
+  if (!patch) return { say: `**${name}** is one of the project's fixed parts, so change it directly on the board. I can update anything I built: charts, polls, notes and kanban boards.` }
+  const change = patch
+  if (!ctx.owner) {
+    return {
+      say: `I sent ${firstName(p.ownerId)} a proposal to update **${name}** with: ${ask}.`,
+      after: () => postProposal(ctx, p, `Update ${name}`, ask, { type: 'none' }),
+    }
+  }
+  return {
+    say: `Updated **${name}**: ${ask}.`,
+    before: () => {
+      get().patchBlock(ctx.pid, block.id, { ...change, fresh: true } as Partial<Block>)
+      setTimeout(() => get().patchBlock(ctx.pid, block.id, { fresh: false } as Partial<Block>), 1800)
+    },
+  }
+}
+
 function decide(ctx: Ctx, p: Project): Plan {
   const n = ctx.norm
+  const update = planUpdateBlock(ctx, p)
+  if (update) return update
   const talk = smallTalk(ctx, p)
   if (talk) return talk
   if (isQuestion(n)) return answer(ctx, p)

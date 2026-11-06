@@ -24,6 +24,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # No deployment if any screen, at any size, has cut text or a hidden control.
+      - run: npx playwright install --with-deps chromium
+      - run: npx vite preview --port 4173 --strictPort &
+      - run: npx --yes wait-on http://localhost:4173/one-place/
+      - run: npm run audit:layout
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:

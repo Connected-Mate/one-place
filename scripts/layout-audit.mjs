@@ -48,6 +48,7 @@ const inspect = () => {
     // text cut by a clipping ancestor (the case of a line falling out of a pill)
     for (let a = el.parentElement, i = 0; a && i < 4; a = a.parentElement, i++) {
       const ac = getComputedStyle(a)
+      if (/auto|scroll/.test(ac.overflowY)) break // reachable by scrolling
       if (!/hidden|clip/.test(ac.overflowY) || c.webkitLineClamp !== 'none' || a.scrollHeight > a.clientHeight + 40) continue
       const ar = a.getBoundingClientRect()
       if (r.bottom > ar.bottom + 2 && r.top < ar.bottom - 2 && r.height < 80 && a.scrollHeight <= a.clientHeight + 40) { out.push(`text falls out of its box: ${name(el)} "${el.textContent.trim().slice(0, 40)}" in ${name(a)}`); break }
@@ -56,8 +57,10 @@ const inspect = () => {
   for (const el of document.querySelectorAll('.ms')) {
     if (shown(el) && el.getBoundingClientRect().width > parseFloat(getComputedStyle(el).fontSize) * 1.6) out.push(`icon shown as a word: ${el.textContent}`)
   }
+  const modal = document.querySelector('.scrim')
   for (const el of document.querySelectorAll('button,a[href],input,textarea,[role=tab]')) {
     if (!shown(el) || el.disabled) continue
+    if (modal && !modal.contains(el)) continue // behind a modal scrim, on purpose
     const r = el.getBoundingClientRect()
     let scroller = false
     for (let a = el.parentElement; a; a = a.parentElement) { const ov = getComputedStyle(a); if (/auto|scroll/.test(ov.overflowX + ov.overflowY)) { scroller = true; break } }
@@ -89,11 +92,6 @@ for (const [device, width, height] of SIZES) {
   await page.keyboard.press('Escape')
   await check('home')
 
-  // A project with a very long name is the classic trap.
-  await page.evaluate(() => {
-    const raw = JSON.parse(localStorage.getItem('one-place') ?? '{}')
-    return raw
-  })
   const projects = await page.evaluate(() => JSON.parse(localStorage.getItem('one-place') ?? '{}')?.state?.projects?.map((p) => p.id) ?? [])
   for (const id of projects) {
     await page.evaluate((pid) => window.__opStore?.getState().selectProject(pid), id)
