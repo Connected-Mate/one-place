@@ -109,13 +109,14 @@ const malletAt = (t, name, vel = .55, pan = 0) => put(music, t, mallet(mtof(n(na
 /* ---------- the edit (same as film.js) ---------- */
 const T = Object.fromEntries(Object.entries(timeline(SCRATCH)).map(([k, v]) => [k, v[0]]))
 const TIMES = callTimes(SCRATCH)
-const CALL = [{ at: 0, len: 1.5, src: TIMES.camLine + 1.75 }, { at: 1.5, len: 2, src: TIMES.chorus - .25 }]
-const HANG_AT = T.call + 3.5 + .3 / 2.6
-const WOW = T.call + 1.5 + .25
+const CALL = [{ at: .85, len: 2.2, src: TIMES.chorus - .15 }]
+const WOW = T.bcall + 1
+const HANG_AT = T.bsum + .3 / 2.4
 const DROP = T.merge
+const BEATS = ['btodo', 'broad', 'bdoc', 'bmini', 'bcall', 'bsum'].filter((n) => T[n] !== undefined).map((n) => T[n])
 function cutWhoosh(t, vel = .34) { put(sfx, t - .22, whoosh(.5, vel, 380, 3800, .46), 1, 0) }
 
-/* Before the drop: only the sounds of work piling up. */
+/* Before the drop: only the sounds of work piling up, then of things entering one project. */
 Array.from({ length: 13 }, (_, i) => .2 + i / 19).forEach((t) => put(sfx, t, key(.2 + rand() * .06), 1, (rand() - .5) * .4))
 for (const t of [T.spent, T.gmail, T.chaos]) cutWhoosh(t, .26)
 {
@@ -128,17 +129,18 @@ for (const t of [T.spent, T.gmail, T.chaos]) cutWhoosh(t, .26)
   for (let i = 0; i < 86; i += 2) { const m = 72 + (i * 7) % 24; const at = T.chaos + (2.95 + i * .0058) / k; if (at < T.first) put(sfx, at, tick(mtof(m), .24, .05), 1, (rand() - .5) * 1.4) }
   put(sfx, T.chaos + 1.2, whoosh(D - 1.2, .6, 300, 6200, .95))
 }
-// Stop: the pull into the mark
-put(sfx, T.stop + .02, clap(.5))
+// Each thing landing in the project: a soft pop, rising
+const POPS = [60, 62, 64, 67, 69, 72, 74, 76, 79]
+POPS.forEach((m, i) => put(sfx, T.project + 1.4 + i * .3 + .1, mallet(mtof(m + 12), .5), 1, Math.sin(i * 1.7) * .4))
+for (let i = 0; i < 8; i++) put(sfx, T.project + 4.25 + i * .12 + .08, mallet(mtof(72 + i), .4), 1, (i - 4) * .1)
+put(sfx, T.project + 5.65, whoosh(.5, .5, 900, 6000, .9)); ;['C6', 'E6', 'G6', 'C7'].forEach((nm, i) => put(sfx, T.project + 6.1 + i * .06, mallet(mtof(n(nm)), .32 - i * .04), 1, i % 2 ? .3 : -.3))
 put(sfx, T.merge - .5, whoosh(.52, .8, 5000, 260, .8))
-for (const t of [T.conv, T.proj, T.files, T.connected, T.everyone, T.surface, T.ai, T.type, T.answer, T.block, T.callsT, T.call, T.every, T.only1, T.only2, T.hey, T.hire, T.end]) cutWhoosh(t, .16)
-for (let i = 0; i < 10; i++) put(sfx, T.connected + .15 + i * .09 + .3, tick(1800 + i * 120, .24, .03))
-put(sfx, T.nosub + .85, whoosh(.5, .24, 2600, 700, .3))
-{ const at = (src) => T.type + (src - .5) / 1.15; Array.from({ length: 18 }, (_, i) => .25 + .31 + .33 + .17 + i / 22).forEach((x) => put(sfx, at(x), key(.14 + rand() * .05), 1, (rand() - .5) * .3)); put(sfx, at(2.57), tick(2600, .28, .03)) }
-malletAt(T.block + .1, 'G6', .24); malletAt(T.block + .22, 'C7', .26, .2)
+for (const t of [T.notagents, T.all, T.fast, T.people, T.only, T.hey, T.hire, T.end]) cutWhoosh(t, .16)
+put(sfx, T.notagents + .42, clap(.3)); put(sfx, T.notagents + .58, clap(.34))
+// the bar jumps on each beat
+BEATS.forEach((t, i) => { cutWhoosh(t, .14); put(sfx, t + .05, mallet(mtof(72 + i * 3), .28), 1, 0) })
+put(sfx, T.btodo + (.25 + .32 - .25) / 1.75, tick(2600, .24, .03))
 { const m = (f, t, v) => put(sfx, t, mallet(f, v)); m(783.99, HANG_AT, .3); m(659.25, HANG_AT + .13, .3); m(523.25, HANG_AT + .26, .32) }
-for (const c of [1.5, 3.5]) put(sfx, T.call + c, tick(1500, .08, .02))
-;['G5', 'A5', 'C6', 'D6', 'E6', 'G6', 'A6', 'C7'].forEach((nm, i) => malletAt(T.every + .32 + i * .07, nm, .1, i % 2 ? .4 : -.4))
 
 /* ---------- the music: a real recording, see audio/music.mjs. Chosen with --music ---------- */
 const CHOICE = arg('music', 'temp')
@@ -151,16 +153,18 @@ function decode(file) {
   return [L, R]
 }
 if (CHOICE === 'temp') {
-  // A TEMP bed, to judge the message and the energy only. Not music for the film: a pulse that starts on the drop.
+  // A TEMP bed, to judge the message and the energy only. Soft pulse and warm chords, on the drop. Not music for the film.
   const B = .46875 // 128 bpm
-  put(sfx, T.merge, kick(.9)); put(sfx, T.merge, clap(.6))
-  for (let t = T.merge; t < T.end + 3 * B * 2; t += B) {
-    const n = Math.round((t - T.merge) / B)
-    const ducked = t > T.every - .1 && t < T.only1
-    if (!ducked) { put(music, t, kick(.72)); if (n % 2 === 1) put(music, t, clap(.42), 1, .05) }
-    const root = [36, 36, 33, 41][Math.floor(n / 8) % 4]
-    put(music, t + B / 2, bass(mtof(root), .2, ducked ? .32 : .62))
-    put(music, t + B / 2, shaker(.5), 1, .2); put(music, t, shaker(.28), 1, -.2)
+  const CH = [[48, 55, 64, 67], [43, 55, 62, 67], [45, 52, 60, 64], [41, 53, 60, 65]]
+  put(sfx, T.merge, kick(.8)); put(sfx, T.merge, clap(.5))
+  for (let bar = 0; T.merge + bar * 4 * B < DUR; bar++) put(music, T.merge + bar * 4 * B, pad(CH[bar % 4], 4 * B + .5, 2.2))
+  for (let t = T.merge; t < T.end + 8 * B; t += B) {
+    const k = Math.round((t - T.merge) / B)
+    const soft = t > T.people - .1 && t < T.only
+    put(music, t, kick(soft ? .22 : .42))
+    if (k % 2 === 1 && !soft) put(music, t, clap(.2), 1, .05)
+    put(music, t + B / 2, bass(mtof(CH[Math.floor(k / 4) % 4][0]), .22, soft ? .22 : .44))
+    put(music, t + B / 2, shaker(.26), 1, .2)
   }
   console.log('music TEMP pulse from', T.merge)
 } else {
@@ -179,21 +183,21 @@ if (CHOICE === 'temp') {
     for (let i = 2 * w; i + 3 * w < Math.min(song[0].length, 150 * SR); i += SR / 10) { const g = rms(i) / (rms(i - w) + .01); if (g > top) { top = g; best = i } }
     return nearOnset(song, best / SR)
   }
-  const dropAt = arg('drop') ? +arg('drop') : findDrop()
+  const dropAt = arg('drop') ? +arg('drop') : (track.drop ?? findDrop())
   const offset = DROP - dropAt // film time = track time + offset
-  const enterFilm = Math.max(T.stop - .15, offset) // the build-up comes in under "Stop talking everywhere."
+  const enterFilm = Math.max(T.project, offset) // the track's own break opens with the project card
   const songEnd = (() => { let i = song[0].length - 1; while (i > 0 && Math.abs(song[0][i]) < .012) i--; return i / SR })()
   const CROSS = T.end + .05, TAIL = DUR - CROSS - .2
-  const xBody = nearOnset(song, CROSS - offset) + offset
-  const u = nearOnset(song, songEnd - TAIL)
+  const xBody = track.tail ? T.end : nearOnset(song, CROSS - offset) + offset
+  const u = track.tail ?? nearOnset(song, songEnd - TAIL)
   let e = 0, c = 0
   for (let t = dropAt; t < dropAt + 30; t += .001) { const i = Math.floor(t * SR); if (i < song[0].length) { e += song[0][i] ** 2 + song[1][i] ** 2; c += 2 } }
   const norm = (10 ** (-15.5 / 20)) / Math.sqrt(e / Math.max(1, c))
-  const fade = .18
+  const fade = .05
   for (let i = Math.floor(enterFilm * SR); i < N; i++) {
     const t = i / SR, j1 = Math.floor((t - offset) * SR), j2 = Math.floor((t - xBody + u) * SR)
     const fa = t < xBody ? 1 : t < xBody + fade ? 1 - (t - xBody) / fade : 0, fb = t >= xBody ? Math.min(1, (t - xBody) / fade) : 0
-    const inFade = t >= DROP ? 1 : Math.min(1, (t - enterFilm) / .5) * .7
+    const inFade = Math.min(1, (t - enterFilm) / .06)
     for (let ch = 0; ch < 2; ch++) music[ch][i] = (fa * (song[ch][j1] || 0) + fb * (song[ch][j2] || 0)) * norm * inFade
   }
   console.log('music', track.id, 'drop in the track at', dropAt.toFixed(2), 'lands on', DROP.toFixed(2), 'enters', enterFilm.toFixed(2), 'tail from', u.toFixed(2), 'of', songEnd.toFixed(1), 'gain', (20 * Math.log10(norm)).toFixed(1), 'dB')
@@ -215,7 +219,7 @@ for (const c of CALL) {
   const from = Math.round(c.src * SR), L = Math.round(c.len * SR), fade = 288
   const seg = new Float32Array(L)
   for (let i = 0; i < L; i++) { let e = 1; if (i < fade) e = i / fade; if (i > L - fade) e = (L - i) / fade; seg[i] = (callTrack[from + i] || 0) * e }
-  put(voice, T.call + c.at, seg, 1)
+  put(voice, T.bcall + c.at, seg, 1)
 }
 
 // Levelling the voices: gentle compression, so the wow is loud without spiking.
@@ -251,7 +255,7 @@ function convolve(sig, ir) {
 const irOf = () => { const L = Math.floor(1.5 * SR), nz = noise(L); const lp = svf(nz, (i) => 6500 * Math.exp(-i / L * 2.2) + 500, .8, 'lp'); for (let i = 0; i < L; i++) { const t = i / SR; lp[i] *= Math.exp(-t / .38) * Math.min(1, t / .004) } let e = 0; for (const x of lp) e += x * x; const g = 1 / Math.sqrt(e); for (let i = 0; i < L; i++) lp[i] *= g; return lp }
 
 /* The ducking: the music steps back whenever people talk, and for his belief. Silence before the mark. */
-const K = [[0, 1], [T.call - .1, 1], [T.call + .08, .3], [WOW - .25, .22], [WOW - .05, .08], [T.call + 3.5 - .08, .08], [T.call + 3.5 + .12, .85], [T.every - .05, 1], [T.every + .12, .55], [T.only1 - .05, .55], [T.only1 + .05, 1], [DUR, 1]]
+const K = [[0, 1], [WOW - .35, 1], [WOW - .05, .14], [WOW + 1.75, .14], [WOW + 2.05, 1], [DUR, 1]] // under the wow, and nowhere else
 const gainAt = (t) => { for (let i = 1; i < K.length; i++) if (t <= K[i][0]) { const [a, va] = K[i - 1], [b, vb] = K[i]; const u = (t - a) / (b - a); return va + (vb - va) * (u * u * (3 - 2 * u)) } return 1 }
 const irL = irOf(), irR = irOf()
 const wetM = [convolve(music[0], irL), convolve(music[1], irR)]
@@ -261,7 +265,7 @@ const out = [new Float32Array(N), new Float32Array(N)]
 const MUSIC = 1, WET = 0, SFXG = .55, SFXWET = .09, VOICE = 2.7, VOICEWET = .035
 for (let c = 0; c < 2; c++) for (let i = 0; i < N; i++) {
   const t = i / SR, g = gainAt(t)
-  out[c][i] = (music[c][i] + wetM[c][i] * WET) * MUSIC * g + (sfx[c][i] + wetS[c][i] * SFXWET) * SFXG * (t < T.merge ? 2.6 : .8) + (voice[c][i] + wetV[c][i] * VOICEWET) * VOICE
+  out[c][i] = (music[c][i] + wetM[c][i] * WET) * MUSIC * g + (sfx[c][i] + wetS[c][i] * SFXWET) * SFXG * (t < T.project ? 2.6 : t < T.merge ? 1 : .5) + (voice[c][i] + wetV[c][i] * VOICEWET) * VOICE
 }
 // the last second breathes out
 for (let c = 0; c < 2; c++) for (let i = 0; i < N; i++) { const t = i / SR; if (t > DUR - .35) out[c][i] *= Math.cos((t - (DUR - .35)) / .35 * Math.PI / 2) ** 2 }

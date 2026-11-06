@@ -10,12 +10,14 @@ import { join } from 'node:path'
 
 export function timeline(scratch) {
   const mini = existsSync(join(scratch, 'cap/mini/meta.json'))
+  // The cut follows the track: "Product Launch" by lNPLUSMUSIC. Its break starts at 31.07 s, its drop lands at 38.38 s (That's One Place),
+  // a second hit at 47.97 s (the bar starts), then the beat is 60/133 s. See audio/music.mjs.
+  const B = 60 / 133, BREAK = 7.31, DROP2 = 9.59
   const list = [
-    ['hello', 1.6], ['spent', 2.4], ['gmail', 1.7], ['chaos', 3.4], ['first', 1.9], ['stop', 1.7],
-    ['merge', 1.6], ['conv', 1.7], ['proj', 1.7], ['files', 1.7], ['connected', 2.4], ['everyone', 2.6], ['surface', 3],
-    ['ai', 1.6], ['nosub', 1.8], ['type', 1.9], ['answer', 1.3], ['block', 1.6],
-    ...(mini ? [['mini', 2.6]] : []),
-    ['callsT', .9], ['call', 5], ['every', 1.2], ['people', 2], ['only1', 2], ['only2', 1.3], ['hey', 1.6], ['hire', 2], ['end', 4],
+    ['hello', 1.5], ['spent', 2.3], ['gmail', 1.6], ['chaos', 3], ['first', 1.8], ['project', BREAK],
+    ['merge', 5 * B], ['notagents', 6 * B], ['all', 8 * B], ['fast', DROP2 - 19 * B],
+    ['btodo', 3 * B], ['broad', 3 * B], ['bdoc', 3 * B], ...(mini ? [['bmini', 4 * B]] : []), ['bcall', 7 * B], ['bsum', 3 * B],
+    ['bdraft', 3 * B], ['bsumm', 3 * B], ['badd', 3 * B], ['people', 5 * B], ['only', 4 * B], ['hey', 4 * B], ['hire', 5 * B], ['end', 4.2],
   ]
   const T = {}; let t = 0
   for (const [n, d] of list) { T[n] = [+t.toFixed(3), +(t + d).toFixed(3)]; t += d }

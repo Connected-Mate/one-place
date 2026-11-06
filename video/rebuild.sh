@@ -14,7 +14,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/.." && pwd)"
 REF="${1:-HEAD}"; COMMIT="$(git -C "$REPO" rev-parse --short "$REF")"
 export FILM_SCRATCH="${FILM_SCRATCH:-/private/tmp/claude-502/-Users-0104389S/a60853bb-6655-4d82-acf6-a5c639d40492/scratchpad/film}"
-OUT="${FILM_OUT:-$HOME/Documents/Perso/One Place}"; PORT="${FILM_PORT:-5188}"
+OUT="${FILM_OUT:-$HOME/Documents/Perso/One Place}"; PORT="${FILM_PORT:-5199}"
 SNAP="$FILM_SCRATCH/appsnap-$COMMIT"; FF="$HERE/node_modules/ffmpeg-static/ffmpeg"
 mkdir -p "$FILM_SCRATCH" "$OUT/proof"
 [ -x "$FF" ] || (cd "$HERE" && npm install --no-audit --no-fund)
@@ -32,7 +32,7 @@ ln -s "$REPO/node_modules" "$SNAP/node_modules"
 export FILM_PUBLIC="$SNAP/public" FILM_APP="http://localhost:$PORT/one-place/"
 
 if [ -z "${FILM_SKIP_CAPTURE:-}" ]; then
-  (cd "$SNAP" && exec npx vite --port "$PORT" --strictPort >"$FILM_SCRATCH/vite-snap.log" 2>&1) &
+  (cd "$SNAP" && exec "$REPO/node_modules/.bin/vite" "$SNAP" --port "$PORT" --strictPort >"$FILM_SCRATCH/vite-snap.log" 2>&1) &
   SERVER=$!
   for _ in $(seq 1 60); do curl -sf -o /dev/null "$FILM_APP" && break; sleep 1; done
   echo "== capture"
@@ -40,14 +40,14 @@ if [ -z "${FILM_SKIP_CAPTURE:-}" ]; then
   kill "$SERVER" 2>/dev/null || true; SERVER=""
 fi
 
-SAMPLES="${FILM_SAMPLES:-8}"; MAIN="${FILM_MUSIC:-custom}"
+SAMPLES="${FILM_SAMPLES:-4}"; MAIN="${FILM_MUSIC:-custom}"
 echo "== sound"
 (cd "$HERE" && node audio/make-audio.mjs --music "$MAIN" ${FILM_DROP:+--drop "$FILM_DROP"} --out "$FILM_SCRATCH/mix-$MAIN.wav" | grep -E "^music|I:|Peak")
 echo "== films"
 for f in 16x9 1x1; do
   (cd "$HERE" && node render.mjs --format "$f" --audit 0.1 | tail -1)
-  M="$OUT/one-place-film-v2-$f-4k.mp4"; L="$OUT/one-place-film-v2-$f-1080.mp4"
-  (cd "$HERE" && node render.mjs --format "$f" --scale 2 --samples "$SAMPLES" --workers 7 --audio "$FILM_SCRATCH/mix-$MAIN.wav" --out "$M" | grep -E "rendered|failed")
+  M="$OUT/one-place-film-v2-$f-4k.mp4"; L="$OUT/one-place-film-v2-$f-1080-for-X-upload.mp4"
+  (cd "$HERE" && node render.mjs --format "$f" --scale 2 --fps 60 --samples "$SAMPLES" --workers 7 --audio "$FILM_SCRATCH/mix-$MAIN.wav" --out "$M" | grep -E "rendered|failed")
   S="1920:1080"; [ "$f" = 1x1 ] && S="1080:1080"
   "$FF" -hide_banner -loglevel error -y -i "$M" -vf "scale=$S:flags=lanczos,format=yuv420p" -c:v libx264 -preset slow -crf 16 -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart "$L"
 done
@@ -55,7 +55,7 @@ echo "== posters and proof"
 TL() { (cd "$HERE" && node -e "import('./film/timeline.mjs').then(m=>console.log(m.timeline(process.env.FILM_SCRATCH).$1[0]+$2))"); }
 for f in 16x9 1x1; do
   M="$OUT/one-place-film-v2-$f-4k.mp4"
-  for p in "mark merge 1.1" "wow call 2.6" "people people 1.7" "end-card end 2.6"; do set -- $p; "$FF" -hide_banner -loglevel error -y -ss "$(TL "$2" "$3")" -i "$M" -frames:v 1 -q:v 1 -update 1 "$OUT/poster-v2-$f-$1.jpg"; done
+  for p in "mark merge 1.1" "project project 6.8" "wow bcall 1.8" "end-card end 2.6"; do set -- $p; "$FF" -hide_banner -loglevel error -y -ss "$(TL "$2" "$3")" -i "$M" -frames:v 1 -q:v 1 -update 1 "$OUT/poster-v2-$f-$1.jpg"; done
   (cd "$HERE" && SC=480 ./sheet-video.sh "$M" "$OUT/proof/contact-sheet-v2-$f-2s.jpg" 2 6 0 76)
   "$FF" -hide_banner -nostats -i "$M" -af ebur128=peak=true -f null - 2>&1 | awk '/Summary/{p=1} p' | grep -E "I:|Peak:" || true
 done

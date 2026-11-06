@@ -17,7 +17,6 @@ export const HANGUP_SECONDS = 7
 export function callTimes(scratch, shot = 'callwide') {
   const meta = JSON.parse(readFileSync(join(scratch, 'cap', shot, 'meta.json'), 'utf8'))
   const at = (k) => { const p = meta.plays.find((x) => x.file === k + '.mp3'); if (!p) throw new Error(`call edit: the line ${k} is not in the capture. The script changed: update capture/call-cuts.mjs`); return p.at }
-  const camLine = at('open-aurora-1') // "Hold on, let me turn my camera on."
-  const chorus = at('open-aurora-8') // Wow. Whoa. Oh, that's so good.
-  return { camLine, chorus, hang: meta.clicked, frames: meta.frames, clip: meta.clip }
+    const chorus = at('open-aurora-8') // Wow. Whoa. Oh, that's so good.
+  return { chorus, hang: meta.clicked, frames: meta.frames, clip: meta.clip }
 }

@@ -9,8 +9,8 @@ import { END_LINE, END_TAIL, HANGUP_SECONDS } from './call-cuts.mjs'
 const FILM_CSS = `:root{--bg:#fff!important}body{background:#fff!important}*{scrollbar-width:none!important}*::-webkit-scrollbar{display:none!important}.cv-quiet{display:none!important}`
 
 const PREVIEW = !!process.env.FILM_PREVIEW
-async function start({ project = 'Aurora launch', dsf = 3, width, height, name }) {
-  const s = await open({ dsf: PREVIEW ? 1 : dsf, name, width, height, css: FILM_CSS })
+async function start({ project = 'Aurora launch', dsf = 3, width, height, name, fps = 60 }) {
+  const s = await open({ dsf: PREVIEW ? 1 : dsf, name, width, height, css: FILM_CSS, fps })
   await s.skip(2500)
   await s.page.getByRole('button', { name: 'Step in' }).click()
   await s.skip(700)
@@ -19,122 +19,109 @@ async function start({ project = 'Aurora launch', dsf = 3, width, height, name }
 }
 const ask = async (s, q, cps) => {
   await s.page.locator('textarea:visible').first().click()
-  await s.page.keyboard.type('@Gem'); await s.skip(120); await s.page.keyboard.press('Enter'); await s.skip(60)
+  await s.page.keyboard.type('@Gem'); await s.skip(130); await s.page.keyboard.press('Enter'); await s.skip(60)
   await s.page.keyboard.type(q); await s.skip(60); await s.page.keyboard.press('Enter')
 }
 
+const SEND = (id, who, text) => `(() => { const st = window.__opStore.getState(); st.push(st.activeProjectId, { id: '${id}', kind: 'text', authorId: '${who}', at: Date.now(), visibility: { type: 'all' }, text: { fr: ${JSON.stringify(text)}, en: ${JSON.stringify(text)} } }) })()`
+
 const SHOTS = {
-  // One chat: people talking, a message written and sent, the column alive.
-  async chat() {
-    const s = await start({ dsf: 5, name: 'chat' })
-    s.shot('chat', { x: 262, y: 52, width: 430, height: 888 })
-    await s.rec_(200)
-    await s.setCursor(560, 780)
-    await s.moveTo(470, 905, 600)
-    await s.page.locator('textarea:visible').first().click()
-    await s.rec_(150)
-    await s.hideCursor()
-    await s.type('@Maya is the firmware good for the pilot run?', { cps: 24 })
-    await s.rec_(200)
-    await s.page.keyboard.press('Enter')
-    await s.rec_(4200)
+  // All your tools, all your people, one project: the whole product, people really writing in it
+  async all() {
+    const s = await start({ dsf: 3, name: 'all' })
+    s.shot('all', { x: 0, y: 52, width: 1512, height: 897 })
+    await s.rec_(500)
+    await s.page.evaluate(SEND('f1', 'sofia', 'Preorder page is live on staging.'))
+    await s.rec_(900)
+    await s.page.evaluate(SEND('f2', 'tom', 'Looks great. Sand it is?'))
+    await s.rec_(900)
+    await s.page.evaluate(SEND('f3', 'maya', 'Firmware passes QA, pilot run holds.'))
+    await s.rec_(1100)
     s.meta(); await s.close()
   },
-  // Tag the AI: the composer, alone and huge
-  async type() {
-    const s = await start({ dsf: 8, name: 'type' })
-    await s.page.addStyleTag({ content: '[role=log]{visibility:hidden!important}' })
-    await s.page.locator('textarea:visible').first().click()
-    s.shot('type', { x: 262, y: 800, width: 430, height: 140 })
+  // Moving fast: to-dos ticking
+  async todo() {
+    const s = await start({ dsf: 5, name: 'todo' })
+    await s.page.locator('[role=tab]:visible', { hasText: 'To-do' }).first().click(); await s.skip(600)
+    s.shot('todo', { x: 704, y: 96, width: 800, height: 560 })
+    await s.setCursor(1250, 560); await s.hideCursor(); await s.rec_(60); await s.setCursor(1250, 560)
+    const check = (t) => s.page.locator('.rp-todo', { hasText: t }).filter({ visible: true }).first().locator('.rp-todo-check').first()
+    await s.pressAt(check('Reconfirm the pilot'), { ms: 320 }); await s.rec_(300)
+    await s.pressAt(check('Tell Nora'), { ms: 260 }); await s.rec_(300)
+    await s.pressAt(check('Decide the keynote'), { ms: 240 }); await s.rec_(600)
+    s.meta(); await s.close()
+  },
+  // Moving fast: a bar dragged on the roadmap
+  async roadmap() {
+    const s = await start({ dsf: 5, name: 'roadmap' })
+    await s.page.locator('[role=tab]:visible', { hasText: 'Roadmap' }).first().click(); await s.skip(700)
+    s.shot('roadmap', { x: 704, y: 96, width: 800, height: 780 })
+    await s.setCursor(1300, 700); await s.hideCursor(); await s.rec_(60); await s.setCursor(1300, 700)
+    const bar = s.page.locator('[aria-label^="Pilot run"]').filter({ visible: true }).first()
+    const b = await bar.boundingBox()
+    await s.moveTo(b.x + b.width / 2, b.y + b.height / 2, 300)
+    await s.page.mouse.down()
+    await s.rec_(450, (t) => s.setCursor(b.x + b.width / 2 + 90 * Math.min(1, t * 1.05) ** .7, b.y + b.height / 2, 1))
+    await s.page.mouse.up()
+    await s.rec_(700, () => s.setCursor(b.x + b.width / 2 + 90, b.y + b.height / 2, 0))
+    s.meta(); await s.close()
+  },
+  // Moving fast: a doc, in the pane
+  async doc() {
+    const s = await start({ dsf: 5, name: 'doc' })
+    s.shot('doc', { x: 704, y: 52, width: 800, height: 700 })
+    const files = s.page.locator('button[aria-label^="Files"]').filter({ visible: true }).first()
+    await s.setCursor(1100, 300); await s.hideCursor(); await s.rec_(50); await s.setCursor(1100, 300)
+    await s.pressAt(files, { ms: 300 }); await s.rec_(450)
+    const row = s.page.getByText('Launch brief', { exact: true }).filter({ visible: true }).last()
+    await s.pressAt(row, { ms: 280 }); await s.rec_(1200)
+    s.meta(); await s.close()
+  },
+  async mini() {
+    const s = await start({ dsf: 4, name: 'mini' })
+    await s.page.locator('[role=tab]:visible', { hasText: 'Launch date simulator' }).first().click(); await s.skip(800)
+    s.shot('mini', { x: 704, y: 96, width: 800, height: 700 })
+    const range = s.page.locator('input[type=range]').filter({ visible: true }).first()
+    const box = await range.boundingBox()
+    const f = await range.evaluate((e) => (e.value - e.min) / (e.max - e.min))
+    const x0 = box.x + box.width * f, y0 = box.y + box.height / 2
+    await s.setCursor(x0 - 80, y0 + 140); await s.hideCursor(); await s.rec_(60)
+    await s.setCursor(x0 - 80, y0 + 140)
+    await s.moveTo(x0, y0, 280)
+    await s.page.mouse.down()
+    await s.rec_(1400, (t) => s.setCursor(x0 + box.width * .32 * Math.sin(t * Math.PI * .72), y0, 1))
+    await s.page.mouse.up()
     await s.rec_(250)
-    await s.type('@Gem', { cps: 13 })
-    await s.rec_(330)
-    await s.page.keyboard.press('Enter')
-    await s.rec_(170)
-    await s.type('where do we stand?', { cps: 22 })
-    await s.rec_(100)
-    const send = s.page.locator('.composer-send:visible').first()
-    const b = await send.boundingBox()
-    await s.setCursor(b.x + 40, b.y + 110)
-    await s.pressAt(send, { ms: 500 })
-    await s.rec_(500)
+    s.meta(); await s.close()
+  },
+  // Gemini does the boring stuff: an email drafted, a summary, to-dos
+  async draft() {
+    const s = await start({ dsf: 5, name: 'draft' })
+    await ask(s, 'draft a reply to Jun')
+    s.shot('draft', { x: 262, y: 104, width: 430, height: 780 })
+    await s.rec_(3500)
     s.meta(); await s.close()
   },
   async answer() {
     const s = await start({ dsf: 5, name: 'answer' })
     await ask(s, 'where do we stand?')
     s.shot('answer', { x: 262, y: 104, width: 430, height: 770 })
-    await s.rec_(7000)
+    await s.rec_(4500)
     s.meta(); await s.close()
   },
-  // A block arrives on the bento board, in the gradient
-  async block() {
-    const s = await start({ dsf: 6, name: 'block' })
-    await ask(s, 'build a preorder tracker by region')
-    s.shot('block', { x: 262, y: 52, width: 1242, height: 888 })
-    await s.rec_(6500)
+  async todoai() {
+    const s = await start({ dsf: 5, name: 'todoai' })
+    await ask(s, 'add a to-do: check the diffuser date with Jun')
+    s.shot('todoai', { x: 262, y: 500, width: 430, height: 384 })
+    await s.rec_(2500)
     s.meta(); await s.close()
-  },
-  // Your docs, your tools: a doc, then a sheet, opening in the pane. Open in Sheets is right there.
-  async docs() {
-    const s = await start({ dsf: 4, name: 'docs' })
-    s.shot('docs', { x: 704, y: 52, width: 800, height: 888 })
-    await s.setCursor(1100, 600); await s.hideCursor()
-    await s.rec_(150)
-    await s.setCursor(1100, 700)
-    const files = () => s.page.locator('[role=tab]:visible', { hasText: 'Files' }).first()
-    const row = (t) => s.page.locator('.rp-view :visible, main :visible').getByText(t, { exact: true }).last()
-    await s.pressAt(files(), { ms: 480 })
-    await s.rec_(300)
-    await s.pressAt(s.page.getByText('Launch brief', { exact: true }).filter({ visible: true }).last(), { ms: 450 })
-    await s.rec_(1200)
-    await s.pressAt(files(), { ms: 450 })
-    await s.rec_(300)
-    await s.pressAt(s.page.getByText('Budget', { exact: true }).filter({ visible: true }).last(), { ms: 450 })
-    await s.rec_(800)
-    const openIn = s.page.locator('[title^="Open in"]:visible').first()
-    const bo = await openIn.boundingBox()
-    await s.moveTo(bo.x + bo.width / 2, bo.y + bo.height / 2, 550)
-    await s.rec_(900)
-    s.meta({ openIn: bo }); await s.close()
   },
   async callwide() { await call('callwide', 1700, 860) },
   async callsquare() { await call('callsquare', 1512, 949) },
-  // Your project: the bento board, and everything around it
-  async overview() {
-    const s = await start({ dsf: 3, name: 'overview' })
-    s.shot('overview', { x: 0, y: 52, width: 1512, height: 897 })
-    await s.setCursor(1200, 880); await s.hideCursor()
-    await s.rec_(150)
-    await s.setCursor(1200, 880)
-    await s.moveTo(1010, 610, 700)
-    await s.moveTo(1100, 610, 450) // over the board: the lamp turns, the tiles respond
-    await s.moveTo(1370, 420, 700)
-    await s.rec_(1700)
-    s.meta(); await s.close()
-  },
-  async home() {
-    const s = await start({ project: null, dsf: 3, name: 'home' })
-    s.shot('home', { x: 0, y: 52, width: 1090, height: 660 })
-    await s.setCursor(150, 380); await s.hideCursor()
-    await s.rec_(200)
-    await s.setCursor(150, 380)
-    await s.moveTo(120, 260, 500)
-    await s.rec_(150)
-    const tick = s.page.locator('.hm-tick:visible').first()
-    await s.pressAt(tick, { ms: 800 })
-    await s.rec_(500)
-    await s.moveTo(950, 600, 800)
-    await s.rec_(500)
-    s.meta(); await s.close()
-  },
 }
 
-// Built on the fly: a mini-app Gemini made. Waits for the final UI: the shot is written against it when the commit is known.
-SHOTS.mini = async () => { console.log('mini: not captured yet, waiting for the final UI') }
-
 async function call(name, width, height) {
-  const s = await start({ dsf: 3, name, width, height })
+  const s = await start({ dsf: 3, name, width, height, fps: 30 })
   await s.page.addStyleTag({ content: '.cv-captions{display:none!important}' }) // the film sets its own larger captions
   await s.page.locator('button[aria-label="Start a call"]:visible').first().click()
   await s.tick(2)
