@@ -61,7 +61,7 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
           return (
             <li key={p.id}>
               <button type="button" className={`rail-item${on ? ' on' : ''}${p.unread ? ' unread' : ''}`} aria-current={on ? 'page' : undefined} onClick={() => select(p.id)} title={name}>
-                <span className="rail-icon"><Icon name={p.icon} fill={on} />{p.unread > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
+                <span className="rail-icon" style={{ color: p.color }}><Icon name={p.icon} fill={on} />{p.unread > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
                 <span className="rail-label rail-text">
                   <span className="rail-name">{name}</span>
                   <span className="rail-sub">{projectStatus(p, viewerId, lang)}</span>

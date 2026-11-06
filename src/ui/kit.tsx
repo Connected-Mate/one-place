@@ -49,7 +49,7 @@ export function AvatarStack({ ids, size = 28, max = 4, more = true }: { ids: str
   )
 }
 
-type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { icon?: string; variant?: 'filled' | 'tonal' | 'outlined' | 'text' | 'danger'; size?: 's' | 'm' }
+type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { icon?: string; variant?: 'filled' | 'tonal' | 'outlined' | 'text' | 'danger' | 'gemini'; size?: 's' | 'm' }
 export function Button({ icon, variant = 'text', size = 'm', className = '', children, ...r }: BtnProps) {
   return <button type="button" {...r} className={`btn ${variant} ${size} ${className}`}>{icon && <Icon name={icon} size={18} />}{children}</button>
 }

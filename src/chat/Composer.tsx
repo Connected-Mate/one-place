@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { canSee, GEMINI_ID, personById, useStore } from '../store'
-import { Avatar, Button, Dialog, Icon, IconButton, Menu, type MenuItem } from '../ui/kit'
+import { Avatar, Button, Dialog, Icon, IconButton, Menu, Sparkle, type MenuItem } from '../ui/kit'
 import type { Project } from '../data/types'
 import { attachFake, newDoc, scheduleMeeting, sendChat, sendMailReply, shareArtifact, suggestionsFor, useChat } from './chatState'
 import { findMessage, firstName, mailAddress, mailName, snippet } from './helpers'
@@ -22,7 +22,7 @@ export function SuggestionChips({ project, quoteId, onPick, className = '' }: { 
     <div className={`suggestions ${className}`} role="group" aria-label={t({ fr: 'Suggestions pour Gemini', en: 'Suggestions for Gemini' })}>
       {list.map((s) => (
         <button key={s.en} type="button" className="suggestion" onMouseDown={(e) => e.preventDefault()} onClick={() => onPick(t(s))}>
-          {t(s)}
+          <Sparkle size={14} />{t(s)}
         </button>
       ))}
     </div>

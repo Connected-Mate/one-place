@@ -92,7 +92,7 @@ export function PeopleBlock({ block }: { block: Of<'people'> }) {
   const setMobilePane = useStore((s) => s.setMobilePane)
   const ids = [...new Set([...project.memberIds, ...project.externalIds])]
   const list: Person[] = ids.map(personById).filter((p) => p.role !== 'ai')
-  const presence = (p: Person) => p.presence === 'online' ? t({ fr: 'En ligne', en: 'Online' }) : p.presence === 'away' ? t({ fr: 'Absent', en: 'Away' }) : t({ fr: 'Hors ligne', en: 'Offline' })
+  const presence = (p: Person) => p.presence === 'online' ? t({ fr: 'En ligne', en: 'Online' }) : p.presence === 'away' ? t({ fr: 'Absent', en: 'Away' }) : p.presence === 'dnd' ? t({ fr: 'Ne pas déranger', en: 'Do not disturb' }) : t({ fr: 'Hors ligne', en: 'Offline' })
   const write = (p: Person) => {
     setPrivateTo(p.id)
     setMobilePane('chat')

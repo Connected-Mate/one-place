@@ -233,6 +233,31 @@ export function useAgenda() {
   return { now, events: useMemo(() => computeAgenda(projects, viewerId, call, now), [projects, viewerId, call, now]) }
 }
 
+/** What happened lately across your projects, and how much per day this week. Only what this viewer can see. */
+export function useActivity(limit = 5) {
+  const projects = useStore((s) => s.projects)
+  const viewerId = useStore((s) => s.viewerId)
+  const now = useNow()
+  return useMemo(() => {
+    const all = projects.filter((p) => p.memberIds.includes(viewerId)).flatMap((project) => project.messages
+      .filter((m) => m.kind !== 'system' && !m.streaming && m.at <= now && canSee(m.visibility, viewerId))
+      .map((message) => ({ project, message })))
+    all.sort((a, b) => b.message.at - a.message.at)
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now); d.setDate(d.getDate() - 6 + i); d.setHours(12, 0, 0, 0)
+      return { at: d.getTime(), count: all.filter((x) => daysFrom(x.message.at, d.getTime()) === 0).length }
+    })
+    const inWeek = all.filter((x) => daysFrom(x.message.at, now) > -7)
+    return {
+      recent: all.slice(0, limit),
+      days,
+      total: inWeek.length,
+      emails: inWeek.filter((x) => x.message.kind === 'email').length,
+      calls: inWeek.filter((x) => x.message.kind === 'call-summary').length,
+    }
+  }, [projects, viewerId, now, limit])
+}
+
 /** The line on a project tile. */
 export function projectStatus(p: Project, viewerId: string, lang: Lang): string {
   const talked = p.messages.some((m) => m.kind !== 'system' && canSee(m.visibility, viewerId))

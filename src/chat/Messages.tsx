@@ -228,6 +228,7 @@ function FileCard({ m, pid }: { m: Extract<Message, { kind: 'file' }>; pid: stri
 function ProposalCard({ m, pid, viewerId, ownerId }: { m: ProposalMessage; pid: string; viewerId: string; ownerId: string }) {
   const t = useT()
   const isOwner = viewerId === ownerId
+  const byGemini = m.authorId === GEMINI_ID
   const decide = (approved: boolean) => {
     const s = useStore.getState()
     const p = s.projects.find((x) => x.id === pid)
@@ -241,13 +242,13 @@ function ProposalCard({ m, pid, viewerId, ownerId }: { m: ProposalMessage; pid: 
   }
   const decider = m.decidedBy ? firstName(m.decidedBy) : ''
   return (
-    <article className={`ocard proposal-card ${m.status}`}>
-      <div className="proposal-tag">{t({ fr: 'Proposition', en: 'Proposal' })}</div>
+    <article className={`ocard proposal-card ${m.status}${byGemini ? ' ai' : ''}`}>
+      <div className="proposal-tag">{byGemini && <Sparkle size={14} />}{t({ fr: 'Proposition', en: 'Proposal' })}</div>
       <div className="proposal-title">{t(m.title)}</div>
       <div className="proposal-desc">{t(m.description)}</div>
       {m.status === 'pending' && isOwner && (
         <div className="card-actions">
-          <Button variant="filled" size="s" onClick={() => decide(true)}>{t({ fr: 'Approuver', en: 'Approve' })}</Button>
+          <Button variant={byGemini ? 'gemini' : 'filled'} size="s" onClick={() => decide(true)}>{t({ fr: 'Approuver', en: 'Approve' })}</Button>
           <Button size="s" onClick={() => decide(false)}>{t({ fr: 'Refuser', en: 'Decline' })}</Button>
         </div>
       )}

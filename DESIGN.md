@@ -43,12 +43,14 @@ Font Google Sans (self-hosted), body 14/20. Icons Material Symbols Outlined (`<I
 - Keyboard & screen reader: real buttons, aria-labels (both languages via t), visible focus, Esc closes, chat is `role="log"`. Touch targets ≥ 40px on mobile. No horizontal page scroll.
 - Long text must truncate or wrap, never break layouts. Empty states exist. Double clicks safe.
 
-## Calm (Alex, 06/11/2026: "make it less noisy", target: as calm as Gmail)
-One idea per screen, lots of white, color only where it means something. Remove repetition, not capability.
-- **Color has a meaning or it goes**: late is red, live is green, today and links are blue, private is a faint purple. Project icons are neutral, the shape identifies them. Timeline and budget: grays and a soft blue, color only for today and what is late or over plan.
+## Calm and rich (Alex, 06/11/2026: "less noisy", then "not divided enough, not enough components")
+Calm is not empty. Every section is a bounded card (`--surface-1`, radius 16, tight 8 to 12px gaps) on the white panel, as on a Workspace dashboard, with a title and information at a glance. Calm comes from fewer colors and quiet type, not from removing structure.
+- **AI wears `--gemini`, only AI does**: an open AI tab has gradient text and underline, AI tabs a full-color sparkle, the `+` of the AI zone, `Button variant="gemini"`, Gemini's proposals, its summary tile and call summary a soft gradient. Plain blue is for everything else: which is AI must read at a glance.
+- **Color has a meaning**: late is red, live is green, projects keep their color on icons, stripes and dots. Roadmap in grays and soft blue.
 - **Tab row, left to right, in every project**: Overview; To-do, Roadmap, Calendar (always there, created empty on first use; Calendar also lists the project's meetings); a thin divider; the middle: everything @Gemini made for this project, a tiny sparkle and its title, the only part that scrolls, with a soft edge fade only when there is more to see, ending in `+`; then fixed on the right the Call, Files and open documents (those without room go in the Files menu); the Gemini icon with a tiny count. Summary opens from its tile, People from the header faces: no tab, a hidden `data-tab` that links can press. Phone: Overview, To-do, Roadmap, Calendar, Files, a sparkle opening a "Made by AI" sheet, Gemini. An open block from the middle says "Made by Gemini · updated" and offers "Ask Gemini to update", which fills the composer through `oneplace:compose`.
-- **Overview never scrolls at 1512x949**: one sentence, next meeting, timeline, the 3D, three to-dos, one number and one bar. People, Files and Notes have no tile. No fills, no borders on tiles.
-- **Progressive**: row actions on hover or focus with a mouse (always on touch) except one decision; suggestions and the Everyone switcher only while composing; Things to try is one row until opened. Lists show 3 or 4 rows, then Show more.
+- **Overview never scrolls at 1512x949** and fills the height: a true bento of tiles of different sizes with summary, next meeting, timeline, 3D, to-dos with faces, budget number and top lines, team, files, notes.
+- **Home** fills the height too: What needs you with hairlines and its actions visible, Coming up, project cards, Recent activity and This week, all derived from live data.
+- **Account**: the profile picture opens the account card (`src/shell/AccountPanel.tsx`): details, status, workspace at a glance computed live, view as, theme, about, reset, sign out. On a phone it is the You tab. Real people get no invented facts.
 - **Private exchange**: lock line and quote on its first message only, the tint carries the rest.
 - **Few toasts**, a few words, no icon. If the screen already shows it happened, no toast. Motion: state changes only, nothing that runs by itself except a Gemini thinking shimmer.
 - Fictional people and companies only. No em dashes in any copy.

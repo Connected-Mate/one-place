@@ -1,0 +1,67 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
+/* The account card, as a Google account card: a photo in a colored ring, bounded sections on a soft surface. */
+.me-btn{display:inline-flex;margin:0 4px;border-radius:50%}
+.me-btn .avatar .dot{border-color:var(--bg)}
+.acc-pop{position:fixed;top:48px;right:8px;z-index:115;width:min(400px,calc(100vw - 16px));max-height:calc(100dvh - 56px);overflow:auto;padding:16px 12px 12px;border-radius:var(--r-xl);background:var(--bg);box-shadow:var(--shadow-3);outline:0;animation:pop var(--t) var(--ease-out);transform-origin:top right}
+.acc-close{position:absolute;top:8px;right:8px;z-index:1}
+.acc{display:flex;flex-direction:column;gap:8px}
+.acc-head{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 8px 8px;text-align:center}
+.acc-head h2{margin:8px 0 0;font-size:22px;line-height:28px;font-weight:400;overflow-wrap:anywhere}
+.acc-head p{margin:0 0 8px;font-size:13px;color:var(--text-2);overflow-wrap:anywhere}
+.acc-ring{display:inline-flex;padding:5px;border-radius:50%;background:conic-gradient(#ea4335 0 25%,#4285f4 25% 50%,#34a853 50% 75%,#fbbc04 75%)}
+.acc-ring .avatar{box-shadow:0 0 0 3px var(--bg)}
+.acc-card{padding:12px 14px;border-radius:var(--r-l);background:var(--panel)}
+.acc-card h3{margin:0 0 8px;font-size:13px;line-height:18px;font-weight:500;color:var(--text)}
+.acc-rows{margin:0 0 10px}
+.acc-rows div{display:flex;gap:12px;min-height:26px;align-items:baseline;box-shadow:inset 0 -1px 0 var(--hairline);padding:3px 0}
+.acc-rows dt{flex:none;width:88px;font-size:12px;color:var(--text-3)}
+.acc-rows dd{flex:1;min-width:0;margin:0;font-size:13px;line-height:18px;color:var(--text);overflow-wrap:anywhere}
+.acc-status{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-radius:var(--r-pill);background:var(--surface-1);padding:2px}
+.acc-status button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 6px;border-radius:var(--r-pill);font-size:12px;line-height:14px;color:var(--text-2);transition:background var(--t-fast) var(--ease)}
+.acc-status button:hover{background:var(--hover)}
+.acc-status button.on{background:var(--primary-soft);color:var(--on-primary-soft);font-weight:500}
+.acc-status i{flex:none;width:8px;height:8px;border-radius:50%}
+.acc-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.acc-stats div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:var(--r-m);background:var(--surface-1);min-width:0}
+.acc-stats b{font-size:20px;line-height:24px;font-weight:400;color:var(--text)}
+.acc-stats span{font-size:11px;line-height:14px;color:var(--text-2)}
+.acc-next{display:flex;align-items:flex-start;gap:8px;margin:10px 0 0;font-size:13px;line-height:18px;color:var(--text-2)}
+.acc-next>.ms{margin-top:1px;color:var(--text-3)}
+.acc-next-text{min-width:0;overflow-wrap:anywhere}.acc-next b{font-weight:500;color:var(--text)}
+.acc-sim{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding-top:8px;box-shadow:inset 0 1px 0 var(--hairline);font-size:12px;line-height:16px;color:var(--text-2)}
+.acc-sim-tag{font-size:11px;color:var(--text-3)}
+.acc-sim-line{display:flex;align-items:center;gap:6px}
+.acc-storage{display:block;height:4px;margin-top:4px;border-radius:2px;background:var(--surface-3);overflow:hidden}
+.acc-storage i{display:block;width:28%;height:100%;background:var(--primary)}
+.acc-list{display:flex;flex-direction:column}
+.acc-list button{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 6px;border-radius:var(--r-s);text-align:left;color:var(--text)}
+.acc-list button:hover{background:var(--hover)}
+.acc-list button>.ms{color:var(--primary)}
+.acc-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.acc-text strong{font-size:13px;line-height:18px;font-weight:400}
+.acc-text small{font-size:12px;line-height:16px;color:var(--text-3)}
+.acc-actions{display:flex;flex-direction:column;border-radius:var(--r-l);background:var(--panel);overflow:hidden}
+.acc-actions button{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 14px;text-align:left;font-size:13px;color:var(--text)}
+.acc-actions button:hover{background:var(--hover)}
+.acc-actions button+button{box-shadow:inset 0 1px 0 var(--hairline)}
+.acc-actions .ms{color:var(--text-2)}
+.acc-foot{margin:4px 0 0;text-align:center;font-size:11px;color:var(--text-3)}
+/* the You tab: the same content, full width, on the phone */
+.you-pane .acc{padding:8px 8px 24px}
+.you-pane .acc-card,.you-pane .acc-actions{background:var(--surface-1)}
+.you-pane .acc-status,.you-pane .acc-stats div{background:var(--panel)}
+.you-pane .acc-ring .avatar{box-shadow:0 0 0 3px var(--panel)}
+@media (pointer:coarse){
+  .acc-status button{min-height:40px}
+  .acc-list button{min-height:52px}
+  .acc-actions button{min-height:48px}
+  .acc-close .icon-btn{min-width:40px;min-height:40px}
+}
+/* a screen too short for a card: a bottom sheet */
+@media (max-width:599px),(max-height:480px) and (max-width:1279px){
+  .acc-pop{top:auto;left:0;right:0;bottom:0;width:100%;max-height:92dvh;margin-inline:auto;max-width:640px;border-radius:28px 28px 0 0;box-shadow:0 0 0 100vmax rgba(0,0,0,.32);animation:sheet-up var(--t-slow) var(--ease-out);padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+}

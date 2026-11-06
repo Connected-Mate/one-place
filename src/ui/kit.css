@@ -8,7 +8,7 @@
 .avatar.ring{box-shadow:0 0 0 2px var(--panel)}
 .avatar.more{background:var(--surface-2);color:var(--text-2)}
 .avatar .dot{position:absolute;right:-1px;bottom:-1px;width:30%;height:30%;min-width:9px;min-height:9px;border-radius:50%;border:2px solid var(--panel);background:var(--text-3)}
-.avatar .dot.online{background:var(--green)}.avatar .dot.away{background:var(--yellow)}
+.avatar .dot.online{background:var(--green)}.avatar .dot.away{background:var(--yellow)}.avatar .dot.dnd{background:var(--red)}
 .avatar-stack{display:inline-flex}.avatar-stack>*+*{margin-left:-6px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 24px;border-radius:var(--r-pill);font-weight:500;white-space:nowrap;transition:background var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease),transform var(--t-fast) var(--ease)}
 .btn.s{height:32px;padding:0 16px;font-size:13px}
@@ -19,6 +19,10 @@
 .btn.outlined{border:1px solid var(--outline);color:var(--primary)}.btn.outlined:hover:not(:disabled){background:var(--hover)}
 .btn.text{color:var(--primary);padding:0 12px}.btn.text:hover:not(:disabled){background:var(--hover)}
 .btn.danger{background:var(--red-strong);color:#fff}
+/* AI acts: the gradient, on everything Gemini does. Plain blue stays for the rest, so it reads at a glance. */
+.btn.gemini{gap:6px;border:1px solid transparent;color:var(--text);background:linear-gradient(var(--panel),var(--panel)) padding-box,var(--gemini) border-box}
+.btn.gemini:hover:not(:disabled){background:var(--gemini) border-box;color:#fff}
+.btn.gemini:hover:not(:disabled) svg path{fill:#fff}
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:var(--text-2);flex:none;transition:background var(--t-fast) var(--ease)}
 .icon-btn:hover:not(:disabled){background:var(--hover)}.icon-btn:active:not(:disabled){background:var(--press)}
 .icon-btn.active{background:var(--primary-soft);color:var(--on-primary-soft)}

@@ -9,6 +9,8 @@ import { Logo } from '../ui/Logo'
 import { appOfKind, WorkspaceIcon, type WorkspaceApp } from '../ui/WorkspaceIcon'
 import { askGemini } from '../chat/gemini'
 import { canSee, ME_ID, personById, useStore, useViewer } from '../store'
+import { AccountButton } from './AccountPanel'
+import { PERSONAS } from './personas'
 import { tx, useT } from '../i18n'
 import type { Message } from '../data/types'
 
@@ -113,12 +115,6 @@ function Search({ lead, trail }: { lead?: React.ReactNode; trail?: React.ReactNo
   )
 }
 
-export const PERSONAS = [
-  { id: ME_ID, role: { fr: 'Responsable du projet', en: 'Project owner' }, hint: { fr: 'Décide', en: 'Decides' } },
-  { id: 'tom', role: { fr: 'Membre', en: 'Member' }, hint: { fr: 'Propose', en: 'Proposes' } },
-  { id: 'nora', role: { fr: 'Invitée à un appel', en: 'Guest on one call' }, hint: { fr: 'Appel seul', en: 'Call only' } },
-]
-
 export function TopBar({ onAbout, onMenu }: { onAbout: () => void; onMenu: () => void }) {
   const t = useT()
   const viewer = useViewer()
@@ -161,7 +157,7 @@ export function TopBar({ onAbout, onMenu }: { onAbout: () => void; onMenu: () =>
           ]}
           trigger={(p) => <IconButton icon="settings" size={36} label={t({ fr: 'Réglages', en: 'Settings' })} {...p} />}
         />
-        <span className="me"><Avatar person={viewer} size={28} /></span>
+        <AccountButton onAbout={onAbout} />
       </div>
     </header>
   )

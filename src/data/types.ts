@@ -19,7 +19,16 @@ export interface Person {
   avatar?: string
   hue: string
   role: Role // default role; a project may narrow it
-  presence: 'online' | 'away' | 'offline'
+  presence: 'online' | 'away' | 'offline' | 'dnd'
+  /** Shown in the account panel. A real person keeps only what they agreed to: no invented facts. */
+  fullName?: string
+  company?: string
+  team?: string
+  location?: string
+  timeZone?: string
+  linkedin?: string
+  /** a real person other than the author: name, title and photo only */
+  minimal?: boolean
 }
 
 /** Who can see a message. `private` is visible only to `with` (always includes the author). */

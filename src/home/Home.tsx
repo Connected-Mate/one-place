@@ -5,19 +5,20 @@
  */
 // Home: the one place across all your projects. Gemini says what needs you; a click takes you to the exact spot.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Icon, IconButton, Sparkle } from '../ui/kit'
+import { Avatar, AvatarStack, Button, Icon, IconButton, Sparkle } from '../ui/kit'
 import { startCall } from '../call/callActions'
 import { useChat } from '../chat/chatState'
 import { fmtDate, fmtTime, tx, useT } from '../i18n'
-import { ME_ID, useStore, useViewer } from '../store'
+import { GEMINI_ID, ME_ID, personById, useStore, useViewer } from '../store'
 import type { Project } from '../data/types'
-import { canJoin, daysFrom, geminiBrief, projectStatus, useAgenda, useNeeds, type AgendaItem, type Need } from './needs'
+import { canJoin, daysFrom, geminiBrief, projectStatus, todoProgress, useActivity, useAgenda, useNeeds, type AgendaItem, type Need } from './needs'
+import { firstName, mailName, snippet } from '../chat/helpers'
 import { openBlock, openMessage, openTodo } from './goTo'
 import { TryCard } from '../shell/TryPanel'
 import './home.css'
 
-const MAX_ROWS = 4
-const MAX_EVENTS = 3
+const MAX_ROWS = 5
+const MAX_EVENTS = 5
 const LEAVE_MS = 320
 
 const greetingFor = (hour: number) => (hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening')
@@ -46,6 +47,10 @@ export function Home({ onAbout }: { onAbout: () => void }) {
             <ComingUp key={`up-${viewer.id}`} />
           </div>
           <ProjectTiles />
+          <div className="hm-low">
+            <RecentActivity key={`act-${viewer.id}`} />
+            <ThisWeek key={`week-${viewer.id}`} />
+          </div>
         </div>
       </div>
     </section>
@@ -91,11 +96,9 @@ function WhatNeedsYou() {
   }
 
   const hidden = items.length - visible.length
-  // A single action stays on screen, the first one that is a decision. The others wait for the row's hover or focus.
-  const primaryId = visible.find((n) => n.joinable || n.kind === 'proposal')?.id
   const empty = !items.length && !ghosts.length
   return (
-    <section className="hm-needs" aria-labelledby="hm-needs-title">
+    <section className="hm-needs hm-card" aria-labelledby="hm-needs-title">
       <h2 id="hm-needs-title" className="hm-title">{t({ fr: 'Ce qui t’attend', en: 'What needs you' })}{count > 0 && <span className="hm-count">{count}</span>}</h2>
       <p className="hm-brief"><Sparkle size={16} /><span>{geminiBrief(items, lang)}</span></p>
       {empty ? (
@@ -105,7 +108,7 @@ function WhatNeedsYou() {
         </div>
       ) : (
         <ul ref={list} className="hm-rows">
-          {rows.map(({ need, leaving }) => <NeedRow key={need.id} need={need} leaving={leaving} lead={need.id === primaryId} fresh={!leaving && !known.current.has(need.id)} onResolve={() => focusNext(need.id)} />)}
+          {rows.map(({ need, leaving }) => <NeedRow key={need.id} need={need} leaving={leaving} fresh={!leaving && !known.current.has(need.id)} onResolve={() => focusNext(need.id)} />)}
         </ul>
       )}
       {hidden > 0 && <Button size="s" className="hm-more" aria-label={`Show ${hidden} more`} onClick={() => setAll(true)}>{t({ fr: 'Afficher plus', en: 'Show more' })}</Button>}
@@ -116,7 +119,7 @@ function WhatNeedsYou() {
 
 const KIND_ICON: Record<Need['kind'], string> = { live: 'videocam', todo: 'check', proposal: 'how_to_vote', waiting: 'hourglass_empty', mail: 'mail', mention: 'alternate_email', meeting: 'event' }
 
-function NeedRow({ need, leaving, lead: isLead, fresh, onResolve }: { need: Need; leaving: boolean; lead: boolean; fresh: boolean; onResolve: () => void }) {
+function NeedRow({ need, leaving, fresh, onResolve }: { need: Need; leaving: boolean; fresh: boolean; onResolve: () => void }) {
   const t = useT()
   const viewerId = useStore((s) => s.viewerId)
   const s = useStore.getState()
@@ -167,25 +170,26 @@ function NeedRow({ need, leaving, lead: isLead, fresh, onResolve }: { need: Need
   }
   const setAside = () => { onResolve(); s.markHomeDone(`${viewerId}:${need.id}`) }
 
-  const lead = need.kind === 'todo'
+  const byGemini = need.kind === 'proposal' && need.project.messages.find((m) => m.id === need.messageId)?.authorId === GEMINI_ID
+  const lead = byGemini ? <span className="hm-lead"><Sparkle size={20} /></span> : need.kind === 'todo'
     ? <button type="button" className="hm-tick" onClick={tick} aria-label={t({ fr: `Terminer : ${need.text}`, en: `Mark done: ${need.text}` })} title={t({ fr: 'Terminer', en: 'Mark done' })}><Icon name="check" size={16} /></button>
     : <span className={`hm-lead ${need.tone}`}><Icon name={KIND_ICON[need.kind]} size={20} fill={need.kind === 'live'} /></span>
 
   return (
-    <li className={`hm-row${leaving ? ' leaving' : ''}${fresh ? ' fresh' : ''}${need.kind === 'todo' ? ' is-todo' : ''}${isLead ? ' keep' : ''}`} data-need={need.id} inert={leaving || undefined}>
+    <li className={`hm-row${leaving ? ' leaving' : ''}${fresh ? ' fresh' : ''}${need.kind === 'todo' ? ' is-todo' : ''}`} data-need={need.id} inert={leaving || undefined}>
       {lead}
       <button type="button" className="hm-main" onClick={go} title={need.text}>
         <span className="hm-sentence">{need.text}</span>
         <span className="hm-meta">
           <span className={`hm-cue ${need.tone}`}>{need.cue}</span>
           <span className="hm-dot" aria-hidden="true">·</span>
-          <span className="hm-project"><span>{name}</span></span>
+          <span className="hm-project"><Icon name={need.project.icon} size={16} style={{ color: need.project.color }} /><span>{name}</span></span>
         </span>
       </button>
       <div className="hm-actions">
         {need.kind === 'proposal' && <>
-          <Button size="s" variant="tonal" onClick={() => decide(true)}>{t({ fr: 'Approuver', en: 'Approve' })}</Button>
-          <Button size="s" className="hm-sec" onClick={() => decide(false)}>{t({ fr: 'Refuser', en: 'Decline' })}</Button>
+          <Button size="s" variant={byGemini ? 'gemini' : 'tonal'} onClick={() => decide(true)}>{t({ fr: 'Approuver', en: 'Approve' })}</Button>
+          <Button size="s" onClick={() => decide(false)}>{t({ fr: 'Refuser', en: 'Decline' })}</Button>
         </>}
         {need.kind === 'todo' && <Button size="s" onClick={go}>{t({ fr: 'Ouvrir', en: 'Open' })}</Button>}
         {(need.kind === 'mail' || need.kind === 'mention') && <Button size="s" onClick={reply}>{t({ fr: 'Répondre', en: 'Reply' })}</Button>}
@@ -193,7 +197,7 @@ function NeedRow({ need, leaving, lead: isLead, fresh, onResolve }: { need: Need
         {need.kind === 'meeting' && !need.joinable && <Button size="s" onClick={go}>{t({ fr: 'Préparer', en: 'Prepare' })}</Button>}
         {need.kind === 'waiting' && <Button size="s" onClick={go}>{t({ fr: 'Voir', en: 'View' })}</Button>}
         {need.kind !== 'todo' && need.kind !== 'proposal' && need.kind !== 'live' && (
-          <IconButton icon="check" size={32} className="hm-aside hm-sec" label={t({ fr: `Marquer comme traité : ${need.text}`, en: `Mark as handled: ${need.text}` })} onClick={setAside} />
+          <IconButton icon="check" size={32} className="hm-aside" label={t({ fr: `Marquer comme traité : ${need.text}`, en: `Mark as handled: ${need.text}` })} onClick={setAside} />
         )}
       </div>
     </li>
@@ -219,7 +223,7 @@ function ComingUp() {
   const hidden = shown.length - list.length
 
   return (
-    <section className="hm-up" aria-labelledby="hm-up-title">
+    <section className="hm-up hm-card" aria-labelledby="hm-up-title">
       <h2 id="hm-up-title" className="hm-title">{t({ fr: 'À venir', en: 'Coming up' })}</h2>
       <div className="hm-week" role="group" aria-label={t({ fr: 'Filtrer par jour', en: 'Filter by day' })}>
         {week.map((d, i) => {
@@ -228,9 +232,10 @@ function ComingUp() {
           const date = new Date(d)
           const label = `${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}, ${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'}`
           return (
-            <button key={d} type="button" className={`hm-day${i === 0 ? ' today' : ''}${on ? ' on' : ''}${dayEvents.length ? '' : ' free'}`} aria-pressed={on} aria-label={label} onClick={() => { setDay(on ? null : d); setAll(false) }}>
+            <button key={d} type="button" className={`hm-day${i === 0 ? ' today' : ''}${on ? ' on' : ''}`} aria-pressed={on} aria-label={label} onClick={() => { setDay(on ? null : d); setAll(false) }}>
               <span className="hm-day-name" aria-hidden="true">{date.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
               <span className="hm-day-num" aria-hidden="true">{date.getDate()}</span>
+              <span className="hm-day-dots" aria-hidden="true">{dayEvents.slice(0, 3).map((e) => <i key={e.key} style={{ background: e.project.color }} />)}</span>
             </button>
           )
         })}
@@ -273,14 +278,18 @@ function EventRow({ e, now, firstOfDay, lang }: { e: AgendaItem; now: number; fi
       <span className={`hm-date${isToday ? ' today' : ''}`} aria-hidden={!firstOfDay}>
         {firstOfDay && <><small>{date.toLocaleDateString('en-US', { weekday: 'short' })}</small><b>{date.getDate()}</b></>}
       </span>
-      <button type="button" className="hm-event-main" onClick={open} title={title}>
+      <button type="button" className="hm-event-main" onClick={open} title={title} style={{ '--ev': e.project.color } as React.CSSProperties}>
         <span className="hm-event-title">{title}</span>
         <span className="hm-event-time">
           {e.live ? <span className="hm-cue live">{t({ fr: 'En direct', en: 'Live now' })}</span> : <>{fmtTime(e.start, lang)} to {fmtTime(end, lang)}{!firstOfDay ? '' : daysFrom(e.start, now) > 6 ? `, ${fmtDate(e.start, lang)}` : ''}</>}
           <span aria-hidden="true"> · </span>{t(e.project.name)}
         </span>
       </button>
-      {join && <div className="hm-event-side"><Button size="s" variant="filled" className="join-green" onClick={onJoin}>{inCall ? t({ fr: 'Retour', en: 'Return' }) : t({ fr: 'Rejoindre', en: 'Join' })}</Button></div>}
+      <div className="hm-event-side">
+        {join
+          ? <Button size="s" variant="filled" icon="videocam" className="join-green" onClick={onJoin}>{inCall ? t({ fr: 'Retour', en: 'Return' }) : t({ fr: 'Rejoindre', en: 'Join' })}</Button>
+          : <AvatarStack ids={e.attendeeIds} size={24} max={3} />}
+      </div>
     </li>
   )
 }
@@ -306,16 +315,75 @@ function Tile({ p }: { p: Project }) {
   const select = useStore((s) => s.selectProject)
   const live = useStore((s) => s.call?.projectId === p.id)
   const status = projectStatus(p, viewerId, lang)
+  const { total, done } = todoProgress(p)
+  const open = total - done
   const name = tx(p.name, lang)
   return (
     <button type="button" className="hm-tile" onClick={() => select(p.id)} title={name}>
       <span className="hm-tile-head">
-        <Icon name={p.icon} size={20} />
+        <Icon name={p.icon} size={20} style={{ color: p.color }} fill />
         <span className="hm-tile-name">{name}</span>
         {live && <Icon name="call" size={16} className="rail-live" />}
         {p.unread > 0 && <span className="hm-tile-unread">{p.unread}<span className="sr-only"> {t({ fr: 'non lus', en: 'unread' })}</span></span>}
       </span>
       <span className="hm-tile-status">{status}</span>
+      <span className="hm-tile-foot">
+        <AvatarStack ids={p.memberIds.filter((id) => personById(id).role !== 'ai')} size={22} max={4} />
+        <span className="hm-progress">
+          <span className="hm-progress-label">{total === 0 ? t({ fr: 'Aucune tâche', en: 'No to-dos yet' }) : open === 0 ? t({ fr: 'Tout est fait', en: 'All done' }) : `${open} open`}</span>
+          {total > 0 && <span className="hm-bar" aria-hidden="true"><i style={{ width: `${Math.round((done / total) * 100)}%` }} /></span>}
+        </span>
+      </span>
     </button>
+  )
+}
+
+/* ---------------- What happened ---------------- */
+function RecentActivity() {
+  const t = useT()
+  const lang = useStore((s) => s.lang)
+  const { recent } = useActivity(4)
+  return (
+    <section className="hm-card hm-activity" aria-labelledby="hm-activity-title">
+      <h2 id="hm-activity-title" className="hm-title">{t({ fr: 'Activité récente', en: 'Recent activity' })}</h2>
+      {recent.length === 0 ? <p className="hm-none">{t({ fr: 'Rien pour l’instant.', en: 'Nothing yet.' })}</p> : (
+        <ul className="hm-feed">
+          {recent.map(({ project, message: m }) => {
+            const who = m.kind === 'email' && m.direction === 'in' ? mailName(m.from) : firstName(m.authorId)
+            const text = snippet(m, lang).replace(/\s+/g, ' ')
+            return (
+              <li key={m.id}>
+                <button type="button" className="hm-feed-row" title={text} onClick={() => openMessage(project.id, m.id)}>
+                  <Avatar id={m.authorId} size={24} />
+                  <span className="hm-feed-text"><b>{who}</b> {text}</span>
+                  <span className="hm-feed-meta"><Icon name={project.icon} size={14} style={{ color: project.color }} /><span className="sr-only">{t(project.name)}, </span>{daysFrom(m.at, Date.now()) === 0 ? fmtTime(m.at, lang) : fmtDate(m.at, lang)}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function ThisWeek() {
+  const t = useT()
+  const { days, total, emails, calls } = useActivity()
+  const top = Math.max(1, ...days.map((d) => d.count))
+  const label = (d: { at: number; count: number }) => `${new Date(d.at).toLocaleDateString('en-US', { weekday: 'long' })}: ${d.count} ${d.count === 1 ? 'message' : 'messages'}`
+  return (
+    <section className="hm-card hm-week-card" aria-labelledby="hm-week-title">
+      <h2 id="hm-week-title" className="hm-title">{t({ fr: 'Cette semaine', en: 'This week' })}</h2>
+      <p className="hm-week-sum"><b>{total}</b> {total === 1 ? 'message' : 'messages'}<span aria-hidden="true"> · </span>{emails} {emails === 1 ? 'email' : 'emails'}<span aria-hidden="true"> · </span>{calls} {calls === 1 ? 'call' : 'calls'}</p>
+      <ol className="hm-bars" aria-label={days.map(label).join(', ')}>
+        {days.map((d, i) => (
+          <li key={d.at} title={label(d)} className={i === days.length - 1 ? 'today' : ''}>
+            <span className="hm-bars-col"><i style={{ height: `${d.count ? Math.max(8, (d.count / top) * 100) : 0}%` }} /></span>
+            <small aria-hidden="true">{new Date(d.at).toLocaleDateString('en-US', { weekday: 'narrow' })}</small>
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }

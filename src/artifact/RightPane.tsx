@@ -69,7 +69,7 @@ function revealTab(middle: HTMLElement | null, tab: Element | null | undefined) 
 }
 const DOC_TAB_W = 120
 const MIDDLE_MIN = 112
-const AI_SPARK = <Sparkle size={12} mono />
+const AI_SPARK = <Sparkle size={14} />
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
@@ -280,7 +280,7 @@ export function RightPane() {
         <i className="rp-divider" aria-hidden="true" />
         <div className="rp-mid-wrap">
           {made.length > 0 && (
-            <div ref={middle} className={`rp-mid${fade.left ? ' fade-l' : ''}${fade.right ? ' fade-r' : ''}`} onScroll={readFade} onWheel={(e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY }}>
+            <div ref={middle} className={`rp-mid${fade.left ? ' fade-l' : ''}${fade.right ? ' fade-r' : ''}`} tabIndex={-1} onScroll={readFade} onWheel={(e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY }}>
               <div className="rp-tabs" role="tablist" aria-label={t({ fr: 'Faits par Gemini pour ce projet', en: 'Made by Gemini for this project' })}>
                 {made.map((block) => {
                   const on = activeKey === block.id
@@ -341,7 +341,7 @@ export function RightPane() {
                 ...(made.length ? [{ divider: true, label: '' }] : []),
                 { icon: 'add', label: made.length ? addLabel : t({ fr: 'Demander à Gemini de construire quelque chose', en: 'Ask Gemini to build something' }), onSelect: () => setBlockGallery(true) },
               ]}
-              trigger={(p) => <button type="button" {...p} className="rp-ai-btn" aria-label={t({ fr: 'Fait par IA', en: 'Made by AI' })} title={t({ fr: 'Fait par IA', en: 'Made by AI' })}><Sparkle size={18} mono /></button>}
+              trigger={(p) => <button type="button" {...p} className="rp-ai-btn" aria-label={t({ fr: 'Fait par IA', en: 'Made by AI' })} title={t({ fr: 'Fait par IA', en: 'Made by AI' })}><Sparkle size={18} /></button>}
             />
           </div>
         )}
@@ -378,8 +378,8 @@ function MadeLine({ block, canAsk }: { block: Block; canAsk: boolean }) {
   const ask = () => window.dispatchEvent(new CustomEvent('oneplace:compose', { detail: { text: `@Gemini update ${t(block.title)}: ` } }))
   return (
     <div className="rp-viewbar rp-made-line">
-      <span>{t({ fr: `Fait par Gemini · mis à jour ${when}`, en: `Made by Gemini · updated ${when}` })}</span>
-      {canAsk && <Button size="s" className="rp-quiet" onClick={ask}>{t({ fr: 'Demander une mise à jour', en: 'Ask Gemini to update' })}</Button>}
+      <span><Sparkle size={14} />{t({ fr: `Fait par Gemini · mis à jour ${when}`, en: `Made by Gemini · updated ${when}` })}</span>
+      {canAsk && <Button size="s" variant="gemini" onClick={ask}><Sparkle size={14} />{t({ fr: 'Demander une mise à jour', en: 'Ask Gemini to update' })}</Button>}
     </div>
   )
 }

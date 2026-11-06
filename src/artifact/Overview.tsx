@@ -3,24 +3,32 @@
  * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
-// The Overview tab: where the project stands, the same for everyone, on one screen. Each tile opens its full tab.
+// The Overview tab: a bento of everything about the project, the same for everyone, on one screen. Each tile opens its full tab.
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { Block } from '../data/types'
 import { fmtDate, fmtDay, fmtTime, useT, withUnit } from '../i18n'
 import { personById, useStore } from '../store'
-import { Button, Icon, Sparkle } from '../ui/kit'
+import { Avatar, AvatarStack, Button, Icon, Sparkle } from '../ui/kit'
 import { ModelTilePreview } from './blocks/Model3D'
-import { layout, onOverview, type Slot } from './overviewLayout'
-import { DAY, Empty, revealIn, startOfDay, upcomingEvents, useBoard } from './shared'
+import { layout, type Slot } from './overviewLayout'
+import { DAY, Empty, KindIcon, revealIn, startOfDay, upcomingEvents, useBoard } from './shared'
 
 type Of<T extends Block['type']> = Extract<Block, { type: T }>
 const pctOf = (v: number | undefined) => (v == null ? null : Math.max(0, Math.min(100, v <= 1 ? v * 100 : v)))
 
 function SummaryTile({ block }: { block: Of<'summary'> }) {
   const t = useT()
-  const text = t(block.text)
-  // one sentence here; the whole story, with its points, is in the Summary tab
-  return <span className="rp-t-summary"><Sparkle size={16} />{/^.+?[.!?](?=\s|$)/s.exec(text)?.[0] ?? text}</span>
+  const lang = useStore((s) => s.lang)
+  const n = block.bullets.length
+  return (
+    <>
+      <span className="rp-t-summary">{t(block.text)}</span>
+      <span className="rp-t-meta">
+        {n > 0 && <>{n === 1 ? t({ fr: '1 point', en: '1 point' }) : t({ fr: `${n} points`, en: `${n} points` })}, </>}
+        {t({ fr: 'mis à jour à', en: 'updated at' })} {fmtTime(block.updatedAt, lang)}
+      </span>
+    </>
+  )
 }
 
 function TimelineTile({ block }: { block: Of<'timeline'> }) {
@@ -29,12 +37,8 @@ function TimelineTile({ block }: { block: Of<'timeline'> }) {
   const now = Date.now()
   const items = block.items
   if (!items.length) return <span className="rp-t-none">{t({ fr: 'Pas encore de jalon', en: 'No milestones yet' })}</span>
-  // Labels only on what matters: what is running, what is late, the next milestone and the last one.
   const today = startOfDay(now)
   const isLate = (i: typeof items[number]) => !i.milestone && i.end < today && (pctOf(i.progress) ?? 0) < 100
-  const ahead = items.filter((i) => i.milestone && i.start >= now).sort((a, b) => a.start - b.start)
-  const named = new Set([ahead[0]?.id, ahead[ahead.length - 1]?.id])
-  const speaks = (i: typeof items[number]) => named.has(i.id) || isLate(i) || (!i.milestone && i.start <= now && now <= i.end)
   const from = Math.min(now, ...items.map((i) => i.start)) - 2 * DAY
   const to = Math.max(now, ...items.map((i) => Math.max(i.start, i.end))) + 4 * DAY
   const pct = (at: number) => ((at - from) / (to - from)) * 100
@@ -49,7 +53,7 @@ function TimelineTile({ block }: { block: Of<'timeline'> }) {
         {months.map((m) => <i key={m} className="rp-t-gantt-grid" style={{ left: `${pct(m)}%` }}><em>{new Date(m).toLocaleDateString('en-US', { month: 'short' })}</em></i>)}
         <i className="rp-t-gantt-today" style={{ left: `${pct(now)}%` }} />
         {items.map((i) => {
-          const label = speaks(i) ? <em>{t(i.label)}</em> : null
+          const label = <em>{t(i.label)}</em>
           const left = pct(i.start)
           if (i.milestone) return <span key={i.id} className={`rp-t-g-row${left > 64 ? ' flip' : ''}`}><span className="rp-t-g-ms" style={{ left: `${left}%` }}><i />{label}</span></span>
           const end = Math.max(i.end, i.start + DAY)
@@ -85,6 +89,7 @@ function TodoTile({ block }: { block: Of<'todo'> }) {
             <i className="rp-t-ring" />
             <span className="rp-trunc">{t(x.text)}</span>
             {x.due != null && <span className={late ? 'rp-t-late' : 'rp-t-due'}>{late && <span className="sr-only">{t({ fr: 'En retard : ', en: 'Overdue: ' })}</span>}{fmtDate(x.due, lang)}</span>}
+            {x.assigneeId && <Avatar id={x.assigneeId} size={20} />}
           </span>
         )
       })}
@@ -100,19 +105,21 @@ function ChartTile({ block }: { block: Of<'chart'> }) {
   const nf = new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 1, notation: 'compact' })
   const total = series.reduce((n, s) => n + s.value, 0)
   const planned = series.reduce((n, s) => n + (s.target ?? 0), 0)
-  // The whole chart is in its tab. Here, the number and one bar against plan; only what is over plan takes a color.
-  const top = Math.max(total, planned, 1)
-  const within = (Math.min(total, planned) / top) * 100
+  const top = Math.max(...series.flatMap((s) => [s.value, s.target ?? 0]), 1)
+  // the top lines; the whole chart is in its tab
+  const lines = [...series].sort((a, b) => b.value - a.value).slice(0, 4)
   return (
     <>
-      <span className="rp-t-big">{withUnit(nf.format(total), block.unit)}</span>
+      <span className={`rp-t-big${planned > 0 && total > planned ? ' over' : ''}`}>{withUnit(nf.format(total), block.unit)}</span>
       {planned > 0 && <span className="rp-t-meta">{t({ fr: `pour ${withUnit(nf.format(planned), block.unit)} prévus`, en: `against ${withUnit(nf.format(planned), block.unit)} planned` })}</span>}
-      {planned > 0 && (
-        <span className="rp-t-plan" aria-hidden="true">
-          <i style={{ width: `${within}%` }} />
-          {total > planned && <b style={{ width: `${100 - within}%` }} />}
-        </span>
-      )}
+      <span className="rp-t-bars" aria-hidden="true">
+        {lines.map((s, i) => (
+          <span key={i} className="rp-t-barrow">
+            <em className="rp-trunc">{t(s.label)}</em>
+            <span className="rp-t-track"><i style={{ width: `${(Math.max(0, s.value) / top) * 100}%` }} />{s.target != null && <u style={{ left: `${(s.target / top) * 100}%` }} />}</span>
+          </span>
+        ))}
+      </span>
     </>
   )
 }
@@ -125,11 +132,30 @@ function CalendarTile({ block }: { block: Of<'calendar'> }) {
   if (!next.length) return <span className="rp-t-none">{t({ fr: 'Rien de prévu', en: 'Nothing planned' })}</span>
   const e = next[0]
   return (
-    <span className="rp-row-main">
-      <span className="rp-trunc rp-t-strong">{t(e.title)}</span>
-      <span className="rp-t-meta rp-trunc">{fmtDay(e.start, lang)}, {fmtTime(e.start, lang)}</span>
+    <span className="rp-t-next">
+      <span className="rp-date" aria-hidden="true"><span>{new Date(e.start).toLocaleDateString('en-US', { month: 'short' })}</span><b>{new Date(e.start).getDate()}</b></span>
+      <span className="rp-row-main">
+        <span className="rp-trunc rp-t-strong">{t(e.title)}</span>
+        <span className="rp-t-meta rp-trunc"><span className="sr-only">{fmtDay(e.start, lang)}, </span>{fmtTime(e.start, lang)}{next.length > 1 ? `, +${next.length - 1}` : ''}</span>
+      </span>
+      <AvatarStack ids={e.attendeeIds} size={20} max={2} />
     </span>
   )
+}
+
+function FilesTile({ block }: { block: Of<'files'> }) {
+  const t = useT()
+  const { project } = useBoard()
+  const files = block.artifactIds.map((id) => project.artifacts.find((a) => a.id === id)).filter((a) => a != null).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 4)
+  if (!files.length) return <span className="rp-t-none">{t({ fr: 'Aucun fichier', en: 'No files yet' })}</span>
+  return <span className="rp-t-files">{files.map((a) => <span key={a.id} className="rp-t-file"><KindIcon kind={a.kind} size={16} /><span className="rp-trunc">{t(a.title)}</span></span>)}</span>
+}
+
+function PeopleTile() {
+  const { project } = useBoard()
+  useStore((s) => s.presence)
+  const ids = [...new Set([...project.memberIds, ...project.externalIds])].filter((id) => personById(id).role !== 'ai')
+  return <span className="rp-t-faces">{ids.slice(0, 9).map((id) => <Avatar key={id} id={id} size={28} status />)}</span>
 }
 
 function KanbanTile({ block }: { block: Of<'kanban'> }) {
@@ -164,22 +190,29 @@ function PollTile({ block }: { block: Of<'poll'> }) {
   )
 }
 
-function tileMeta(block: Block, t: ReturnType<typeof useT>): ReactNode {
+function tileMeta(block: Block, t: ReturnType<typeof useT>, online: number, everyone: number): ReactNode {
   if (block.type === 'todo') { const d = block.todos.filter((x) => x.done).length; return block.todos.length ? t({ fr: `${d} sur ${block.todos.length} faites`, en: `${d} of ${block.todos.length} done` }) : null }
+  if (block.type === 'timeline') return block.items.length ? (block.items.length === 1 ? t({ fr: '1 étape', en: '1 item' }) : t({ fr: `${block.items.length} étapes`, en: `${block.items.length} items` })) : null
+  if (block.type === 'people') return t({ fr: `${online} sur ${everyone} en ligne`, en: `${online} of ${everyone} online` })
+  if (block.type === 'poll') { const n = block.options.reduce((s, o) => s + o.votes.length, 0); return n === 1 ? t({ fr: '1 vote', en: '1 vote' }) : t({ fr: `${n} votes`, en: `${n} votes` }) }
+  if (block.type === 'kanban') { const n = block.columns.reduce((s, c) => s + c.cards.length, 0); return n === 1 ? t({ fr: '1 carte', en: '1 card' }) : t({ fr: `${n} cartes`, en: `${n} cards` }) }
   return null
 }
 
 function TileBody({ block }: { block: Block }) {
+  const t = useT()
   switch (block.type) {
     case 'summary': return <SummaryTile block={block} />
     case 'timeline': return <TimelineTile block={block} />
     case 'todo': return <TodoTile block={block} />
     case 'chart': return <ChartTile block={block} />
     case 'calendar': return <CalendarTile block={block} />
+    case 'files': return <FilesTile block={block} />
+    case 'people': return <PeopleTile />
     case 'kanban': return <KanbanTile block={block} />
     case 'poll': return <PollTile block={block} />
     case 'model3d': return <ModelTilePreview model={block.model} />
-    default: return null
+    case 'notes': { const text = t(block.text); return text ? <span className="rp-t-note">{text}</span> : <span className="rp-t-none">{t({ fr: 'Pas encore de note', en: 'No notes yet' })}</span> }
   }
 }
 
@@ -192,6 +225,10 @@ export function Overview({ onOpen }: { onOpen: (blockId: string) => void }) {
   const addLabel = role === 'owner' ? t({ fr: 'Ajouter un bloc', en: 'Add block' }) : t({ fr: 'Proposer un bloc', en: 'Propose a block' })
   const add = role !== 'guest' && <Button variant="tonal" size="s" icon="add" onClick={() => setBlockGallery(true)}>{addLabel}</Button>
   const { ordered, wide, narrow } = layout(project.blocks)
+
+  useStore((s) => s.presence)
+  const everyone = [...new Set([...project.memberIds, ...project.externalIds])].map(personById).filter((p) => p.role !== 'ai')
+  const online = everyone.filter((p) => p.presence === 'online').length
 
   const fresh = project.blocks.find((b) => b.fresh)?.id
   useEffect(() => {
@@ -206,7 +243,7 @@ export function Overview({ onOpen }: { onOpen: (blockId: string) => void }) {
 
   return (
     <div ref={scroller} className="rp-ov">
-      {!project.blocks.some(onOverview) ? (
+      {project.blocks.length === 0 ? (
         <Empty
           icon="dashboard_customize"
           title={t({ fr: 'Ce tableau est encore vide', en: 'This board is still empty' })}
@@ -220,10 +257,11 @@ export function Overview({ onOpen }: { onOpen: (blockId: string) => void }) {
         <div className="rp-bento" style={{ '--rows': wide.rows } as CSSProperties}>
           {ordered.map((b) => {
             const title = t(b.title)
-            const meta = tileMeta(b, t)
+            const meta = tileMeta(b, t, online, everyone.length)
             return (
-              <button key={b.id} type="button" data-tile={b.id} className={`rp-tile t-${b.type}${b.fresh ? ' fresh' : ''}`} style={place(wide.slots.get(b.id)!, narrow.slots.get(b.id)!)} aria-label={b.type === 'summary' ? title : undefined} onClick={() => onOpen(b.id)}>
+              <button key={b.id} type="button" data-tile={b.id} className={`rp-tile t-${b.type}${b.fresh ? ' fresh' : ''}`} style={place(wide.slots.get(b.id)!, narrow.slots.get(b.id)!)} onClick={() => onOpen(b.id)}>
                 <span className="rp-tile-head">
+                  {b.type === 'summary' && <Sparkle size={16} />}
                   <span className="rp-tile-title rp-trunc" title={title}>{title}</span>
                   {meta && <span className="rp-tile-count">{meta}</span>}
                   <Icon name="chevron_right" size={16} className="rp-tile-go" />

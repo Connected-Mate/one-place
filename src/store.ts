@@ -32,6 +32,9 @@ export interface State {
   chatWidthTablet: number | null
   call: CallState | null
   welcomeSeen: boolean
+  /** the status someone chose in the account panel, over the seed's */
+  presence: Record<string, Person['presence']>
+  setPresence(id: string, p: Person['presence']): void
   tourDone: string[]
   toasts: Toast[]
   /** composer draft target: private recipient for the active project, or null = everyone */
@@ -114,6 +117,7 @@ const initial = () => ({
   chatWidthTablet: null as number | null,
   call: null,
   welcomeSeen: false,
+  presence: {} as Record<string, Person['presence']>,
   tourDone: [] as string[],
   toasts: [] as Toast[],
   privateTo: null,
@@ -139,6 +143,7 @@ export const useStore = create<State>()(persist((set, get) => ({
   setChatWidth: (chatWidth) => set({ chatWidth }),
   setChatWidthTablet: (chatWidthTablet) => set({ chatWidthTablet }),
   dismissWelcome: () => set({ welcomeSeen: true }),
+  setPresence: (id, p) => set((s) => ({ presence: { ...s.presence, [id]: p } })),
   markTour: (step) => set((s) => (s.tourDone.includes(step) ? s : { tourDone: [...s.tourDone, step] })),
   toast: (t) => {
     const id = uid('toast')
@@ -245,11 +250,15 @@ export const useStore = create<State>()(persist((set, get) => ({
   version: SEED_VERSION,
   storage: safe,
   migrate: () => initial() as unknown as State, // new seed: start clean rather than crash
-  partialize: (s) => ({ theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, home: s.home, homeDone: s.homeDone, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, chatWidthTablet: s.chatWidthTablet, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
+  partialize: (s) => ({ presence: s.presence, theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, home: s.home, homeDone: s.homeDone, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, chatWidthTablet: s.chatWidthTablet, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
 }))
 
 /* ------- selectors / helpers used everywhere ------- */
-export const personById = (id: string): Person => people.find((p) => p.id === id) ?? { id, name: id, title: '', email: '', hue: '#5f6368', role: 'external', presence: 'offline' }
+export const personById = (id: string): Person => {
+  const p = people.find((x) => x.id === id) ?? { id, name: id, title: '', email: '', hue: '#5f6368', role: 'external' as const, presence: 'offline' as const }
+  const chosen = useStore.getState().presence[id]
+  return chosen ? { ...p, presence: chosen } : p
+}
 export const useProject = () => useStore((s) => s.projects.find((p) => p.id === s.activeProjectId) ?? s.projects[0])
 export const useViewer = () => personById(useStore((s) => s.viewerId))
 export const canSee = (v: Visibility, viewerId: string) => v.type === 'all' || v.with.includes(viewerId)
