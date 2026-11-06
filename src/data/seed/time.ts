@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // Demo-safe clock. Everything is relative to `now()` and computed each time seedProjects() runs.
 // Rules: seeded "today" messages are never in the future; team activity never sits on a weekend;
 // future meetings land on business days. Only Date.now() is read, so tests can fake the clock.

@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // Autosizing text input with the @ mention list. People are written @Name here, and stored as @[Name](id) on send.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useT } from '../i18n'

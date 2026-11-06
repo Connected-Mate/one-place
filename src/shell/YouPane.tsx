@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The phone's third place: who you are in the demo, the theme, and the "not a Google product" framing.
 import { useT } from '../i18n'
 import { personById, useStore, useViewer, type Theme } from '../store'

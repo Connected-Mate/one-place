@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The call's life cycle: everything that must survive the stage being unmounted
 // (switching project, reload) lives here, not in a component.
 import { create } from 'zustand'

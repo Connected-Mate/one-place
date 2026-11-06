@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 import { useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { Button, Dialog, Icon } from '../ui/kit'

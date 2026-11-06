@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // Renders message text: mention chips, **bold**, "- " bullets, and internal links [label](op:...).
 // Never touches innerHTML: everything typed stays plain text.
 import { Fragment, type ReactNode } from 'react'

@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // A real Gantt: positions are percentages of a track that is at least 8px per day, so it
 // fills wide columns and scrolls inside the block on narrow ones.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'

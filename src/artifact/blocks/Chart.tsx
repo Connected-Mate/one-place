@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // Bars vs target. One series = one colour; the target is a tick in ink, never a second hue.
 // Plain HTML marks: 16px bars, 4px rounded data-end, square at the baseline, hairline grid.
 import { useState } from 'react'

@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The project chat: header, message log and composer.
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { fmtDay, tx, useT } from '../i18n'

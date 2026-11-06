@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The contract every part of the app shares. Change it only with care: other modules depend on it.
 export type Lang = 'fr' | 'en'
 /** A text in both languages. User-typed text is stored as a plain string. */

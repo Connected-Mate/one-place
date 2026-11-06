@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // Loaded on demand only. Everything is modeled in code: no asset file.
 import {
   AmbientLight, CanvasTexture, CatmullRomCurve3, CylinderGeometry, DirectionalLight, DoubleSide, ExtrudeGeometry, Group, LatheGeometry, Mesh,

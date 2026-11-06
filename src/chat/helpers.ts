@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // Small pure helpers shared by the chat UI and the Gemini engine.
 import { tx } from '../i18n'
 import { personById, useStore } from '../store'

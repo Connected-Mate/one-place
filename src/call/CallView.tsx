@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CallState, MeetingMessage, Project, Txt } from '../data/types'
 import { fmtDay, fmtTime, useT } from '../i18n'

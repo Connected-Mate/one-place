@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // Home: the one place across all your projects. Gemini says what needs you; a click takes you to the exact spot.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AvatarStack, Button, Icon, IconButton, Sparkle } from '../ui/kit'

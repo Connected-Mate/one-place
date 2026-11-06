@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 /** One Place's own mark: a speech bubble whose outline is split in four colors. Same drawing as public/favicon.svg. Decorative: give the label to the surrounding element. */
 export function Logo({ size = 40 }: { size?: number }) {
   return (

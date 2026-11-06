@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // Gemini's advice is computed from the real state of the project, every time. Nothing is scripted.
 import type { Block, Message, Project, Todo, TimelineItem, Txt } from '../data/types'
 import { fmtDate, tx } from '../i18n'

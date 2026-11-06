@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The top of a project under 900px, where the chat and the board take turns: phone and portrait tablet.
 // On a phone it replaces the whole top bar, with a back arrow to the list, like a space in the Google Chat app.
 import { useEffect, useState } from 'react'

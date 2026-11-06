@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The gallery of block templates. The owner adds directly; a member's pick becomes a proposal in the chat.
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { askGemini } from '../chat/gemini'

@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The scripted Gemini engine: no network, one AI. It reads the live project, decides what was asked,
 // acts on the project for real and streams a short answer word by word.
 //

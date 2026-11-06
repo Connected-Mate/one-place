@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The Overview tab: everything about the project at a glance, the same for everyone. Each tile opens its full tab.
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { Block } from '../data/types'

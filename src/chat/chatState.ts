@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // What the chat does: transient UI state (never persisted) and the actions behind the composer and the cards.
 import { create } from 'zustand'
 import { tx } from '../i18n'

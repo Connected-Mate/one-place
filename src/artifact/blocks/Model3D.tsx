@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // three.js is only reached through the dynamic import of ./scene3d, so it never lands in the main bundle.
 import { useEffect, useRef, useState } from 'react'
 import type { Block } from '../../data/types'

@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { GEMINI_ID, ME_ID, people, seedProjects, SEED_VERSION } from './data/seed'

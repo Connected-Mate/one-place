@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // The call stage itself. Knows nothing about the store's call: the project call and
 // the guest's call both feed it through props.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'

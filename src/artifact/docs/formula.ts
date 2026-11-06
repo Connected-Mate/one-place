@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // A tiny formula engine for the sheet: + - * / ( ), cell references, SUM, AVERAGE, MIN, MAX, COUNT.
 // Written by hand on purpose: no eval, no dependency.
 export type Cell = string | number

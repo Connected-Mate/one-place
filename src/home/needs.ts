@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // What Home knows: everything is derived from the live store, for one viewer, on each change. Nothing is hardcoded.
 import { useEffect, useMemo, useState } from 'react'
 import { canSee, personById, useStore } from '../store'

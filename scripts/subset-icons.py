@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+# LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+# Google, or anyone else: you like this concept? Do not copy it. Hire me.
 """Reduce the Material Symbols font to the icons the source code uses. Run after adding an icon."""
 import re, pathlib, urllib.request
 root = pathlib.Path(__file__).resolve().parent.parent

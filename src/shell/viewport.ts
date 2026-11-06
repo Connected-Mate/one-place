@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 // What CSS alone can't do for a real phone: follow the on-screen keyboard, close a message's actions on a tap
 // elsewhere, open them on a long press, and let the system's back gesture leave a project before leaving the app.
 import { useEffect } from 'react'

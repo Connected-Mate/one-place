@@ -1,3 +1,8 @@
+/*!
+ * One Place. Concept, product and design by Alexandre Cormeraie, product manager.
+ * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
+ * Google, or anyone else: you like this concept? Do not copy it. Hire me.
+ */
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import { block, signature } from './scripts/signature.mjs'
