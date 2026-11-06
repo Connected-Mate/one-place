@@ -14,3 +14,10 @@ if (splash) {
     setTimeout(() => splash.remove(), 300)
   }, still ? 200 : Math.max(0, 1300 - performance.now()))
 }
+
+// For the people who open the console, which is exactly who should read this.
+console.log(
+  '%cOne Place%c\nBy Alexandre Cormeraie, product manager.\nGoogle, or anyone else: you like this concept? Do not copy it. Hire me.\nhttps://www.linkedin.com/in/alex-cormeraie/',
+  'font:500 24px "Google Sans",sans-serif;color:#0b57d0', 'font:14px/22px "Google Sans",sans-serif',
+)
+Object.assign(window, { hireMe: () => window.open('https://www.linkedin.com/in/alex-cormeraie/', '_blank', 'noopener') })

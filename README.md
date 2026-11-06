@@ -16,7 +16,10 @@ A project is one chat and one shared view. Messages, incoming mail, documents, c
 ## What this is, and isn't
 A front-end only demo. Everything is simulated: no backend, no real AI, no account, nothing is sent, no tracker. All people and companies are fictional.
 
-A concept by Alex Cormeraie. **Not a Google product**, and not affiliated with or endorsed by Google. Google, Gemini, Gmail and other names belong to their owners and are used descriptively. The interface uses Google Sans and Material Symbols, under their open licenses. The logo is original.
+A concept by [Alexandre Cormeraie](https://www.linkedin.com/in/alex-cormeraie/), product manager. **Not a Google product**, and not affiliated with or endorsed by Google. Google, Gemini, Gmail and other names belong to their owners and are used descriptively. The interface uses Google Sans and Material Symbols, under their open licenses. The logo is original.
+
+## Like the concept?
+**Google, or anyone else: do not copy it. [Hire me](HIRE-ME.md).**
 
 ## Run it
 ```
