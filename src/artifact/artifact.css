@@ -636,3 +636,5 @@
 
 .rp-tabbar .rp-tabs{padding:0}
 .rp-tab-scroll:disabled{color:var(--text-disabled);cursor:default;background:none}
+/* tabs sliding under the pinned Overview fade out, so a neighbour's close button never looks like Overview's */
+.rp-tab-pinned::before{content:'';position:absolute;left:100%;top:0;bottom:1px;width:32px;background:linear-gradient(90deg,var(--panel) 40%,transparent);pointer-events:none}
