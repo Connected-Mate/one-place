@@ -1,0 +1,16 @@
+{
+  "name": "one-place-film",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "The One Place film. Separate from the app: nothing here is shipped.",
+  "scripts": {
+    "rebuild": "bash rebuild.sh",
+    "capture": "node capture/shots.mjs",
+    "audio": "node audio/make-audio.mjs"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0"
+  }
+}

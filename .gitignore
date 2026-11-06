@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 
 .claude/
+
+# Film: rebuilt from source, raw captures live outside the repo
+video/node_modules
+video/out
+video/captures
+video/audio/mix.wav
