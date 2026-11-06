@@ -56,6 +56,7 @@ export function SlidesView({ deck }: { deck: Deck }) {
   const root = useRef<HTMLDivElement>(null)
   const overlay = useRef<HTMLDivElement>(null)
   const strip = useRef<HTMLDivElement>(null)
+  const swipe = useRef<number | null>(null)
   const current = Math.min(at, Math.max(0, total - 1))
 
   const go = (i: number) => setAt(Math.max(0, Math.min(total - 1, i)))
@@ -129,7 +130,14 @@ export function SlidesView({ deck }: { deck: Deck }) {
             </button>
           ))}
         </div>
-        <div className="rp-stage">
+        <div className="rp-stage"
+          onTouchStart={(e) => { swipe.current = e.touches.length === 1 && !(document.activeElement as HTMLElement | null)?.isContentEditable ? e.touches[0].clientX : null }}
+          onTouchEnd={(e) => {
+            if (swipe.current == null) return
+            const dx = e.changedTouches[0].clientX - swipe.current
+            swipe.current = null
+            if (Math.abs(dx) > 48) go(current + (dx < 0 ? 1 : -1))
+          }}>
           <div className="rp-stage-fit"><Slide key={current} slide={deck.slides[current]} index={current} onEdit={readOnly ? undefined : (patch) => write(deck.slides.map((x, i) => (i === current ? { ...x, ...patch } : x)))} /></div>
           <textarea className="rp-notes-speaker" value={notes[current] ?? ''} onKeyDown={(e) => e.stopPropagation()} onChange={(e) => setNotes((n) => ({ ...n, [current]: e.target.value }))} placeholder={t({ fr: 'Cliquez pour ajouter des notes pour le présentateur', en: 'Click to add speaker notes' })} aria-label={t({ fr: 'Notes du présentateur', en: 'Speaker notes' })} />
         </div>

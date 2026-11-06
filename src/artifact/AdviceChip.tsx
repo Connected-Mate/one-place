@@ -138,7 +138,7 @@ export function AdviceChip({ onOpenSection }: { onOpenSection: (blockId: string)
         <span className="rp-advice-word">{t({ fr: 'Conseils', en: 'Advice' })}</span>
         {count > 0 && <span className="rp-advice-count">{count}</span>}
       </button>
-      {popover && createPortal(<div className="rp-advice-layer">{popover}</div>, matchMedia('(max-width:899px)').matches ? document.body : chip.current?.closest('.right-pane') ?? document.body)}
+      {popover && createPortal(<div className="rp-advice-layer">{popover}</div>, matchMedia('(max-width:599px),(max-height:480px) and (max-width:1279px)').matches ? document.body : chip.current?.closest('.right-pane') ?? document.body)}
     </>
   )
 }

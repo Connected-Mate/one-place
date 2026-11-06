@@ -9,6 +9,12 @@ A project is a chat + a shared view. Everything happens there. No mail, no other
 `[ Projects rail 256 ] [ Project chat ~440 ] [ Right pane: Board | open document | live call ]`
 Header 64px across the top with search pill. Measured Gmail spacing: panels separated by 8px, radius 16.
 
+### Tablet and phone
+- **900-1279, tablet landscape**: 72px navigation rail (hamburger opens it as a drawer over a scrim) + chat + right pane. The chat has its own tablet width (`chatWidthTablet`), `railCollapsed` only applies from 1280.
+- **600-899, tablet portrait and a phone on its side**: rail + one pane, with Chat / Board in `ProjectBar`. Chat 320 + board 376 at 768 would be two cramped panes.
+- **Up to 599, phone**: bottom bar with Home, Projects, You. A project is a screen of its own, as a space in the Google Chat app: back arrow, Chat / Board (and Call during a call), the board's tabs under the thumb. Popovers and dialogs are bottom sheets, also on any screen under 480 high.
+- Panes that are out of sight stay laid out and parked off-screen, so scroll, drafts and a running call survive switching and rotating. Chat rules for these sizes live in `src/chat/chat-responsive.css`.
+
 ## Rules of the product (what the demo must prove)
 1. **One AI**: `@Gemini` in the composer; never a list of agents. It does everything: recap, to-dos, build a block, draft a doc, book a meeting, draft a reply to a mail.
 2. **Mail is dead but mail still arrives**: every project has an address. Outside people write by mail; it lands as a message in the chat. Replying from chat sends a mail back. They do not need an account.

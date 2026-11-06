@@ -1,12 +1,14 @@
-import { useState } from 'react'
-import { Button, Dialog, Icon } from '../ui/kit'
+import { useEffect, useRef, useState } from 'react'
+import { Button, Dialog, Icon, IconButton } from '../ui/kit'
+import { Logo } from '../ui/Logo'
 import { useStore } from '../store'
 import { useT } from '../i18n'
 import { TryPanel } from './TryPanel'
-import { useNeeds } from '../home/needs'
+import { projectStatus, useNeeds } from '../home/needs'
 
-export function ProjectsRail() {
+export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCloseDrawer?: () => void }) {
   const t = useT()
+  const lang = useStore((s) => s.lang)
   const projects = useStore((s) => s.projects)
   const activeId = useStore((s) => s.activeProjectId)
   const viewerId = useStore((s) => s.viewerId)
@@ -17,8 +19,23 @@ export function ProjectsRail() {
   const live = useStore((s) => s.call?.projectId)
   const [create, setCreate] = useState(false)
   const mine = projects.filter((p) => p.memberIds.includes(viewerId))
+  const head = useRef<HTMLDivElement>(null)
+  // Opening the drawer moves the keyboard into it; closing gives the focus back to what opened it.
+  useEffect(() => {
+    if (!drawer) return
+    const prev = document.activeElement as HTMLElement | null
+    head.current?.querySelector('button')?.focus()
+    const behind = [...document.querySelectorAll<HTMLElement>('.topbar,.project-bar,.app-main>:not(.rail):not(.drawer-scrim)')]
+    for (const el of behind) el.inert = true
+    return () => { for (const el of behind) el.inert = false; prev?.focus?.() }
+  }, [drawer])
   return (
-    <nav className="rail" aria-label={t({ fr: 'Projets', en: 'Projects' })}>
+    // A tap on anything that goes somewhere closes the drawer.
+    <nav className="rail" aria-label={t({ fr: 'Projets', en: 'Projects' })} onClickCapture={(e) => { if (drawer && (e.target as HTMLElement).closest('.rail-item,.compose,.try li button')) onCloseDrawer?.() }}>
+      <div ref={head} className="rail-drawer-head">
+        <Logo size={26} /><span className="wordmark">One Place</span>
+        <IconButton icon="close" label={t({ fr: 'Fermer', en: 'Close' })} onClick={onCloseDrawer} />
+      </div>
       <button type="button" className="compose" onClick={() => setCreate(true)}>
         <Icon name="add" size={24} /><span className="rail-label">{t({ fr: 'Nouveau projet', en: 'New project' })}</span>
       </button>
@@ -40,7 +57,10 @@ export function ProjectsRail() {
             <li key={p.id}>
               <button type="button" className={`rail-item${on ? ' on' : ''}${p.unread ? ' unread' : ''}`} aria-current={on ? 'page' : undefined} onClick={() => select(p.id)} title={name}>
                 <span className="rail-icon" style={{ color: p.color }}><Icon name={p.icon} fill={on} />{p.unread > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
-                <span className="rail-label rail-name">{name}</span>
+                <span className="rail-label rail-text">
+                  <span className="rail-name">{name}</span>
+                  <span className="rail-sub">{projectStatus(p, viewerId, lang)}</span>
+                </span>
                 {live === p.id && <Icon name="call" size={16} className="rail-live" />}
                 {p.mentions > 0 && <span className="rail-at rail-label" aria-label={t({ fr: `${p.mentions} mentions`, en: `${p.mentions} mentions` })}>@</span>}
                 {p.unread > 0 && <span className="rail-count rail-label">{p.unread}<span className="sr-only"> {t({ fr: 'non lus', en: 'unread' })}</span></span>}

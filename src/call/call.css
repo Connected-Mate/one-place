@@ -219,10 +219,17 @@
 .cv-chip-end{width:44px;height:36px;border-radius:var(--r-pill);background:#ea4335;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .cv-chip :focus-visible{outline:2px solid var(--on-call);outline-offset:2px}
 /* never on the composer: over the right pane on a wide window, above the bottom bar on a phone */
-@media (max-width:899px){.app .cv-chip,.app.rail-min .cv-chip{left:50%;bottom:76px;max-width:calc(100vw - 24px);transform:translateX(-50%);animation-name:cv-rise}}
+/* tablet landscape: same place, the rail and the chat's width have just changed */
+@media (min-width:900px) and (max-width:1279px){.app .cv-chip,.app.rail-min .cv-chip{left:auto;right:24px}}
+/* under 900 it takes its own full-width strip between the bars and the content, as the "back to call" band on a phone: it can't cover anything */
+@media (max-width:899px){
+  .app .cv-chip,.app.rail-min .cv-chip{position:static;flex:none;max-width:none;width:auto;height:48px;border-radius:0;padding:0 8px 0 16px;box-shadow:none;animation:none}
+  .app .cv-chip-name{flex:1}
+}
+@media (min-width:600px) and (max-width:899px){.app .cv-chip,.app.rail-min .cv-chip{margin:0 8px 8px 72px;border-radius:var(--r-m)}}
 
 /* ---- guest ---- */
-.cv-guest{height:100dvh;display:flex;flex-direction:column;background:var(--panel);overflow:auto}
+.cv-guest{height:calc(100dvh - var(--kb,0px));display:flex;flex-direction:column;background:var(--panel);overflow:auto}
 .cv-guest-head{display:flex;align-items:center;gap:10px;padding:12px 16px;flex:none;min-width:0}
 .cv-guest-brand{display:inline-flex;align-items:center;gap:8px;font-size:18px;flex:none}
 .cv-guest-brand b{font-weight:500}
@@ -277,3 +284,25 @@
 /* In the project the pane's "Call" tab already shows the time: one clock, not two out of step. */
 .rp-view :is(.cv-timer,.cv-bar-time,.cv-bar-sep){display:none}
 .cv-preview .cv-face{width:min(44cqmin,170px);height:min(44cqmin,170px);margin-bottom:8cqmin}
+
+/* ---- Tablets and phones: the controls under the thumb, each one big enough for it ---- */
+@media (pointer:coarse){
+  .cv-ctl{width:48px;height:48px}
+  .cv-hangup{width:72px;height:48px}
+  .cv-chip-back{height:40px}
+  .cv-chip-end{width:48px;height:40px}
+  .cv-doc-stop{height:40px}
+  .cv-viewas{min-height:40px}
+  .cv-sheet-item{min-height:52px}
+  .cv-controls{gap:12px}
+}
+@media (max-width:599px){
+  .rp-view .cv-stage{border-radius:0}
+  .cv-bar{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .cv-sheet,.cv-panel{padding-bottom:env(safe-area-inset-bottom)}
+  .cv-guest-stage{height:calc(100dvh - var(--kb,0px));padding:env(safe-area-inset-top) 0 0}
+  .cv-guest-head{padding-top:calc(12px + env(safe-area-inset-top))}
+}
+@media (max-width:899px){
+  .cv-grid{scrollbar-width:none}
+}

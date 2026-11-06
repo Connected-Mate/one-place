@@ -5,16 +5,13 @@ import { startCall } from '../call/callActions'
 import { useT } from '../i18n'
 
 /** The five things that make the concept click. Each row takes you straight there. */
-export function TryPanel() {
-  const t = useT()
-  const done = useStore((s) => s.tourDone)
+function useSteps() {
   const project = useProject()
-  const [open, setOpenState] = useState(() => { try { return localStorage.getItem('one-place-try') !== 'min' } catch { return true } })
-  const setOpen = (v: boolean) => { setOpenState(v); try { localStorage.setItem('one-place-try', v ? 'open' : 'min') } catch { /* private mode */ } }
+  useStore((s) => s.viewerId) // the last step reads it
   const s = useStore.getState()
   // From Home the composer is still hidden at this point: wait for the frame that shows it, or it can't take focus.
   const compose = (text: string) => requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('oneplace:compose', { detail: { text } })))
-  const steps = [
+  return [
     { id: 'gemini', icon: 'alternate_email', l: { fr: 'Demande quelque chose à @Gemini', en: 'Ask @Gemini for something' }, run: () => { s.setMobilePane('chat'); compose('@') } },
     { id: 'private', icon: 'lock', l: { fr: 'Envoie un message privé dans le fil', en: 'Send a private message in the thread' }, run: () => { s.setMobilePane('chat'); s.setPrivateTo(project.memberIds.find((m) => m !== s.viewerId) ?? null); compose('') } },
     { id: 'proposal', icon: 'how_to_vote', l: { fr: 'Valide une proposition', en: 'Approve a proposal' }, run: () => {
@@ -25,6 +22,54 @@ export function TryPanel() {
     { id: 'call', icon: 'call', l: { fr: 'Lance un appel et raccroche', en: 'Start a call, then hang up' }, run: () => startCall(project.id) },
     { id: 'viewas', icon: 'visibility', l: s.viewerId === ME_ID ? { fr: 'Regarde avec les yeux de Tom', en: 'See it through Tom’s eyes' } : { fr: 'Reviens à Alex', en: 'Back to Alex’s view' }, run: () => s.setViewer(s.viewerId === ME_ID ? 'tom' : ME_ID) },
   ]
+}
+
+function StepRows({ steps, done }: { steps: ReturnType<typeof useSteps>; done: string[] }) {
+  const t = useT()
+  return (
+    <ul>
+      {steps.map((x) => {
+        const on = done.includes(x.id)
+        return (
+          <li key={x.id}>
+            <button type="button" className={on ? 'on' : ''} onClick={x.run}>
+              <Icon name={on ? 'check_circle' : x.icon} fill={on} size={18} />
+              <span>{t(x.l)}</span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/** Where the rail is not on screen (phone, compact tablet), the same list is a collapsible card on Home. */
+export function TryCard() {
+  const t = useT()
+  const done = useStore((s) => s.tourDone)
+  const steps = useSteps()
+  const [open, setOpenState] = useState(() => { try { return localStorage.getItem('one-place-try-card') === 'open' } catch { return false } })
+  const setOpen = (v: boolean) => { setOpenState(v); try { localStorage.setItem('one-place-try-card', v ? 'open' : 'min') } catch { /* private mode */ } }
+  const count = steps.filter((x) => done.includes(x.id)).length
+  return (
+    <section className={`try-card${open ? ' open' : ''}`} aria-label={t({ fr: 'À essayer', en: 'Things to try' })}>
+      <button type="button" className="try-card-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="flag" size={20} />
+        <strong>{t({ fr: 'À essayer', en: 'Things to try' })}</strong>
+        <span className="try-count">{count}/{steps.length}</span>
+        <Icon name={open ? 'expand_less' : 'expand_more'} size={20} />
+      </button>
+      {open && <StepRows steps={steps} done={done} />}
+    </section>
+  )
+}
+
+export function TryPanel() {
+  const t = useT()
+  const done = useStore((s) => s.tourDone)
+  const steps = useSteps()
+  const [open, setOpenState] = useState(() => { try { return localStorage.getItem('one-place-try') !== 'min' } catch { return true } })
+  const setOpen = (v: boolean) => { setOpenState(v); try { localStorage.setItem('one-place-try', v ? 'open' : 'min') } catch { /* private mode */ } }
   const count = steps.filter((x) => done.includes(x.id)).length
   if (!open) {
     return (
@@ -40,19 +85,7 @@ export function TryPanel() {
         <span className="try-count">{count}/{steps.length}</span>
         <IconButton icon="close" size={28} label={t({ fr: 'Réduire', en: 'Minimize' })} onClick={() => setOpen(false)} />
       </header>
-      <ul>
-        {steps.map((x) => {
-          const on = done.includes(x.id)
-          return (
-            <li key={x.id}>
-              <button type="button" className={on ? 'on' : ''} onClick={x.run}>
-                <Icon name={on ? 'check_circle' : x.icon} fill={on} size={18} />
-                <span>{t(x.l)}</span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+      <StepRows steps={steps} done={done} />
     </aside>
   )
 }

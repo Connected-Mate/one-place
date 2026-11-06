@@ -4,10 +4,11 @@ import { AvatarStack, Button, Icon, IconButton, Sparkle } from '../ui/kit'
 import { startCall } from '../call/callActions'
 import { useChat } from '../chat/chatState'
 import { fmtDate, fmtTime, tx, useT } from '../i18n'
-import { personById, useStore, useViewer } from '../store'
+import { ME_ID, personById, useStore, useViewer } from '../store'
 import type { Project } from '../data/types'
 import { canJoin, daysFrom, geminiBrief, projectStatus, todoProgress, useAgenda, useNeeds, type AgendaItem, type Need } from './needs'
 import { openBlock, openMessage, openTodo } from './goTo'
+import { TryCard } from '../shell/TryPanel'
 import './home.css'
 
 const MAX_ROWS = 6
@@ -16,7 +17,7 @@ const LEAVE_MS = 320
 
 const greetingFor = (hour: number) => (hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening')
 
-export function Home() {
+export function Home({ onAbout }: { onAbout: () => void }) {
   const t = useT()
   const viewer = useViewer()
   const today = new Date()
@@ -28,7 +29,13 @@ export function Home() {
           <header className="hm-greet">
             <h1>{greetingFor(today.getHours())}, {name}</h1>
             <p>{today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+            {/* On a phone the top bar is only the search pill: the concept framing and the persona stay reachable here. */}
+            <div className="hm-chips">
+              <button type="button" className="concept" onClick={onAbout} title={t({ fr: 'À propos de ce concept', en: 'About this concept' })}><span>{t({ fr: 'Concept', en: 'Concept' })}</span></button>
+              {viewer.id !== ME_ID && <Button size="s" variant="tonal" icon="visibility" onClick={() => useStore.getState().setViewer(ME_ID)} title={t({ fr: 'Revenir à Alex', en: 'Back to Alex' })}>{t({ fr: 'Vu par', en: 'Viewing as' })} {name}</Button>}
+            </div>
           </header>
+          <TryCard />
           <div className="hm-top">
             <WhatNeedsYou key={viewer.id} />
             <ComingUp key={`up-${viewer.id}`} />

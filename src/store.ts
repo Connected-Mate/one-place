@@ -23,6 +23,8 @@ export interface State {
   mobilePane: MobilePane
   railCollapsed: boolean
   chatWidth: number
+  /** the chat's width once dragged on a tablet; null = the tablet default from the CSS */
+  chatWidthTablet: number | null
   call: CallState | null
   welcomeSeen: boolean
   tourDone: string[]
@@ -45,6 +47,7 @@ export interface State {
   setMobilePane(p: MobilePane): void
   toggleRail(): void
   setChatWidth(w: number): void
+  setChatWidthTablet(w: number): void
   dismissWelcome(): void
   markTour(step: string): void
   toast(t: Omit<Toast, 'id'>): void
@@ -103,6 +106,7 @@ const initial = () => ({
   mobilePane: 'chat' as MobilePane,
   railCollapsed: false,
   chatWidth: 440,
+  chatWidthTablet: null as number | null,
   call: null,
   welcomeSeen: false,
   tourDone: [] as string[],
@@ -124,10 +128,11 @@ export const useStore = create<State>()(persist((set, get) => ({
   goHome: () => set((s) => ({ home: true, mobilePane: 'chat', privateTo: null, quoteId: null, panes: s.panes[s.activeProjectId]?.type === 'call' ? { ...s.panes, [s.activeProjectId]: { type: 'board' } } : s.panes })),
   markHomeDone: (key) => set((s) => (s.homeDone.includes(key) ? s : { homeDone: [...s.homeDone, key] })),
   setPane: (v) => set((s) => ({ ...leaveHome(s), panes: { ...s.panes, [s.activeProjectId]: v }, mobilePane: 'pane' })),
-  // 'projects' is only the phone's list of projects, over whatever is current; the others show the project.
-  setMobilePane: (mobilePane) => set((s) => (mobilePane === 'projects' ? { mobilePane } : { ...leaveHome(s), mobilePane })),
+  // 'projects' and 'you' are the phone's own screens, over whatever is current; the others show the project.
+  setMobilePane: (mobilePane) => set((s) => (mobilePane === 'projects' || mobilePane === 'you' ? { mobilePane } : { ...leaveHome(s), mobilePane })),
   toggleRail: () => set((s) => ({ railCollapsed: !s.railCollapsed })),
   setChatWidth: (chatWidth) => set({ chatWidth }),
+  setChatWidthTablet: (chatWidthTablet) => set({ chatWidthTablet }),
   dismissWelcome: () => set({ welcomeSeen: true }),
   markTour: (step) => set((s) => (s.tourDone.includes(step) ? s : { tourDone: [...s.tourDone, step] })),
   toast: (t) => {
@@ -232,7 +237,7 @@ export const useStore = create<State>()(persist((set, get) => ({
   version: SEED_VERSION,
   storage: safe,
   migrate: () => initial() as unknown as State, // new seed: start clean rather than crash
-  partialize: (s) => ({ theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, home: s.home, homeDone: s.homeDone, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
+  partialize: (s) => ({ theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, home: s.home, homeDone: s.homeDone, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, chatWidthTablet: s.chatWidthTablet, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
 }))
 
 /* ------- selectors / helpers used everywhere ------- */
@@ -245,5 +250,5 @@ export const roleIn = (p: Project, viewerId: string): 'owner' | 'member' | 'gues
 export { GEMINI_ID, ME_ID }
 const BOARD: PaneView = { type: 'board' } // same object each read: safe as a store selector
 /** What the phone shows: Home has no tab state of its own, it sits over the chat and board tabs. */
-export const mobileView = (s: State): MobilePane | 'home' => (s.home && s.mobilePane !== 'projects' ? 'home' : s.mobilePane)
+export const mobileView = (s: State): MobilePane | 'home' => (s.home && s.mobilePane !== 'projects' && s.mobilePane !== 'you' ? 'home' : s.mobilePane)
 export const paneOf = (s: State): PaneView => s.panes[s.activeProjectId] ?? BOARD

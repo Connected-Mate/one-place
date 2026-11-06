@@ -12,9 +12,9 @@ body.resizing{cursor:col-resize;user-select:none}
 .topbar{display:flex;align-items:center;gap:8px;padding:0 8px}
 .brand{width:calc(var(--rail-w) - 8px);height:36px;display:flex;align-items:center;gap:8px;flex:none;padding-left:0}
 .wordmark{font-size:19px;color:var(--text-2);letter-spacing:-.2px;white-space:nowrap}
-.concept{font-size:11px;font-weight:500;color:var(--text-3);border:1px solid var(--outline);border-radius:var(--r-pill);padding:1px 7px;line-height:16px}
-.concept:hover{background:var(--hover)}
-.rail-min .brand{width:auto}
+.concept{display:inline-flex;align-items:center;flex:none}
+.concept span{font-size:11px;font-weight:500;color:var(--text-3);border:1px solid var(--outline);border-radius:var(--r-pill);padding:1px 7px;line-height:16px}
+.concept:hover span{background:var(--hover)}
 .brand-home{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 6px 0 2px;border-radius:var(--r-s);min-width:0}
 .brand-home:hover .wordmark{color:var(--text)}
 .search{position:relative;flex:0 1 640px;height:38px;background:var(--surface-2);border-radius:19px;display:flex;align-items:center;padding:0 8px 0 14px;gap:10px;min-width:0;transition:background var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
@@ -40,10 +40,8 @@ body.resizing{cursor:col-resize;user-select:none}
 
 /* rail, measured: compose 56h radius 16 at x=8, items 32h, radius right 16 */
 .rail{width:var(--rail-w);flex:none;display:flex;flex-direction:column;min-height:0;transition:width var(--t) var(--ease);overflow:hidden}
-.rail-min .rail{width:var(--rail-w-min)}
 .compose{display:inline-flex;align-items:center;gap:12px;height:56px;margin:8px 0 16px 8px;padding:0 24px 0 16px;background:var(--compose);color:var(--on-compose);border-radius:var(--r-l);font-weight:500;align-self:flex-start;white-space:nowrap;transition:box-shadow var(--t-fast) var(--ease)}
 .compose:hover{box-shadow:var(--shadow-2)}
-.rail-min .compose{padding:0 16px}
 .rail-list.rail-home{flex:none;overflow:visible;margin-bottom:12px}
 .app[data-home] .chat-pane,.app[data-home] .splitter,.app[data-home] .right-pane{display:none}
 .rail-head{padding:0 16px 8px 24px;font-size:14px;font-weight:500;color:var(--text-2);white-space:nowrap}
@@ -54,14 +52,13 @@ body.resizing{cursor:col-resize;user-select:none}
 .rail-item.unread{font-weight:700}
 .rail-icon{position:relative;display:inline-flex}
 .rail-badge{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--red);display:none}
-.rail-min .rail-badge{display:block}
 .rail-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.rail-text .rail-name{flex:none}
+.rail-sub{display:none}
 .rail-count{font-size:12px;font-weight:700}
 .rail-at{font-size:12px;font-weight:700;color:var(--primary)}
 .rail-live{color:var(--green-strong)}
-.rail-min .rail-label{display:none}
-.rail-min .rail-list{padding-right:8px}
-.rail-min .rail-item{padding-left:24px}
 .rail-foot{padding:12px 24px 8px;font-size:12px;line-height:16px;color:var(--text-3)}
 .tpl-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .tpl{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border:1px solid var(--outline);border-radius:var(--r-m);font-weight:500;transition:background var(--t-fast)}
@@ -86,7 +83,6 @@ body.resizing{cursor:col-resize;user-select:none}
 
 /* things to try */
 .try{margin:8px 8px 0 8px;background:var(--panel);border-radius:var(--r-l);flex:none;animation:rise var(--t-slow) var(--ease-out)}
-.rail-min .try,.rail-min .try-fab{display:none}
 .try header{display:flex;align-items:center;gap:8px;padding:8px 8px 4px 16px}
 .try-count{color:var(--text-3);font-size:12px;margin-right:auto}
 .try ul{list-style:none;margin:0;padding:0 8px 8px}
@@ -95,38 +91,278 @@ body.resizing{cursor:col-resize;user-select:none}
 .try li button.on{color:var(--text-3);text-decoration:line-through}.try li button.on .ms{color:var(--green);text-decoration:none}
 .try-fab{margin:8px 8px 0 16px;align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:var(--r-pill);color:var(--text-2);font-weight:500;flex:none}.try-fab:hover{background:var(--hover)}
 
-.mobile-nav{display:none}
+.mobile-nav,.project-bar,.you-pane,.try-card,.hm-chips,.only-tablet,.search-lead,.search-you,.rail-drawer-head{display:none}
 .only-wide{display:inline-flex}
+@media (min-width:1280px){
+  .rail-min .brand{width:auto}
+  .rail-min .rail{width:var(--rail-w-min)}
+  .rail-min .compose{padding:0 16px}
+  .rail-min .rail-badge{display:block}
+  .rail-min .rail-label{display:none}
+  .rail-min .rail-list{padding-right:8px}
+  .rail-min .rail-item{padding-left:24px}
+  .rail-min .try,.rail-min .try-fab{display:none}
+}
 
-/* ---- Under 900px: one pane at a time, with a bottom bar. ---- */
-@media (max-width:899px){
-  .app{grid-template-rows:56px minmax(0,1fr) 64px}
-  .app-main{padding:0 8px;}
-  .only-wide,.search-kbd,.me{display:none}
-  .brand{width:auto}
+/*
+  Four shapes, one product.
+  1280 and up  desktop: rail + chat + pane.
+  900 to 1279  tablet landscape: 72px navigation rail (a drawer on demand) + chat + pane.
+  600 to 899   tablet portrait: rail + one pane at a time. Chat 320 + board 376 at 768 would make two cramped panes
+               and no room for a document, so the project header gets a Chat / Board switch instead.
+  up to 599    phone: three places in a bottom bar; a project is a screen of its own with a back arrow.
+*/
+
+/* ---- Anything under the desktop layout ---- */
+@media (max-width:1279px){
+  /* clip, not hidden: scrollIntoView and focus can scroll a hidden box sideways, towards a pane parked off-screen */
+  .app{position:relative;overflow:hidden;overflow:clip;height:calc(100dvh - var(--kb,0px));box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+  .only-wide{display:none}
+  .only-tablet{display:inline-flex}
+  .search-kbd{display:none}
+  .topbar{min-width:0}
+  .brand{width:auto;flex:none}
   .wordmark{font-size:18px}
-  .topbar{gap:4px;padding:0 4px 0 12px;flex-wrap:nowrap}
-  .search{flex:1 1 0;height:40px;padding:0 4px 0 12px;gap:8px}
-  .search input::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .search input{font-size:16px}/* no zoom on iOS */
-  .rail,.chat-pane,.right-pane,.home-pane{display:none;width:100%!important}
+  /* Things to try: the rail's list is out of sight, so it lives on Home as a card */
+  .try-card{display:block;background:var(--surface-1);border-radius:var(--r-l);overflow:hidden}
+  .try-card-head{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 16px;text-align:left;color:var(--text)}
+  .try-card-head strong{font-weight:500}
+  .try-card-head .ms:first-child{color:var(--text-2)}
+  .try-card-head .ms:last-child{color:var(--text-2)}
+  .try-card ul{list-style:none;margin:0;padding:0 8px 8px;animation:fade var(--t) var(--ease)}
+  .try-card li button{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:6px 8px;border-radius:var(--r-s);text-align:left;color:var(--text-2)}
+  .try-card li button:active{background:var(--press)}
+  .try-card li button.on{color:var(--text-3);text-decoration:line-through}
+  .try-card li button.on .ms{color:var(--green);text-decoration:none}
+}
+
+/* ---- Tablet: the navigation rail ---- */
+@media (min-width:600px) and (max-width:1279px){
+  .app{--header-h:56px}
+  .topbar{padding:0 8px 0 calc(16px);gap:8px}
+  .brand{height:40px;gap:4px;margin-right:8px}
+  .app-main{padding:0 8px 8px 72px;position:static}
+  .rail{position:absolute;left:env(safe-area-inset-left);top:calc(env(safe-area-inset-top) + var(--header-h));bottom:0;width:72px;z-index:20;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;transition:none}
+  .rail::-webkit-scrollbar{display:none}
+  .app:not([data-drawer]) .rail{align-items:center}
+  .app:not([data-drawer]) .compose{justify-content:center;width:56px;padding:0;margin:4px 0 12px;align-self:center;flex:none}
+  .app:not([data-drawer]) .compose .rail-label{display:none}
+  .app:not([data-drawer]) .rail-list{flex:none;overflow:visible;padding:0;margin:0;width:100%}
+  .app:not([data-drawer]) .rail-head,.app:not([data-drawer]) .rail-foot,.app:not([data-drawer]) .try,.app:not([data-drawer]) .try-fab,.app:not([data-drawer]) .rail-count,.app:not([data-drawer]) .rail-at{display:none}
+  .app:not([data-drawer]) .rail-item,.app:not([data-drawer]) .rail-item.on{position:relative;flex-direction:column;justify-content:center;gap:2px;height:auto;min-height:60px;padding:4px 0;border-radius:0;background:none;font-weight:500;color:var(--text-2)}
+  .app:not([data-drawer]) .rail-item.on{color:var(--text)}
+  .rail-item:active{background:none}
+  .app:not([data-drawer]) .rail-icon{align-items:center;justify-content:center;width:56px;height:32px;flex:none;border-radius:var(--r-pill);transition:background var(--t) var(--ease)}
+  .app:not([data-drawer]) .rail-item:active .rail-icon{background:var(--press)}
+  .app:not([data-drawer]) .rail-item.on .rail-icon{background:var(--primary-soft)}
+  .app:not([data-drawer]) .rail-badge{display:block;top:3px;right:14px}
+  .app:not([data-drawer]) .rail-text{flex:none;width:68px;align-items:center}
+  .app:not([data-drawer]) .rail-name{flex:none;max-width:68px;font-size:12px;line-height:16px;font-weight:500;text-align:center}
+  .app:not([data-drawer]) .rail-live{position:absolute;top:6px;right:8px}
+  /* the drawer: same rail, full width, over a scrim */
+  .app[data-drawer] .rail{top:0;width:min(320px,calc(100vw - 56px));z-index:96;background:var(--panel);border-radius:0 var(--r-l) var(--r-l) 0;box-shadow:var(--shadow-3);padding-top:env(safe-area-inset-top);animation:drawer-in var(--t-slow) var(--ease-out)}
+  .app[data-drawer] .rail-drawer-head{display:flex;align-items:center;gap:8px;flex:none;height:56px;padding:0 8px 0 20px}
+  .app[data-drawer] .rail-drawer-head .icon-btn{margin-left:auto}
+  .app[data-drawer] .compose{flex:none}
+  .app[data-drawer] .rail-list.rail-home{margin-bottom:8px}
+  .app[data-drawer] .rail-list:not(.rail-home){flex:none;overflow:visible}
+  .app[data-drawer] .rail-item{height:48px}
+  .app[data-drawer] .try{margin:8px 8px 0;background:var(--surface-1)}
+  .drawer-scrim{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.32);animation:fade var(--t) var(--ease)}
+  .splitter{z-index:3}
+  .splitter::before{content:'';position:absolute;inset:0 -14px}
+  .home-pane{flex:1}
+}
+@keyframes drawer-in{from{transform:translateX(-100%)}}
+@media (min-width:1280px){.drawer-scrim{display:none}}
+
+/* ---- Tablet landscape: rail + chat + pane, the chat narrower by default ---- */
+@media (min-width:900px) and (max-width:1279px){
+  .chat-pane{width:var(--chat-w-t,clamp(320px,34vw,400px));max-width:max(300px,calc(100vw - 72px - 16px - 420px))}
+  .splitter::after{background:var(--outline)}
+}
+
+/* ---- Under 900: one thing at a time, so the bars stack and the panes take turns ---- */
+@media (max-width:899px){
+  .app{display:flex;flex-direction:column}
+  .topbar{order:0;flex:none;height:var(--header-h)}
+  .project-bar{order:1}
+  .cv-chip{order:2}
+  .app-main{order:3;flex:1;min-height:0}
+  .mobile-nav{order:4}
   .splitter{display:none}
-  .rail-label{display:revert!important}
-  [data-mobile="projects"] .rail{display:flex}
-  [data-mobile="chat"] .chat-pane{display:flex}
-  [data-mobile="pane"] .right-pane{display:flex}
-  [data-mobile="home"] .home-pane{display:flex}
-  .rail-list{padding-right:0}
-  .rail-item{height:48px;border-radius:var(--r-l);padding:0 16px}
-  .rail-head{padding-left:16px}
-  .mobile-nav{display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg);padding-bottom:env(safe-area-inset-bottom)}
-  .mobile-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;color:var(--text-2);font-weight:500}
-  .mobile-nav .pill{position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:28px;border-radius:var(--r-pill);transition:background var(--t) var(--ease)}
-  .mobile-nav .on .pill{background:var(--primary-soft);color:var(--on-primary-soft)}
-  .nav-count{position:absolute;top:-2px;left:calc(50% + 8px);min-width:16px;height:16px;padding:0 4px;border-radius:var(--r-pill);background:var(--red-strong);color:var(--panel);font-size:11px;line-height:16px;font-weight:500;text-align:center}
-  .try,.try-fab{display:none}
-  .toasts{left:16px;right:16px;bottom:80px;max-width:none}
-  .rail-item.rail-item{height:48px}
+  /* A pane out of sight keeps its size and its scroll, and off-screen its 3D stops drawing. Nothing is lost on a switch. */
+  .chat-pane,.right-pane,.app[data-home] .chat-pane,.app[data-home] .right-pane{display:flex;position:absolute;inset:0;width:auto;max-width:none;visibility:hidden;translate:200vw 0}
+  .app:not([data-home]):not([data-mobile="pane"]) .chat-pane,.app:not([data-home])[data-mobile="pane"] .right-pane{position:relative;inset:auto;flex:none;width:100%;height:auto;visibility:visible;translate:none}
+  .project-bar{flex:none;flex-direction:column;background:var(--panel);min-width:0}
+  .app:not([data-home]) .project-bar{display:flex}
+  .pb-row{display:flex;align-items:center;gap:4px;min-height:56px;min-width:0;padding:4px 4px 4px 16px}
+  .pb-back{display:none}
+  .pb-title{flex:1 1 0;min-width:64px;display:flex;flex-direction:column}
+  .pb-name{margin:0;font-size:18px;line-height:24px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pb-role{font-size:12px;line-height:16px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pb-actions{display:flex;align-items:center;gap:4px;flex:none}
+  .pb-switch{display:flex;flex:none;align-self:stretch}
+  .pb-switch button{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;color:var(--text-2);font-weight:500;white-space:nowrap;transition:background var(--t-fast) var(--ease)}
+  .pb-switch button:active{background:var(--press)}
+  .pb-switch button.on{color:var(--primary)}
+  .pb-switch button::after{content:'';position:absolute;left:12px;right:12px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--primary);transform:scaleX(0);transition:transform var(--t) var(--ease)}
+  .pb-switch button.on::after{transform:scaleX(1)}
+  .pb-time{font-weight:400;font-variant-numeric:tabular-nums;color:var(--text-3)}
+  /* snackbars: never over the composer or the bottom bar */
+  .toasts{left:16px;right:16px;bottom:calc(var(--kb,0px) + 24px + env(safe-area-inset-bottom));max-width:none}
+  body:has(.app:not([data-home]):not([data-mobile="pane"])) .toasts{bottom:calc(var(--kb,0px) + 112px + env(safe-area-inset-bottom))}
   .wel-lead{font-size:22px;line-height:28px}
 }
-@media (max-width:480px){.wordmark{display:none}.brand{gap:6px}}
+
+/* ---- Tablet portrait, and a phone on its side ---- */
+@media (min-width:600px) and (max-width:899px){
+  .app:not([data-home]) .project-bar{margin:0 8px 0 72px;border-radius:var(--r-l) var(--r-l) 0 0;box-shadow:inset 0 -1px 0 var(--hairline)}
+  .app:not([data-home]) .chat-pane,.app:not([data-home]) .right-pane{border-radius:0 0 var(--r-l) var(--r-l)}
+  .pb-switch{margin:0 auto}
+  .pb-title{max-width:40%}
+  .search{flex:1 1 0}
+  .wordmark{display:inline}
+  .chat-pane,.right-pane{overflow:hidden}
+}
+
+/* ---- A short screen: a phone on its side, or a tablet with its keyboard up. The bars give the room to the content ---- */
+@media (max-height:480px) and (min-width:600px) and (max-width:1279px){
+  .app:not([data-home]) .topbar{display:none}
+  .app:not([data-home]) .rail{top:env(safe-area-inset-top)}
+  .app:not([data-drawer]) .compose{width:48px;height:48px;margin:4px 0}
+  .app:not([data-drawer]) .rail-item,.app:not([data-drawer]) .rail-item.on{min-height:48px;padding:0}
+  .app:not([data-drawer]) .rail-text{display:none}
+  .app:not([data-home]) .app-main{padding-top:8px}
+  .app:not([data-home]) .project-bar{margin-top:8px}
+  .app:not([data-home]) .project-bar + .app-main{padding-top:0}
+  .pb-row{min-height:48px;padding-block:0}
+  .pb-role{display:none}
+  .pb-switch button{min-height:48px}
+}
+
+/* ---- Phone ---- */
+@media (max-width:599px){
+  body{background:var(--panel)}
+  .app{background:var(--panel)}
+  .app-main{padding:0;position:relative;overflow:hidden;overflow:clip}
+  .pane{border-radius:0}
+  .home-pane,.right-pane,.chat-pane{border-radius:0}
+  /* the top app bar: the search pill alone, as in the Gmail app. Inside a project ProjectBar takes over */
+  .app{--header-h:64px}
+  .app[data-mobile="chat"] .topbar,.app[data-mobile="pane"] .topbar{display:none}
+  .topbar{padding:8px 16px;gap:0}
+  .brand,.top-actions{display:none}
+  .search{flex:1 1 0;height:48px;border-radius:24px;padding:0 8px 0 12px;gap:12px;background:var(--surface-2)}
+  .search.open{border-radius:24px 24px 0 0}
+  .search-icon{display:none}
+  .search-lead{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;margin-right:-8px;flex:none;border-radius:50%}
+  .search-you{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:none;border-radius:50%}
+  .search input{height:100%;font-size:16px}
+  .search input::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .search-panel{max-height:calc(100dvh - var(--kb,0px) - 88px);overflow:auto;box-shadow:var(--shadow-3)}
+  .search-hit{min-height:56px;padding:8px 16px}
+  /* the project screen */
+  .pb-row{padding:4px 4px 0 4px}
+  .pb-back{display:inline-flex;flex:none}
+  .pb-title{padding-left:4px}
+  .project-bar{padding-top:0;box-shadow:inset 0 -1px 0 var(--hairline)}
+  .pb-switch{order:3;width:100%}
+  .project-bar .pb-row{flex-wrap:wrap}
+  .pb-title{order:1;flex:1 1 0}
+  .pb-back{order:0}
+  .pb-actions{order:2}
+  .pb-switch button{flex:1 1 0;min-width:0;padding:0 8px}
+  /* the three places */
+  .rail,.you-pane,.home-pane{display:none}
+  .home-pane,.app[data-home] .home-pane{display:flex;position:absolute;inset:0;visibility:hidden;translate:200vw 0}
+  .app[data-mobile="home"] .home-pane{position:relative;inset:auto;flex:1;visibility:visible;translate:none}
+  .app[data-mobile="projects"] .rail{display:flex;flex:1;width:100%;position:relative;overflow-y:auto}
+  .app[data-mobile="you"] .you-pane{display:flex;flex:1}
+  .app:not([data-home])[data-mobile="projects"] .chat-pane,.app:not([data-home])[data-mobile="you"] .chat-pane{position:absolute;inset:0;width:auto;visibility:hidden;translate:200vw 0}
+  .app[data-mobile="projects"] .project-bar,.app[data-mobile="you"] .project-bar{display:none}
+  /* the bottom bar */
+  .mobile-nav{display:grid;flex:none;grid-template-columns:repeat(3,1fr);min-height:64px;background:var(--surface-1);padding-bottom:env(safe-area-inset-bottom)}
+  .app[data-mobile="chat"] .mobile-nav,.app[data-mobile="pane"] .mobile-nav{display:none}
+  .mobile-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:64px;font-size:12px;line-height:16px;color:var(--text-2);font-weight:500}
+  .mobile-nav .pill{position:relative;display:flex;align-items:center;justify-content:center;width:64px;height:32px;border-radius:var(--r-pill);transition:background var(--t) var(--ease)}
+  .mobile-nav button:active .pill{background:var(--press)}
+  .mobile-nav .on{color:var(--text)}
+  .mobile-nav .on .pill{background:var(--primary-soft);color:var(--on-primary-soft)}
+  .nav-count{position:absolute;top:-2px;left:calc(50% + 8px);min-width:16px;height:16px;padding:0 4px;border-radius:var(--r-pill);background:var(--red-strong);color:var(--panel);font-size:11px;line-height:16px;font-weight:500;text-align:center}
+  /* Projects: a two-line list and the New project button in the corner, as Compose is in Gmail */
+  .rail-home,.try,.try-fab,.rail-foot{display:none}
+  .rail-head{padding:16px 16px 8px;font-size:22px;line-height:28px;font-weight:400;color:var(--text)}
+  .rail-list{flex:none;overflow:visible;padding:0 0 88px}
+  .rail-item,.rail-item.rail-item{height:auto;min-height:72px;padding:8px 16px;gap:16px;border-radius:0;font-weight:400}
+  .rail-item.on{background:none;color:var(--text);font-weight:400}
+  .rail-item:active{background:var(--press)}
+  .rail-item.unread .rail-name{font-weight:700}
+  .rail-icon{align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--surface-1);flex:none}
+  .rail-name{font-size:16px;line-height:24px}
+  .rail-sub{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:13px;line-height:18px;font-weight:400;color:var(--text-3);white-space:normal}
+  .rail-count{font-size:12px}
+  .compose{position:fixed;right:calc(16px + env(safe-area-inset-right));bottom:calc(80px + env(safe-area-inset-bottom));margin:0;z-index:15;box-shadow:var(--shadow-2)}
+  .app:not([data-mobile="projects"]) .compose{display:none}
+  /* You */
+  .you-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px 0 24px}
+  .you-head{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px;text-align:center}
+  .you-head h1{margin:8px 0 0;font-size:22px;line-height:28px;font-weight:400;overflow-wrap:anywhere}
+  .you-head p{margin:0;color:var(--text-3);overflow-wrap:anywhere}
+  .you-title{margin:16px 16px 4px;font-size:14px;line-height:20px;font-weight:500;color:var(--text-2)}
+  .you-list{display:flex;flex-direction:column}
+  .you-row{display:flex;align-items:center;gap:16px;min-height:64px;padding:8px 16px;text-align:left;color:var(--text)}
+  .you-row:active{background:var(--press)}
+  .you-row>.ms{color:var(--text-3)}
+  .you-row.on>.ms{color:var(--primary)}
+  .you-text{flex:1;min-width:0;display:flex;flex-direction:column}
+  .you-text strong{font-weight:400;font-size:16px;line-height:24px}
+  .you-text small{font-size:13px;line-height:18px;color:var(--text-3)}
+  .you-icon{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--surface-1);color:var(--text-2);flex:none}
+  .you-theme{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:8px 16px;border:1px solid var(--outline);border-radius:var(--r-pill);overflow:hidden}
+  .you-theme button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;font-weight:500;color:var(--text-2)}
+  .you-theme button+button{border-left:1px solid var(--outline)}
+  .you-theme button.on{background:var(--primary-soft);color:var(--on-primary-soft)}
+  .hm-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%}
+  .concept{min-height:40px}
+  /* snackbars */
+  .toasts{bottom:calc(var(--kb,0px) + 72px + env(safe-area-inset-bottom))}
+  body:has(.app[data-mobile="pane"]) .toasts{bottom:calc(var(--kb,0px) + 64px + env(safe-area-inset-bottom))}
+}
+
+/* ---- Touch, at any size: targets you can hit, feedback under the finger, no double-tap zoom ---- */
+@media (pointer:coarse){
+  html{-webkit-text-size-adjust:100%}
+  body{overscroll-behavior:none}
+  button,a,[role="tab"],label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .icon-btn{min-width:40px;min-height:40px}
+  .btn,.btn.s,.chip{min-height:40px}
+  .menu-item{min-height:48px}
+  .concept{min-height:40px}
+  .brand-home{height:40px}
+  .search{height:40px}
+  .search input{height:100%}
+  .try li button{min-height:48px}
+  .try-fab{height:40px}
+  input,textarea,select{font-size:16px}/* under 16, iOS zooms on focus */
+  .splitter::after{background:var(--outline)}
+}
+
+/* ---- Bottom sheets: the phone, and a screen too short for a popover ---- */
+@media (max-width:599px),(max-height:480px) and (max-width:1279px){
+  .menu{position:fixed!important;top:auto!important;bottom:0!important;left:0!important;right:0!important;margin-inline:auto;width:min(100%,640px);max-width:none;max-height:min(70dvh,calc(100dvh - var(--kb,0px) - 16px));padding:0 0 calc(12px + env(safe-area-inset-bottom));border-radius:28px 28px 0 0;box-shadow:0 0 0 100vmax rgba(0,0,0,.32);animation:sheet-up var(--t-slow) var(--ease-out);transform-origin:bottom}
+  .menu::before{content:'';display:block;width:32px;height:4px;margin:12px auto 8px;border-radius:2px;background:var(--outline)}
+  .menu-item{min-height:52px;padding:6px 24px;gap:16px}
+  .scrim{align-items:flex-end}
+  .dialog{width:min(100%,640px)!important;max-height:min(92dvh,calc(100dvh - var(--kb,0px) - 16px));margin-bottom:var(--kb,0px);padding:0 20px calc(16px + env(safe-area-inset-bottom));border-radius:28px 28px 0 0;animation:sheet-up var(--t-slow) var(--ease-out)}
+  .dialog::before{content:'';display:block;flex:none;width:32px;height:4px;margin:12px auto 16px;border-radius:2px;background:var(--outline)}
+  .dialog-title{font-size:22px;line-height:28px;margin-bottom:12px}
+  .dialog-foot{margin-top:16px}
+  .dialog-foot .btn{flex:1 1 auto}
+  .tpl{min-height:88px}
+}
+@keyframes sheet-up{from{transform:translateY(100%)}}
+/* a snackbar stays clear of the call controls, hang-up first */
+@media (max-width:1279px){
+  body:has(.rp-view:not([hidden]) .cv-stage) .toasts,body:has(.cv-guest-stage) .toasts{bottom:calc(92px + env(safe-area-inset-bottom))}
+}

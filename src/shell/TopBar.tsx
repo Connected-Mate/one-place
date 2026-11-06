@@ -19,7 +19,7 @@ const msgText = (m: Message, l: 'fr' | 'en') => {
   }
 }
 
-function Search() {
+function Search({ lead, trail }: { lead?: React.ReactNode; trail?: React.ReactNode }) {
   const t = useT()
   const lang = useStore((s) => s.lang)
   const projects = useStore((s) => s.projects)
@@ -70,6 +70,7 @@ function Search() {
 
   return (
     <form ref={wrap} className={`search${showPanel ? ' open' : ''}`} role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim().length >= 2) go(sel) }}>
+      {lead}
       <Icon name="search" className="search-icon" />
       <input
         ref={input} value={q} aria-label={t({ fr: 'Rechercher', en: 'Search' })}
@@ -82,6 +83,7 @@ function Search() {
         }}
       />
       {q ? <IconButton icon="close" size={32} label={t({ fr: 'Effacer', en: 'Clear' })} onClick={() => { setQ(''); input.current?.focus() }} /> : <kbd className="search-kbd" aria-hidden="true">{navigator.platform.includes('Mac') ? '⌘K' : 'Ctrl K'}</kbd>}
+      {!q && trail}
       {showPanel && (
         <div className="search-panel">
           <ul role="listbox" aria-label={t({ fr: 'Résultats', en: 'Results' })}>
@@ -105,27 +107,32 @@ function Search() {
   )
 }
 
-export function TopBar({ onAbout }: { onAbout: () => void }) {
+export const PERSONAS = [
+  { id: ME_ID, role: { fr: 'Responsable du projet', en: 'Project owner' }, hint: { fr: 'Décide', en: 'Decides' } },
+  { id: 'tom', role: { fr: 'Membre', en: 'Member' }, hint: { fr: 'Propose', en: 'Proposes' } },
+  { id: 'nora', role: { fr: 'Invitée à un appel', en: 'Guest on one call' }, hint: { fr: 'Appel seul', en: 'Call only' } },
+]
+
+export function TopBar({ onAbout, onMenu }: { onAbout: () => void; onMenu: () => void }) {
   const t = useT()
   const viewer = useViewer()
   const theme = useStore((s) => s.theme)
   const s = useStore.getState()
-  const personas = [
-    { id: ME_ID, role: { fr: 'Responsable du projet', en: 'Project owner' }, hint: { fr: 'Décide', en: 'Decides' } },
-    { id: 'tom', role: { fr: 'Membre', en: 'Member' }, hint: { fr: 'Propose', en: 'Proposes' } },
-    { id: 'nora', role: { fr: 'Invitée à un appel', en: 'Guest on one call' }, hint: { fr: 'Appel seul', en: 'Call only' } },
-  ]
   return (
     <header className="topbar">
       <div className="brand">
         <span className="only-wide"><IconButton icon="menu" size={36} label={t({ fr: 'Réduire les projets', en: 'Collapse projects' })} onClick={() => s.toggleRail()} /></span>
+        <span className="only-tablet"><IconButton icon="menu" label={t({ fr: 'Ouvrir les projets', en: 'Open projects' })} onClick={onMenu} /></span>
         <button type="button" className="brand-home" onClick={() => s.goHome()} aria-label={t({ fr: 'One Place, accueil', en: 'One Place, home' })}>
           <Logo size={26} />
           <span className="wordmark">One Place</span>
         </button>
-        <button type="button" className="concept" onClick={onAbout} title={t({ fr: 'À propos de ce concept', en: 'About this concept' })}>{t({ fr: 'Concept', en: 'Concept' })}</button>
+        <button type="button" className="concept" onClick={onAbout} title={t({ fr: 'À propos de ce concept', en: 'About this concept' })}><span>{t({ fr: 'Concept', en: 'Concept' })}</span></button>
       </div>
-      <Search />
+      <Search
+        lead={<button type="button" className="search-lead" onClick={() => s.goHome()} aria-label={t({ fr: 'One Place, accueil', en: 'One Place, home' })}><Logo size={24} /></button>}
+        trail={<button type="button" className="search-you" onClick={() => s.setMobilePane('you')} aria-label={t({ fr: 'Votre compte et les réglages', en: 'You and settings' })}><Avatar person={viewer} size={32} /></button>}
+      />
       <div className="top-actions">
         {viewer.id !== ME_ID && (
           <Button size="s" variant="tonal" icon="visibility" className="viewing" onClick={() => s.setViewer(ME_ID)} title={t({ fr: 'Revenir à Alex', en: 'Back to Alex' })}>
@@ -136,7 +143,7 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
           align="right"
           items={[
             { label: <span className="menu-section">{t({ fr: 'Voir la démo en tant que', en: 'View the demo as' })}</span>, disabled: true },
-            ...personas.map((p) => ({ icon: <Avatar id={p.id} size={28} />, label: <span className="persona"><strong>{personById(p.id).name}</strong><small>{t(p.role)}</small></span>, selected: viewer.id === p.id, onSelect: () => s.setViewer(p.id) })),
+            ...PERSONAS.map((p) => ({ icon: <Avatar id={p.id} size={28} />, label: <span className="persona"><strong>{personById(p.id).name}</strong><small>{t(p.role)}</small></span>, selected: viewer.id === p.id, onSelect: () => s.setViewer(p.id) })),
             { divider: true, label: '' },
             { icon: 'info', label: t({ fr: 'À propos de ce concept', en: 'About this concept' }), onSelect: onAbout },
             { divider: true, label: '' },

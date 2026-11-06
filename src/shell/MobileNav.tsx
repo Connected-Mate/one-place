@@ -10,11 +10,11 @@ export function MobileNav() {
   const set = useStore((s) => s.setMobilePane)
   const goHome = useStore((s) => s.goHome)
   const needs = useNeeds().count
+  // The app's three places. Inside a project this bar steps aside: ProjectBar has the back arrow and Chat / Board.
   const items: { id: MobilePane | 'home'; icon: string; label: { fr: string; en: string } }[] = [
     { id: 'home', icon: 'home', label: { fr: 'Accueil', en: 'Home' } },
     { id: 'projects', icon: 'folder', label: { fr: 'Projets', en: 'Projects' } },
-    { id: 'chat', icon: 'chat_bubble', label: { fr: 'Chat', en: 'Chat' } },
-    { id: 'pane', icon: 'dashboard', label: { fr: 'Tableau', en: 'Board' } },
+    { id: 'you', icon: 'account_circle', label: { fr: 'Vous', en: 'You' } },
   ]
   return (
     <nav className="mobile-nav" aria-label={t({ fr: 'Navigation', en: 'Navigation' })}>

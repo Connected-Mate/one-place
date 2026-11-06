@@ -138,4 +138,4 @@ export interface CallState {
 
 /** What the right-hand pane shows: the shared board, an open document, or the live call. */
 export type PaneView = { type: 'board' } | { type: 'artifact'; id: string } | { type: 'call' }
-export type MobilePane = 'projects' | 'chat' | 'pane'
+export type MobilePane = 'projects' | 'you' | 'chat' | 'pane'
