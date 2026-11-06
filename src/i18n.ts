@@ -10,7 +10,7 @@ export function useT() {
 }
 export { detectLang } from './lang'
 const locale = (l: Lang) => (l === 'fr' ? 'fr-FR' : 'en-US')
-export const fmtTime = (at: number, l: Lang) => new Date(at).toLocaleTimeString(locale(l), { hour: '2-digit', minute: '2-digit' })
+export const fmtTime = (at: number, l: Lang) => new Date(at).toLocaleTimeString(locale(l), { hour: 'numeric', minute: '2-digit' })
 export const fmtDate = (at: number, l: Lang) => new Date(at).toLocaleDateString(locale(l), { day: 'numeric', month: 'short' })
 export const fmtDay = (at: number, l: Lang) => {
   const d = new Date(at), n = new Date()
