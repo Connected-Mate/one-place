@@ -204,7 +204,8 @@ button.file-card:hover{background:var(--surface-2)}
 .composer.is-private .composer-send:not(:disabled){color:var(--private-line)}
 
 /* mention input: the mirror draws the text, the textarea on top only holds the caret */
-.mi{position:relative;flex:1;min-width:0}
+.mi{position:relative;flex:1;min-width:0;display:flex;align-items:flex-end;gap:2px}
+.mi-stack{flex:1;min-width:0}
 .mi-stack{display:grid;max-height:160px;overflow:hidden;min-height:40px}
 .mi-mirror,.mi-input{grid-area:1/1;margin:0;border:0;padding:10px 4px;font:inherit;line-height:20px;white-space:pre-wrap;overflow-wrap:anywhere;width:100%;min-width:0;letter-spacing:normal}
 .mi-mirror{color:var(--text);pointer-events:none;overflow:hidden;max-height:160px}
@@ -217,6 +218,34 @@ button.file-card:hover{background:var(--surface-2)}
 .mention-menu li.active{background:var(--hover)}
 .mention-name{font-weight:500;flex:none;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mention-hint{font-size:12px;color:var(--text-3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Gemini writing tools */
+.wt-spark{flex:none;width:32px;height:32px;margin-bottom:4px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background var(--t-fast) var(--ease)}
+.wt-spark:hover,.wt-spark.on{background:var(--hover)}
+.wt-spark:active{background:var(--press)}
+.mi-shimmer{background:var(--gemini);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:wt-shimmer 900ms linear infinite}
+/* while Gemini rewrites, the shimmer shows through the selection */
+.mi-input.working::selection{background:transparent}
+.wt-panel{z-index:95;width:360px;max-width:calc(100vw - 16px);background:var(--panel);border-radius:var(--r-l);box-shadow:var(--shadow-2),0 0 0 1px var(--hairline);padding:8px;display:flex;flex-direction:column;gap:6px;animation:wt-in var(--t) var(--ease-out);transform-origin:bottom center}
+.wt-panel.wt-working,.wt-panel.wt-undo{width:auto}
+.wt-ask{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:var(--r-pill);background:var(--surface-1)}
+.wt-ask-input{flex:1;min-width:0;border:0;background:none;outline:none;color:var(--text);font-size:13px}
+.wt-ask-input::placeholder{color:var(--text-3)}
+.wt-ask:focus-within{box-shadow:inset 0 0 0 1.5px var(--primary)}
+.wt-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.wt-chip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:var(--r-pill);font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap;transition:background var(--t-fast) var(--ease)}
+.wt-chip:hover{background:var(--hover)}
+.wt-chip:active{background:var(--press)}
+.wt-working{display:flex;align-items:center;gap:8px;padding:6px 8px;font-size:13px}
+.wt-result{display:flex;flex-direction:column;gap:8px;padding:2px 4px 4px;min-width:0}
+.wt-head{display:flex;align-items:center;gap:8px;min-height:28px;min-width:0}
+.wt-title{flex:1;min-width:0;font-size:12px;font-weight:500;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wt-line{flex:1;min-width:0;color:var(--text)}
+.wt-text{color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow-y:auto}
+.wt-actions{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.wt-undo{display:flex;align-items:center;gap:8px;padding:0 4px 0 10px;font-size:13px;color:var(--text-2);white-space:nowrap}
+@keyframes wt-in{from{opacity:0;transform:translateY(4px) scale(.98)}}
+@keyframes wt-shimmer{from{background-position:0 0}to{background-position:200% 0}}
 
 /* meeting dialog */
 .field-label{font-size:12px;color:var(--text-3)}
@@ -251,6 +280,12 @@ button.file-card:active{background:var(--surface-3)}
   .to-switch{height:36px}
 }
 @media (max-width:600px){
+  .wt-panel{width:auto;max-width:none}
+  .wt-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -8px;padding:0 8px}
+  .wt-chips::-webkit-scrollbar{display:none}
+  .wt-chip{min-height:40px;flex:none}
+  .wt-ask{height:44px}
+  .wt-spark{width:40px;height:40px;margin-bottom:0}
   .chat-head{padding-left:16px}
   .chat-log-inner{padding:8px 10px}
   .composer{padding:4px 8px 8px}

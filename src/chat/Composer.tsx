@@ -159,14 +159,14 @@ export function Composer({ project }: { project: Project }) {
   const onLeave = () => {
     const hide = () => { setFocused(false); setJustSent(false) }
     if (!pointerDown.current) { hide(); return }
-    window.addEventListener('pointerup', () => setTimeout(() => { if (!rootRef.current?.contains(document.activeElement)) hide() }, 0), { once: true })
+    window.addEventListener('pointerup', () => setTimeout(() => { if (!rootRef.current?.contains(document.activeElement) && !document.activeElement?.closest('.wt-panel')) hide() }, 0), { once: true })
   }
   useEffect(() => {
     const down = () => { pointerDown.current = true }
     // A menu or a dialog of the composer can close without giving the focus back: a press elsewhere still means "left".
     const up = () => {
       pointerDown.current = false
-      setTimeout(() => { if (!rootRef.current?.contains(document.activeElement) && !document.querySelector('.menu,.scrim')) { setFocused(false); setJustSent(false) } }, 0)
+      setTimeout(() => { if (!rootRef.current?.contains(document.activeElement) && !document.querySelector('.menu,.scrim,.wt-panel')) { setFocused(false); setJustSent(false) } }, 0)
     }
     window.addEventListener('pointerdown', down, true)
     window.addEventListener('pointerup', up, true)
@@ -221,7 +221,7 @@ export function Composer({ project }: { project: Project }) {
       ref={rootRef}
       className={`composer${isPrivate ? ' is-private' : ''}${mailReply ? ' is-mail' : ''}`}
       onFocus={() => setFocused(true)}
-      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onLeave() }}
+      onBlur={(e) => { const to = e.relatedTarget as Element | null; if (!e.currentTarget.contains(to) && !to?.closest?.('.wt-panel')) onLeave() }}
     >
       {showChips && <SuggestionChips project={project} quoteId={shownQuote?.id} onPick={pickSuggestion} />}
 

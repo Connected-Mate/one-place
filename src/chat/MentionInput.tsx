@@ -7,8 +7,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useT } from '../i18n'
 import { GEMINI_ID, personById, useStore } from '../store'
-import { Avatar } from '../ui/kit'
+import { Avatar, Sparkle } from '../ui/kit'
 import { normalize } from './gemini'
+import { useWritingTools, WritingPanel } from './WritingTools'
 
 interface Props {
   pid: string
@@ -25,6 +26,21 @@ interface Props {
 function queryAt(value: string, caret: number) {
   const m = value.slice(0, caret).match(/(?:^|[\s(])@([\p{L}\p{N}._-]*)$/u)
   return m ? { query: m[1], start: caret - m[1].length - 1 } : null
+}
+
+/** Draws the text; while Gemini works, the range it's rewriting shimmers. Offsets stay those of the textarea. */
+function renderMirror(pieces: (string | { m: string })[] | null, shimmer: [number, number] | null) {
+  if (!pieces) return null
+  let at = 0
+  return pieces.flatMap((x, i) => {
+    const text = typeof x === 'string' ? x : x.m
+    const from = at; at += text.length
+    const cls = typeof x === 'string' ? '' : 'mi-mention'
+    const wrap = (t: string, k: string, extra = '') => (cls || extra ? <span key={k} className={`${cls} ${extra}`.trim()}>{t}</span> : t)
+    if (!shimmer || shimmer[1] <= from || shimmer[0] >= at) return [wrap(text, `${i}`)]
+    const a = Math.max(shimmer[0], from) - from; const z = Math.min(shimmer[1], at) - from
+    return [wrap(text.slice(0, a), `${i}a`), wrap(text.slice(a, z), `${i}b`, 'mi-shimmer'), wrap(text.slice(z), `${i}c`)].filter((p) => p !== '')
+  })
 }
 
 export function MentionInput({ pid, value, onChange, onSubmit, onEscape, label, placeholder, autoFocus, inputRef }: Props) {
@@ -54,6 +70,9 @@ export function MentionInput({ pid, value, onChange, onSubmit, onEscape, label, 
   const menuOpen = focused && !dismissed && !!found && options.length > 0
   const current = Math.min(active, Math.max(0, options.length - 1))
 
+  const tools = useWritingTools({ pid, value, onChange, input: ref, blocked: menuOpen })
+  const open = tools.state
+
   useEffect(() => { setActive(0) }, [found?.query])
   useEffect(() => { if (autoFocus) ref.current?.focus() }, [autoFocus, ref])
   // after any value change (typed or set from outside), follow the real caret so the list opens or closes correctly
@@ -75,6 +94,17 @@ export function MentionInput({ pid, value, onChange, onSubmit, onEscape, label, 
   }
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing) return
+    if (open) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); tools.close(); return }
+      // the arrows without Shift, or Tab, go to the tools. With Shift they keep extending the selection.
+      if ((e.key === 'Tab' || e.key === 'ArrowDown') && !e.shiftKey && open.mode !== 'working') {
+        e.preventDefault()
+        const from = document.querySelector('.wt-panel')
+        ;(from?.querySelector<HTMLElement>('[data-wt-primary]') ?? from?.querySelector<HTMLElement>('.wt-chip') ?? from?.querySelector<HTMLElement>('[data-wt-item]'))?.focus()
+        return
+      }
+      if (e.key === 'Enter' && !e.shiftKey) tools.close() // sending with the tools open just sends
+    }
     if (menuOpen) {
       if (e.key === 'ArrowDown') { e.preventDefault(); setActive((current + 1) % options.length); return }
       if (e.key === 'ArrowUp') { e.preventDefault(); setActive((current - 1 + options.length) % options.length); return }
@@ -118,12 +148,12 @@ export function MentionInput({ pid, value, onChange, onSubmit, onEscape, label, 
       )}
       <div className="mi-stack">
         <div ref={mirror} className="mi-mirror" aria-hidden="true">
-          {pieces?.map((x, i) => (typeof x === 'string' ? x : <span key={i} className="mi-mention">{x.m}</span>))}
+          {renderMirror(pieces, open?.mode === 'working' ? [open.start, open.end] : null)}
           {'​'}
         </div>
         <textarea
           ref={ref}
-          className="mi-input"
+          className={`mi-input${open?.mode === 'working' ? ' working' : ''}`}
           rows={1}
           value={value}
           placeholder={placeholder}
@@ -135,13 +165,19 @@ export function MentionInput({ pid, value, onChange, onSubmit, onEscape, label, 
           aria-controls={menuOpen ? listId : undefined}
           aria-activedescendant={menuOpen ? `${listId}-${current}` : undefined}
           onChange={(e) => { setDismissed(false); setCaret(e.target.selectionStart ?? 0); onChange(e.target.value) }}
-          onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+          onSelect={(e) => { setCaret(e.currentTarget.selectionStart ?? 0); tools.onSelect() }}
+          onPointerDown={tools.onPointerDown}
           onKeyDown={onKey}
           onFocus={() => { setFocused(true); setDismissed(false) }}
           onBlur={() => setFocused(false)}
           onScroll={(e) => { if (mirror.current) mirror.current.scrollTop = e.currentTarget.scrollTop }}
         />
       </div>
+      {tools.canWhole && (
+        <button type="button" className={`wt-spark${open?.whole ? ' on' : ''}`} aria-label={t({ fr: 'Réécrire avec Gemini', en: 'Rewrite with Gemini' })} title={t({ fr: 'Réécrire avec Gemini', en: 'Rewrite with Gemini' })}
+          aria-expanded={!!open} onMouseDown={(e) => e.preventDefault()} onClick={tools.openWhole}><Sparkle size={18} /></button>
+      )}
+      <WritingPanel tools={tools} input={ref} mirror={mirror} />
     </div>
   )
 }
