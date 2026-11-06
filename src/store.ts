@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { GEMINI_ID, ME_ID, people, seedProjects, SEED_VERSION } from './data/seed'
 import type { Block, CallState, Lang, Message, MobilePane, PaneView, Person, Project, Todo, Txt, Visibility } from './data/types'
-import { detectLang } from './i18n'
+import { detectLang } from './lang'
 
 export const uid = (p = 'id') => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 export type Theme = 'auto' | 'light' | 'dark'

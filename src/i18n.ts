@@ -8,13 +8,7 @@ export function useT() {
   const lang = useStore((s) => s.lang)
   return (v: Txt | undefined) => tx(v, lang)
 }
-export const detectLang = (): Lang => {
-  try {
-    const q = new URLSearchParams(location.search).get('lang')
-    if (q === 'fr' || q === 'en') return q
-  } catch { /* ignore */ }
-  return typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('fr') ? 'fr' : 'en'
-}
+export { detectLang } from './lang'
 const locale = (l: Lang) => (l === 'fr' ? 'fr-FR' : 'en-US')
 export const fmtTime = (at: number, l: Lang) => new Date(at).toLocaleTimeString(locale(l), { hour: '2-digit', minute: '2-digit' })
 export const fmtDate = (at: number, l: Lang) => new Date(at).toLocaleDateString(locale(l), { day: 'numeric', month: 'short' })
