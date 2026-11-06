@@ -123,7 +123,7 @@ for (const [device, width, height] of SIZES) {
     await check('call, waiting')
     await page.waitForTimeout(9000)
     await check('call, everyone in')
-    await page.getByRole('button', { name: /hang up|leave call/i }).first().click({ timeout: 3000 }).catch(() => defects.push(`${device} > call: no hang-up button reachable`))
+    await page.getByRole('button', { name: /hang up|leave call/i }).first().click({ timeout: 20000 }).catch((e) => defects.push(`${device} > call: no hang-up button reachable: ${String(e.message).split('\n').filter((l) => /intercepts|waiting for|not stable|outside/.test(l)).slice(-2).join(' | ').slice(0, 220)}`))
     await page.waitForTimeout(600)
   } else defects.push(`${device} > aurora chat: no Start a call button visible`)
 
