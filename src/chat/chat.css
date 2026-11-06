@@ -74,9 +74,7 @@
 .k-doc{color:var(--blue)}.k-sheet{color:var(--green)}.k-slides{color:var(--yellow)}.k-pdf{color:var(--red)}
 
 /* mail */
-.mail-card{border-left:3px solid var(--primary)}
-.mail-card.out{border-left-color:var(--green-strong)}
-.mail-card.draft{background:var(--private);border-left-color:var(--private-line)}
+.mail-card.draft{background:var(--private)}
 .mail-tag{display:flex;gap:6px;align-items:flex-start;font-size:12px;line-height:16px;font-weight:500;color:var(--primary)}
 .mail-tag .ms{margin-top:0}
 .mail-card.out .mail-tag{color:var(--green-strong)}

@@ -66,7 +66,7 @@ function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string
       <div className="mail-tag">
         <Icon name={draft ? 'edit_note' : m.direction === 'in' ? 'mail' : 'forward_to_inbox'} size={16} />
         <span>{draft
-          ? t({ fr: `Brouillon de mail pour ${outName}, pas encore envoyé`, en: `Draft mail to ${outName}, not sent yet` })
+          ? t({ fr: `Brouillon de mail pour ${outName}, pas encore envoyé`, en: `Draft to ${outName}, not sent yet` })
           : m.direction === 'in'
             ? t({ fr: `Mail reçu, envoyé à ${address}`, en: `Mail received, sent to ${address}` })
             : t({ fr: `Envoyé par mail à ${outName}, pas besoin de compte pour le recevoir`, en: `Sent by mail to ${outName}, they do not need an account` })}</span>
@@ -113,11 +113,11 @@ function GuestDialog({ m, pid, onClose }: { m: MeetingMessage; pid: string; onCl
   }
   return (
     <Dialog title={t({ fr: 'Inviter à cet appel', en: 'Invite to this call' })} onClose={onClose} footer={<><Button onClick={onClose}>{t({ fr: 'Annuler', en: 'Cancel' })}</Button><Button variant="filled" onClick={add}>{t({ fr: 'Inviter', en: 'Invite' })}</Button></>}>
-      <p className="dialog-note">{t({ fr: 'Cette personne rejoint uniquement cet appel. Elle ne verra ni le chat ni le board.', en: 'This person joins this call only. They will not see the chat or the board.' })}</p>
+      <p className="dialog-note">{t({ fr: 'Cette personne rejoint uniquement cet appel. Elle ne verra ni le chat ni le board.', en: 'This person joins this call only. They won’t see the chat or the board.' })}</p>
       <div className="field">
         <label htmlFor="guest-mail">{t({ fr: 'Adresse mail', en: 'Email address' })}</label>
-        <input id="guest-mail" data-autofocus className={`input${bad ? ' bad' : ''}`} type="email" value={email} aria-invalid={bad} onChange={(e) => { setEmail(e.target.value); setBad(false) }} onKeyDown={(e) => { if (e.key === 'Enter') add() }} placeholder="nora@example.org" />
-        {bad && <span className="field-err" role="alert">{t({ fr: 'Cette adresse ne semble pas valide.', en: 'This address does not look valid.' })}</span>}
+        <input id="guest-mail" data-autofocus className={`input${bad ? ' bad' : ''}`} type="email" value={email} aria-invalid={bad} onChange={(e) => { setEmail(e.target.value); setBad(false) }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add() } }} placeholder="nora@example.org" />
+        {bad && <span className="field-err" role="alert">{t({ fr: 'Cette adresse ne semble pas valide.', en: 'That address doesn’t look valid.' })}</span>}
       </div>
     </Dialog>
   )
@@ -233,7 +233,7 @@ function ProposalCard({ m, pid, viewerId, ownerId }: { m: ProposalMessage; pid: 
     if (!approved) return
     const a = m.action
     const blockId = a.type === 'add-block' ? a.block.id : a.type === 'none' ? undefined : a.blockId
-    s.toast({ icon: 'check_circle', text: { fr: 'C’est sur le board', en: 'It is on the board' }, action: { label: { fr: 'Voir', en: 'View' }, run: () => goBoard(pid, blockId) } })
+    s.toast({ icon: 'check_circle', text: { fr: 'C’est sur le board', en: 'It’s on the board' }, action: { label: { fr: 'Voir', en: 'View' }, run: () => goBoard(pid, blockId) } })
   }
   const decider = m.decidedBy ? firstName(m.decidedBy) : ''
   return (

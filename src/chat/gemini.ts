@@ -182,7 +182,7 @@ function planTodo(ctx: Ctx, p: Project): Plan {
     }
   }
   return {
-    say: both((l) => (l === 'fr' ? `Ce projet n’a pas encore de liste de tâches. J’en propose une à ${ownerName(p)}, avec **${text}** dedans.` : `This project has no to-do list yet. I am proposing one to ${ownerName(p)}, with **${text}** in it.`)),
+    say: both((l) => (l === 'fr' ? `Ce projet n’a pas encore de liste de tâches. J’en propose une à ${ownerName(p)}, avec **${text}** dedans.` : `This project has no to-do list yet. I’m proposing one to ${ownerName(p)}, with **${text}** in it.`)),
     after: () => postProposal(ctx, p, { fr: 'Ajouter une liste de tâches', en: 'Add a to-do list' }, both((l) => (l === 'fr' ? `Avec une première tâche : ${text}.` : `With a first to-do: ${text}.`)), { type: 'add-block', block: fresh }),
   }
 }
@@ -315,7 +315,7 @@ function planDoc(ctx: Ctx, p: Project): Plan {
       const files = p.blocks.find((b) => b.type === 'files')
       if (isPublic && files?.type === 'files') get().patchBlock(ctx.pid, files.id, { artifactIds: [art.id, ...files.artifactIds] } as Partial<Block>)
     },
-    say: both((l) => (l === 'fr' ? `Voici un premier jet : **${title.fr}**. Il est ouvert à côté, l’équipe peut le reprendre.` : `Here is a first draft: **${title.en}**. It is open next to the chat, ready for the team.`)),
+    say: both((l) => (l === 'fr' ? `Voici un premier jet : **${title.fr}**. Il est ouvert à côté, l’équipe peut le reprendre.` : `Here is a first draft: **${title.en}**. It’s open next to the chat, ready for the team.`)),
     after: () => {
       get().push(ctx.pid, { id: uid('m'), kind: 'file', authorId: GEMINI_ID, at: Date.now(), visibility: ctx.visibility, artifactId: art.id })
       const s = get()
@@ -351,7 +351,7 @@ function planDraftMail(ctx: Ctx, p: Project): Plan {
   const external = p.externalIds.map(personById).find((x) => x.email && new RegExp(`\\b${normalize(x.name.split(/\s+/)[0])}\\b`).test(ctx.norm))
   const typed = ctx.plain.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]
   const to = typed ?? (external && !named.length ? external.email : target?.from)
-  if (!to) return { say: { fr: 'Aucun mail n’est encore arrivé sur ce projet, et je n’ai pas d’adresse pour écrire. Donne-moi un nom ou une adresse, et je prépare le brouillon.', en: 'No mail has reached this project yet, and I have no address to write to. Give me a name or an address and I will prepare the draft.' } }
+  if (!to) return { say: { fr: 'Aucun mail n’est encore arrivé sur ce projet, et je n’ai pas d’adresse pour écrire. Donne-moi un nom ou une adresse, et je prépare le brouillon.', en: 'No mail has reached this project yet, and I have no address to write to. Give me a name or an address and I’ll prepare the draft.' } }
   const name = mailName(to).split(/\s+/)[0]
   const me = firstName(ctx.viewer)
   const subject: Txt = target && to === target.from
@@ -362,7 +362,7 @@ function planDraftMail(ctx: Ctx, p: Project): Plan {
     const about = target && to === target.from ? tx(target.subject, l) : tx(p.name, l)
     return l === 'fr'
       ? `Bonjour ${name},\n\nMerci pour votre message au sujet de « ${about} ». Nous l’avons bien reçu et l’équipe s’en occupe.${ms ? ` Notre prochaine étape est ${tx(ms.label, 'fr')}, le ${fmtDate(ms.end, 'fr')} : je reviens vers vous d’ici là.` : ' Je reviens vers vous très vite.'}\n\nBien à vous,\n${me}`
-      : `Hi ${name},\n\nThanks for your message about "${about}". We received it and the team is on it.${ms ? ` Our next step is ${tx(ms.label, 'en')}, on ${fmtDate(ms.end, 'en')}: I will get back to you before then.` : ' I will get back to you very soon.'}\n\nBest,\n${me}`
+      : `Hi ${name},\n\nThanks for your message about "${about}". We received it and the team is on it.${ms ? ` Our next step is ${tx(ms.label, 'en')}, on ${fmtDate(ms.end, 'en')}: I’ll get back to you before then.` : ' I’ll get back to you very soon.'}\n\nBest,\n${me}`
   })
   return {
     say: both((l) => (l === 'fr' ? `Le brouillon pour ${name} est prêt juste en dessous. Toi seul le vois tant qu’il n’est pas envoyé.` : `The draft for ${name} is ready just below. Only you can see it until it is sent.`)),
@@ -417,7 +417,7 @@ function planFallback(ctx: Ctx, p: Project): Plan {
   if (/\b(to-?dos?|taches?|tasks?|a faire|reste)\b/.test(n)) {
     return { say: open.length
       ? both((l) => (l === 'fr' ? `Il reste ${plural(open.length, 'fr', 'tâche ouverte', '')} :` : `There ${open.length > 1 ? 'are' : 'is'} ${plural(open.length, 'en', '', 'open to-do')}:`) + `\n${open.slice(0, 4).map((t) => `- ${tx(t.text, l)}${t.assigneeId ? ` (${firstName(t.assigneeId)})` : ''}`).join('\n')}\n${tx(boardLink(p.blocks.find((b) => b.type === 'todo')?.id), l)}`)
-      : { fr: 'Aucune tâche ouverte sur ce projet. Dis-moi quoi ajouter, je m’en occupe.', en: 'No open to-dos on this project. Tell me what to add and I will take care of it.' } }
+      : { fr: 'Aucune tâche ouverte sur ce projet. Dis-moi quoi ajouter, je m’en occupe.', en: 'No open to-dos on this project. Tell me what to add and I’ll take care of it.' } }
   }
   if (/\b(quand|when|prochaine?|next|date|jalon|milestone|deadline|echeance)\b/.test(n)) {
     if (!ms && !meeting) return { say: { fr: 'Aucune date posée pour l’instant. Veux-tu que je construise une frise ou que je cale une réunion ?', en: 'No dates set so far. Shall I build a timeline or book a meeting?' } }
@@ -502,7 +502,7 @@ async function run(ctx: Ctx) {
     if (finished) plan.after?.()
   } catch (e) {
     console.error('Gemini', e)
-    if (stillThere(ctx, mid)) updateMessage(ctx.pid, mid, { text: { fr: 'Je n’ai pas réussi à le faire. Peux-tu reformuler ?', en: 'I could not do that. Could you rephrase?' }, streaming: false } as Partial<Message>)
+    if (stillThere(ctx, mid)) updateMessage(ctx.pid, mid, { text: { fr: 'Je n’ai pas réussi à le faire. Peux-tu reformuler ?', en: 'I couldn’t do that. Could you rephrase?' }, streaming: false } as Partial<Message>)
   } finally {
     inFlight.delete(mid)
   }

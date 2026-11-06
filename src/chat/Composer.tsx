@@ -46,7 +46,7 @@ function MeetingDialog({ pid, onClose }: { pid: string; onClose: () => void }) {
     <Dialog title={t({ fr: 'Planifier une réunion', en: 'Schedule a meeting' })} onClose={onClose} footer={<><Button onClick={onClose}>{t({ fr: 'Annuler', en: 'Cancel' })}</Button><Button variant="filled" onClick={submit}>{t({ fr: 'Planifier', en: 'Schedule' })}</Button></>}>
       <div className="field">
         <label htmlFor="mt-title">{t({ fr: 'Titre', en: 'Title' })}</label>
-        <input id="mt-title" data-autofocus className={`input${err === 'title' ? ' bad' : ''}`} value={title} maxLength={120} onChange={(e) => { setTitle(e.target.value); setErr(null) }} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} />
+        <input id="mt-title" data-autofocus className={`input${err === 'title' ? ' bad' : ''}`} value={title} maxLength={120} onChange={(e) => { setTitle(e.target.value); setErr(null) }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit() } }} />
         {err === 'title' && <span className="field-err" role="alert">{t({ fr: 'Donne un titre à la réunion.', en: 'Give the meeting a title.' })}</span>}
       </div>
       <div className="field">
@@ -95,7 +95,11 @@ export function Composer({ project }: { project: Project }) {
   const focusNonce = useChat((s) => s.focusNonce)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const pointerDown = useRef(false)
   const [focused, setFocused] = useState(false)
+  // after a send the answer is what matters: no chips until the composer is used again
+  const [justSent, setJustSent] = useState(false)
   const [dialog, setDialog] = useState<'meeting' | 'attach' | null>(null)
   const closeDialog = useCallback(() => setDialog(null), [])
 
@@ -123,9 +127,24 @@ export function Composer({ project }: { project: Project }) {
     return () => window.removeEventListener('oneplace:compose', on)
   }, [pid, setDraft])
 
+  // Leaving the composer removes the chips, which moves the log. Wait until the press is over,
+  // otherwise the button under the pointer moves away between mouse down and mouse up and the click is lost.
+  const onLeave = () => {
+    const hide = () => { setFocused(false); setJustSent(false) }
+    if (!pointerDown.current) { hide(); return }
+    window.addEventListener('pointerup', () => setTimeout(() => { if (!rootRef.current?.contains(document.activeElement)) hide() }, 0), { once: true })
+  }
+  useEffect(() => {
+    const down = () => { pointerDown.current = true }
+    const up = () => { pointerDown.current = false }
+    window.addEventListener('pointerdown', down, true)
+    window.addEventListener('pointerup', up, true)
+    window.addEventListener('pointercancel', up, true)
+    return () => { window.removeEventListener('pointerdown', down, true); window.removeEventListener('pointerup', up, true); window.removeEventListener('pointercancel', up, true) }
+  }, [])
+
   const onlyGemini = /^\s*@gemini\s*$/i.test(draft)
-  const hasGemini = /(^|\s)@gemini\b/i.test(draft)
-  const showChips = focused && !mailReply && (draft.trim() === '' || onlyGemini || (!!shownQuote && hasGemini && onlyGemini))
+  const showChips = focused && !mailReply && (onlyGemini || (draft.trim() === '' && !justSent))
   const canSend = mailReply ? !!draft.trim() : !!draft.trim() && !onlyGemini
 
   const clearModes = () => { setPrivateTo(null, null); setMailReply(null) }
@@ -136,12 +155,14 @@ export function Composer({ project }: { project: Project }) {
     }
     if (sendChat(pid, draft, { privateTo, quoteId })) {
       setDraft(pid, '')
+      setJustSent(true)
       setPrivateTo(privateTo, null)
     }
   }
   const pickSuggestion = (text: string) => {
     if (sendChat(pid, `@Gemini ${text}`, { privateTo, quoteId })) {
       setDraft(pid, '')
+      setJustSent(true)
       setPrivateTo(privateTo, null)
     }
   }
@@ -166,9 +187,10 @@ export function Composer({ project }: { project: Project }) {
 
   return (
     <div
+      ref={rootRef}
       className={`composer${isPrivate ? ' is-private' : ''}${mailReply ? ' is-mail' : ''}`}
       onFocus={() => setFocused(true)}
-      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false) }}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onLeave() }}
     >
       {showChips && <SuggestionChips project={project} quoteId={shownQuote?.id} onPick={pickSuggestion} />}
 

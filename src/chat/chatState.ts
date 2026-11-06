@@ -44,14 +44,14 @@ const projectOf = (pid: string) => st().projects.find((p) => p.id === pid)
 
 /* ---------- people answering ---------- */
 const GENERIC: L[] = [
-  { fr: 'Bien reçu, je regarde ça ce matin.', en: 'Got it, I will look at this today.' },
-  { fr: 'Ok pour moi. Je m’en occupe et je vous tiens au courant ici.', en: 'Works for me. I will take it and keep you posted here.' },
-  { fr: 'Bonne idée. Je relis et je reviens vers toi avant ce soir.', en: 'Good idea. I will read it through and get back to you by tonight.' },
+  { fr: 'Bien reçu, je regarde ça ce matin.', en: 'Got it, I’ll look at this today.' },
+  { fr: 'Ok pour moi. Je m’en occupe et je vous tiens au courant ici.', en: 'Works for me. I’ll take it and keep you posted here.' },
+  { fr: 'Bonne idée. Je relis et je reviens vers toi avant ce soir.', en: 'Good idea. I’ll read it through and get back to you by tonight.' },
   { fr: 'C’est noté, merci. Je mets ça dans ma liste.', en: 'Noted, thanks. Adding it to my list.' },
 ]
 const PRIVATE_FALLBACK: L[] = [
   { fr: 'Merci de me le dire ici plutôt que devant tout le monde. Je regarde.', en: 'Thanks for telling me here rather than in front of everyone. Looking now.' },
-  { fr: 'Entre nous, je pense que c’est jouable. Je te confirme tout à l’heure.', en: 'Between us, I think it is doable. I will confirm shortly.' },
+  { fr: 'Entre nous, je pense que c’est jouable. Je te confirme tout à l’heure.', en: 'Between us, I think it’s doable. I’ll confirm shortly.' },
 ]
 const cursors = new Map<string, number>()
 const pending = new Map<string, ReturnType<typeof setTimeout>>()
