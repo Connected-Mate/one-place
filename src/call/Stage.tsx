@@ -284,18 +284,25 @@ function Webcam({ person, talking, warm, onBroken }: { person: Person; talking: 
     let phase = Math.random() * 6
     const start = performance.now()
     let nextTiming = 0
+    let envelope = .15
+    let openedAt = 0
     const tick = () => {
       const now = performance.now()
       const level = voiceLevel(id)
       if (now >= holdUntil) {
         let want: boolean
-        if (level != null) want = level > .1
+        if (level != null) {
+          // Syllables, not loudness: the mouth follows peaks above the running average, and never stays open long.
+          envelope = envelope * .9 + level * .1
+          want = level > Math.max(.05, envelope * 1.08) && (!open || now - openedAt < 280)
+        }
         else { // no level to read: an irregular rhythm of syllables
           if (now >= nextTiming) { nextTiming = now + 120 + Math.random() * 210; want = !open } else want = open
         }
         if (want !== open) {
           open = want
-          holdUntil = now + 80 + Math.random() * 90
+          if (open) openedAt = now
+          holdUntil = now + 110 + Math.random() * 90
           if (talk.current) talk.current.style.opacity = open ? '1' : '0'
         }
       }
