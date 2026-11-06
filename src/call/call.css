@@ -166,7 +166,7 @@
   .cv-ctl.narrow-only{display:inline-flex}
 }
 @container cvstage (max-width:520px){
-  .cv-notes-text{display:none}
+  .cv-notes-text{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .cv-notes{padding:0;width:28px;justify-content:center}
   .cv-top{padding:10px 12px;gap:8px}
   .cv-body{padding:0 8px}
@@ -272,3 +272,7 @@
 
 /* The demo's floating "Things to try" must never sit on the call controls. */
 .app:has(.rp-view:not([hidden]) .cv-stage) :is(.try,.try-fab){display:none}
+
+/* In the project the pane's "Call" tab already shows the time: one clock, not two out of step. */
+.rp-view :is(.cv-timer,.cv-bar-time,.cv-bar-sep){display:none}
+.cv-preview .cv-face{width:min(44cqmin,170px);height:min(44cqmin,170px);margin-bottom:8cqmin}

@@ -128,7 +128,7 @@ export function endCall() {
     live: false, ended: true,
     durationMin: Math.max(1, Math.round((Date.now() - call.startedAt) / 60000)),
     attendeeIds: call.participantIds,
-    guestEmails: call.guests.map((g) => g.email),
+    guestEmails: [...new Set([...(meeting.guestEmails ?? []), ...call.guests.map((g) => g.email)])],
   } as Partial<Message>)
   const writeupId = WRITEUP_PREFIX + meeting.id
   s.push(call.projectId, {
