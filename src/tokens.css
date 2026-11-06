@@ -1,0 +1,84 @@
+/* Fonts self-hosted: no request to Google from the visitor's browser (GDPR). */
+@font-face{font-family:'Google Sans';src:url('/one-place/fonts/gs-latin.woff2') format('woff2');font-weight:400 700;font-display:swap;unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Google Sans';src:url('/one-place/fonts/gs-latin-ext.woff2') format('woff2');font-weight:400 700;font-display:swap;unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'Material Symbols Outlined';src:url('/one-place/fonts/material-symbols.woff2') format('woff2');font-weight:400;font-display:block}
+
+/* ---- Measured on Gmail, 06/11/2026 (see DESIGN.md) ---- */
+:root{
+  --font:'Google Sans',Roboto,Helvetica,Arial,sans-serif;
+  /* surfaces */
+  --bg:#f8fafd;            /* body behind panels */
+  --panel:#ffffff;         /* main white panels */
+  --surface-1:#f2f6fc;     /* read row / subtle block */
+  --surface-2:#e9eef6;     /* search pill, composer */
+  --surface-3:#dde3ea;
+  --hover:rgba(68,71,70,.08);
+  --press:rgba(68,71,70,.12);
+  --hairline:rgba(100,121,143,.12);
+  --outline:#c4c7c5;
+  /* text */
+  --text:#1f1f1f;
+  --text-2:#444746;
+  --text-3:#5f6368;
+  --text-disabled:rgba(31,31,31,.38);
+  /* accent */
+  --primary:#0b57d0;
+  --on-primary:#ffffff;
+  --primary-soft:#d3e3fd;  /* active nav */
+  --on-primary-soft:#001d35;
+  --compose:#c2e7ff;       /* compose FAB */
+  --on-compose:#001d35;
+  /* Google four colours */
+  --blue:#4285f4; --red:#ea4335; --yellow:#fbbc04; --green:#34a853;
+  --red-strong:#b3261e; --green-strong:#146c2e; --green-soft:#c4eed0; --yellow-soft:#ffefc9; --red-soft:#f9dedc;
+  /* private message tint */
+  --private:#f3e8fd; --private-line:#a142f4; --on-private:#4a148c;
+  /* Gemini */
+  --gemini:linear-gradient(120deg,#4285f4 0%,#9b72cb 55%,#d96570 100%);
+  --gemini-soft:linear-gradient(120deg,rgba(66,133,244,.10),rgba(155,114,203,.10) 55%,rgba(217,101,112,.10));
+  /* call */
+  --call-bg:#202124; --call-surface:#3c4043; --on-call:#e8eaed;
+  /* shape */
+  --r-xs:4px; --r-s:8px; --r-m:12px; --r-l:16px; --r-xl:24px; --r-pill:999px;
+  --shadow-1:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);
+  --shadow-2:0 1px 2px rgba(60,64,67,.3),0 2px 6px 2px rgba(60,64,67,.15);
+  --shadow-3:0 4px 8px 3px rgba(60,64,67,.15),0 1px 3px rgba(60,64,67,.3);
+  /* motion: Material 3 emphasized */
+  --ease:cubic-bezier(.2,0,0,1);
+  --ease-out:cubic-bezier(.05,.7,.1,1);
+  --t-fast:120ms; --t:200ms; --t-slow:350ms;
+  /* layout */
+  --header-h:64px; --rail-w:256px; --rail-w-min:72px; --chat-w:440px; --gap:8px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1b1b1b;--panel:#131314;--surface-1:#1e1f20;--surface-2:#282a2c;--surface-3:#333537;
+  --hover:rgba(227,227,227,.08);--press:rgba(227,227,227,.12);--hairline:rgba(227,227,227,.12);--outline:#444746;
+  --text:#e3e3e3;--text-2:#c4c7c5;--text-3:#9aa0a6;--text-disabled:rgba(227,227,227,.38);
+  --primary:#a8c7fa;--on-primary:#062e6f;--primary-soft:#004a77;--on-primary-soft:#c2e7ff;--compose:#004a77;--on-compose:#c2e7ff;
+  --green-soft:#0f5223;--yellow-soft:#594300;--red-soft:#8c1d18;--green-strong:#6dd58c;--red-strong:#f2b8b5;
+  --private:#2c1a42;--private-line:#c58af9;--on-private:#e9d5ff;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1b1b;--panel:#131314;--surface-1:#1e1f20;--surface-2:#282a2c;--surface-3:#333537;
+  --hover:rgba(227,227,227,.08);--press:rgba(227,227,227,.12);--hairline:rgba(227,227,227,.12);--outline:#444746;
+  --text:#e3e3e3;--text-2:#c4c7c5;--text-3:#9aa0a6;--text-disabled:rgba(227,227,227,.38);
+  --primary:#a8c7fa;--on-primary:#062e6f;--primary-soft:#004a77;--on-primary-soft:#c2e7ff;--compose:#004a77;--on-compose:#c2e7ff;
+  --green-soft:#0f5223;--yellow-soft:#594300;--red-soft:#8c1d18;--green-strong:#6dd58c;--red-strong:#f2b8b5;
+  --private:#2c1a42;--private-line:#c58af9;--on-private:#e9d5ff;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body,#root{height:100%;margin:0}
+body{font-family:var(--font);font-size:14px;line-height:20px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:var(--primary)}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.ms{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;font-size:20px;line-height:1;display:inline-block;white-space:nowrap;direction:ltr;font-feature-settings:'liga';-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20;user-select:none;flex:none}
+.ms.fill{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 20}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:transparent;border-radius:8px}
+:hover::-webkit-scrollbar-thumb{background:var(--outline)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
