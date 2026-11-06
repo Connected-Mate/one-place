@@ -1,0 +1,220 @@
+// The pill at the bottom: who it goes to, what it quotes, suggestions, attachments.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { tx, useT } from '../i18n'
+import { canSee, GEMINI_ID, personById, useStore } from '../store'
+import { Avatar, Button, Dialog, Icon, IconButton, Menu, Sparkle, type MenuItem } from '../ui/kit'
+import type { Project } from '../data/types'
+import { attachFake, newDoc, scheduleMeeting, sendChat, sendMailReply, shareArtifact, suggestionsFor, useChat } from './chatState'
+import { findMessage, firstName, mailAddress, mailName, snippet } from './helpers'
+import { MentionInput } from './MentionInput'
+import { ARTIFACT_ICON } from './Messages'
+
+export function SuggestionChips({ project, quoteId, onPick, className = '' }: { project: Project; quoteId?: string | null; onPick: (text: string) => void; className?: string }) {
+  const t = useT()
+  const quote = quoteId ? findMessage(project, quoteId) : undefined
+  const list = useMemo(() => suggestionsFor(project, quote), [project, quote])
+  return (
+    <div className={`suggestions ${className}`} role="group" aria-label={t({ fr: 'Suggestions pour Gemini', en: 'Suggestions for Gemini' })}>
+      {list.map((s) => (
+        <button key={s.en} type="button" className="suggestion" onMouseDown={(e) => e.preventDefault()} onClick={() => onPick(t(s))}>
+          <Sparkle size={14} />{t(s)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function pad(n: number) { return String(n).padStart(2, '0') }
+function defaultWhen() {
+  const d = new Date(Date.now() + 864e5)
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T10:00`
+}
+function MeetingDialog({ pid, onClose }: { pid: string; onClose: () => void }) {
+  const t = useT()
+  const [title, setTitle] = useState('')
+  const [when, setWhen] = useState(defaultWhen)
+  const [err, setErr] = useState<'title' | 'when' | null>(null)
+  const submit = () => {
+    if (!title.trim()) { setErr('title'); return }
+    const at = new Date(when).getTime()
+    if (!when || Number.isNaN(at) || at < Date.now()) { setErr('when'); return }
+    scheduleMeeting(pid, title.trim(), at, 30)
+    onClose()
+  }
+  return (
+    <Dialog title={t({ fr: 'Planifier une réunion', en: 'Schedule a meeting' })} onClose={onClose} footer={<><Button onClick={onClose}>{t({ fr: 'Annuler', en: 'Cancel' })}</Button><Button variant="filled" onClick={submit}>{t({ fr: 'Planifier', en: 'Schedule' })}</Button></>}>
+      <div className="field">
+        <label htmlFor="mt-title">{t({ fr: 'Titre', en: 'Title' })}</label>
+        <input id="mt-title" data-autofocus className={`input${err === 'title' ? ' bad' : ''}`} value={title} maxLength={120} onChange={(e) => { setTitle(e.target.value); setErr(null) }} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} />
+        {err === 'title' && <span className="field-err" role="alert">{t({ fr: 'Donne un titre à la réunion.', en: 'Give the meeting a title.' })}</span>}
+      </div>
+      <div className="field">
+        <label htmlFor="mt-when">{t({ fr: 'Date et heure', en: 'Date and time' })}</label>
+        <input id="mt-when" type="datetime-local" className={`input${err === 'when' ? ' bad' : ''}`} value={when} onChange={(e) => { setWhen(e.target.value); setErr(null) }} />
+        {err === 'when' && <span className="field-err" role="alert">{t({ fr: 'Choisis une date à venir.', en: 'Pick a date in the future.' })}</span>}
+      </div>
+    </Dialog>
+  )
+}
+function AttachDialog({ project, onClose }: { project: Project; onClose: () => void }) {
+  const t = useT()
+  return (
+    <Dialog title={t({ fr: 'Joindre un document du projet', en: 'Attach a project document' })} onClose={onClose} footer={<Button onClick={onClose}>{t({ fr: 'Fermer', en: 'Close' })}</Button>}>
+      {project.artifacts.length === 0
+        ? <p className="dialog-note">{t({ fr: 'Ce projet n’a pas encore de document. Crée-en un avec le menu +, ou demande à Gemini.', en: 'This project has no documents yet. Create one from the + menu, or ask Gemini.' })}</p>
+        : (
+          <div className="attach-list">
+            {project.artifacts.map((a) => {
+              const k = ARTIFACT_ICON[a.kind]
+              return (
+                <button key={a.id} type="button" className="attach-item" onClick={() => { shareArtifact(project.id, a.id); onClose() }}>
+                  <span className={`file-icon ${k.className}`}><Icon name={k.icon} fill size={20} /></span>
+                  <span className="file-info"><span className="file-title">{t(a.title)}</span><span className="file-meta">{t(k.label)}</span></span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+    </Dialog>
+  )
+}
+
+export function Composer({ project }: { project: Project }) {
+  const t = useT()
+  const pid = project.id
+  const lang = useStore((s) => s.lang)
+  const viewerId = useStore((s) => s.viewerId)
+  const privateTo = useStore((s) => s.privateTo)
+  const quoteId = useStore((s) => s.quoteId)
+  const setPrivateTo = useStore((s) => s.setPrivateTo)
+  const draft = useChat((s) => s.drafts[pid] ?? '')
+  const setDraft = useChat((s) => s.setDraft)
+  const mailReplyRaw = useChat((s) => s.mailReply)
+  const setMailReply = useChat((s) => s.setMailReply)
+  const focusNonce = useChat((s) => s.focusNonce)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [focused, setFocused] = useState(false)
+  const [dialog, setDialog] = useState<'meeting' | 'attach' | null>(null)
+  const closeDialog = useCallback(() => setDialog(null), [])
+
+  const mailReply = mailReplyRaw?.pid === pid ? mailReplyRaw : null
+  const mailSource = mailReply ? findMessage(project, mailReply.messageId) : undefined
+  const mailTarget = mailSource?.kind === 'email' ? (mailSource.direction === 'in' ? mailSource.from : mailSource.to) : null
+  const quote = quoteId ? findMessage(project, quoteId) : undefined
+  const shownQuote = quote && canSee(quote.visibility, viewerId) ? quote : undefined
+  const isPrivate = !!privateTo && !mailReply
+  const recipient = privateTo ? personById(privateTo) : null
+
+  useEffect(() => { if (focusNonce) inputRef.current?.focus() }, [focusNonce])
+
+  // the shell's "Things to try" panel can start something in the composer
+  useEffect(() => {
+    const on = (e: Event) => {
+      const text = (e as CustomEvent<{ text?: string }>).detail?.text
+      if (typeof text !== 'string') return
+      useStore.getState().setMobilePane('chat')
+      const cur = useChat.getState().drafts[pid] ?? ''
+      setDraft(pid, cur && !/\s$/.test(cur) ? `${cur} ${text}` : cur + text)
+      inputRef.current?.focus()
+    }
+    window.addEventListener('oneplace:compose', on)
+    return () => window.removeEventListener('oneplace:compose', on)
+  }, [pid, setDraft])
+
+  const onlyGemini = /^\s*@gemini\s*$/i.test(draft)
+  const hasGemini = /(^|\s)@gemini\b/i.test(draft)
+  const showChips = focused && !mailReply && (draft.trim() === '' || onlyGemini || (!!shownQuote && hasGemini && onlyGemini))
+  const canSend = mailReply ? !!draft.trim() : !!draft.trim() && !onlyGemini
+
+  const clearModes = () => { setPrivateTo(null, null); setMailReply(null) }
+  const send = () => {
+    if (mailReply) {
+      if (sendMailReply(pid, mailReply.messageId, draft)) setDraft(pid, '')
+      return
+    }
+    if (sendChat(pid, draft, { privateTo, quoteId })) {
+      setDraft(pid, '')
+      setPrivateTo(privateTo, null)
+    }
+  }
+  const pickSuggestion = (text: string) => {
+    if (sendChat(pid, `@Gemini ${text}`, { privateTo, quoteId })) {
+      setDraft(pid, '')
+      setPrivateTo(privateTo, null)
+    }
+  }
+
+  const recipients = [GEMINI_ID, ...project.memberIds.filter((id) => id !== GEMINI_ID && id !== viewerId)]
+  const recipientItems: MenuItem[] = [
+    { icon: 'groups', label: t({ fr: 'Tout le monde', en: 'Everyone' }), selected: !privateTo, onSelect: () => setPrivateTo(null, quoteId) },
+    { divider: true, label: '' },
+    ...recipients.map((id) => ({ icon: <Avatar id={id} size={24} />, label: t({ fr: `En privé à ${firstName(id)}`, en: `Private to ${firstName(id)}` }), selected: privateTo === id, onSelect: () => { setPrivateTo(id, quoteId); inputRef.current?.focus() } })),
+  ]
+  const plusItems: MenuItem[] = [
+    { icon: 'attach_file', label: t({ fr: 'Joindre un document du projet', en: 'Attach a project document' }), onSelect: () => setDialog('attach') },
+    { icon: 'upload_file', label: t({ fr: 'Ajouter un fichier', en: 'Add a file' }), onSelect: () => fileRef.current?.click() },
+    { icon: 'note_add', label: t({ fr: 'Nouveau document', en: 'New document' }), onSelect: () => newDoc(pid) },
+    { icon: 'event', label: t({ fr: 'Planifier une réunion', en: 'Schedule a meeting' }), onSelect: () => setDialog('meeting') },
+  ]
+  const placeholder = mailReply
+    ? t({ fr: `Votre réponse à ${mailName(mailTarget ?? '')}`, en: `Your reply to ${mailName(mailTarget ?? '')}` })
+    : isPrivate && recipient
+      ? t({ fr: `Message privé à ${firstName(recipient.id)}`, en: `Private message to ${firstName(recipient.id)}` })
+      : t({ fr: `Message à ${tx(project.name, 'fr')}, ou @Gemini`, en: `Message ${tx(project.name, 'en')}, or @Gemini` })
+
+  return (
+    <div
+      className={`composer${isPrivate ? ' is-private' : ''}${mailReply ? ' is-mail' : ''}`}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false) }}
+    >
+      {showChips && <SuggestionChips project={project} quoteId={shownQuote?.id} onPick={pickSuggestion} />}
+
+      {mailReply && mailTarget && (
+        <div className="composer-banner mail">
+          <Icon name="forward_to_inbox" size={18} />
+          <span className="banner-text">{t({ fr: `Réponse par mail à ${mailName(mailTarget)} (${mailAddress(mailTarget)}). Pas besoin de compte pour la recevoir.`, en: `Reply by mail to ${mailName(mailTarget)} (${mailAddress(mailTarget)}). They do not need an account.` })}</span>
+          <IconButton icon="close" size={28} label={t({ fr: 'Annuler la réponse par mail', en: 'Cancel reply by mail' })} onClick={() => setMailReply(null)} />
+        </div>
+      )}
+
+      {!mailReply && shownQuote && (
+        <div className={`composer-banner quoted${isPrivate ? ' private' : ''}`}>
+          <Icon name="format_quote" size={18} />
+          <span className="banner-text"><strong>{shownQuote.kind === 'email' && shownQuote.direction === 'in' ? mailName(shownQuote.from) : firstName(shownQuote.authorId)}</strong> {snippet(shownQuote, lang)}</span>
+          <IconButton icon="close" size={28} label={t({ fr: 'Retirer la citation', en: 'Remove quote' })} onClick={() => setPrivateTo(privateTo, null)} />
+        </div>
+      )}
+
+      {!mailReply && (
+        <div className="composer-to">
+          <Menu items={recipientItems} header={t({ fr: 'Qui peut voir ce message', en: 'Who can see this message' })} trigger={(p) => (
+            <button type="button" {...p} className={`to-switch${isPrivate ? ' private' : ''}`} aria-label={t({ fr: 'Choisir les destinataires', en: 'Choose recipients' })}>
+              <Icon name={isPrivate ? 'lock' : 'groups'} fill={isPrivate} size={16} />
+              <span className="ellipsis">{isPrivate && recipient ? t({ fr: `En privé à ${firstName(recipient.id)}`, en: `Private to ${firstName(recipient.id)}` }) : t({ fr: 'Tout le monde', en: 'Everyone' })}</span>
+              <Icon name="arrow_drop_down" size={18} />
+            </button>
+          )} />
+          {isPrivate && recipient && <span className="to-note">{t({ fr: 'Personne d’autre ne le verra', en: 'Nobody else will see it' })}</span>}
+          {isPrivate && <IconButton icon="close" size={28} label={t({ fr: 'Revenir à tout le monde', en: 'Back to everyone' })} onClick={() => setPrivateTo(null, quoteId)} />}
+        </div>
+      )}
+
+      <div className="composer-pill">
+        <Menu items={plusItems} trigger={(p) => (
+          <button type="button" {...p} className="composer-plus" aria-label={t({ fr: 'Ajouter', en: 'Add' })}><Icon name="add" size={24} /></button>
+        )} />
+        <MentionInput pid={pid} value={draft} onChange={(v) => setDraft(pid, v)} onSubmit={() => { if (canSend) send() }} onEscape={clearModes} inputRef={inputRef} label={placeholder} placeholder={placeholder} />
+        <button type="button" className="composer-send" disabled={!canSend} aria-label={mailReply ? t({ fr: 'Envoyer par mail', en: 'Send by mail' }) : t({ fr: 'Envoyer', en: 'Send' })} title={t({ fr: 'Envoyer', en: 'Send' })} onClick={send}>
+          <Icon name="send" fill size={20} />
+        </button>
+      </div>
+
+      <input ref={fileRef} type="file" multiple hidden tabIndex={-1} onChange={(e) => { for (const f of e.target.files ?? []) attachFake(pid, f); e.target.value = '' }} />
+      {dialog === 'meeting' && <MeetingDialog pid={pid} onClose={closeDialog} />}
+      {dialog === 'attach' && <AttachDialog project={project} onClose={closeDialog} />}
+    </div>
+  )
+}
