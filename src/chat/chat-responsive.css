@@ -31,7 +31,7 @@
 
 /* Touch: no hover bar left behind, every target big enough, 16px text so iOS doesn't zoom on focus */
 @media (hover:none){
-  .msg:hover>.msg-main>.msg-content>.msg-actions:not(.shown),.msg:focus-within:not(.touched)>.msg-main>.msg-content>.msg-actions:not(.shown){opacity:0;pointer-events:none}
+  .msg:hover:not(.touched)>.msg-main>.msg-content>.msg-actions:not(.shown),.msg:focus-within:not(.touched)>.msg-main>.msg-content>.msg-actions:not(.shown){opacity:0;pointer-events:none}
   .msg.touched>.msg-main>.msg-content>.msg-actions{opacity:1;pointer-events:auto}
   .mi-mirror,.mi-input{font-size:16px;line-height:22px;padding-block:9px}
   .to-switch{height:40px}

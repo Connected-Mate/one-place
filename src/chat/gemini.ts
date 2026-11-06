@@ -754,7 +754,8 @@ function budgetFigures(p: Project) {
   const worst = rows.map((r) => ({ name: String(r[0]), over: (Number(r[actual]) || 0) - (Number(r[planned]) || 0) })).sort((a, b) => b.over - a.over)[0]
   return { sheet, planned: total ? Number(total[planned]) : sum(planned), actual: total ? Number(total[actual]) : sum(actual), worst }
 }
-const euros = (n: number) => `${Math.round(n).toLocaleString('en-US')} €`
+const euros = (n: number) => `€${Math.round(n).toLocaleString('en-US')}`
+const withUnit = (n: number, unit?: string) => (unit === 'k€' ? `€${n}K` : unit === '%' ? `${n}%` : `${n}${unit ? ` ${unit}` : ''}`)
 function answerBudget(p: Project): Plan {
   const b = budgetFigures(p)
   if (b?.planned) {
@@ -765,7 +766,7 @@ function answerBudget(p: Project): Plan {
   }
   const chart = p.blocks.find((x): x is Extract<Block, { type: 'chart' }> => x.type === 'chart' && /budget|cost|spend|committed|planned|revenue/i.test(en(x.title)))
   if (chart) {
-    const lines = chart.series.slice(0, 3).map((s) => `- ${en(s.label)}: ${s.value}${chart.unit ? ` ${chart.unit}` : ''}${s.target != null ? ` of ${s.target}` : ''}`).join('\n')
+    const lines = chart.series.slice(0, 3).map((s) => `- ${en(s.label)}: ${withUnit(s.value, chart.unit)}${s.target != null ? ` of ${withUnit(s.target, chart.unit)}` : ''}`).join('\n')
     return { say: `${en(chart.title)}:\n${lines}\n${boardLink(chart.id, 'See it on the board')}` }
   }
   return { say: 'This project has no budget yet. Ask me for a budget tracker and I’ll start one.' }
