@@ -75,8 +75,15 @@ export type ProposalAction =
   | { type: 'move-milestone'; blockId: string; itemId: string; deltaDays: number }
   | { type: 'none' }
 
-export interface Todo { id: string; text: Txt; assigneeId?: string; due?: number; done: boolean; source?: Txt }
-export interface TimelineItem { id: string; label: Txt; start: number; end: number; ownerId?: string; lane?: Txt; color?: string; milestone?: boolean; progress?: number }
+export interface Subtask { id: string; text: Txt; done: boolean }
+export interface Todo {
+  id: string; text: Txt; assigneeId?: string; due?: number; done: boolean; source?: Txt
+  /** the larger piece of work this belongs to; to-dos are grouped by it */
+  mission?: Txt
+  subtasks?: Subtask[]
+  priority?: 'high' | 'medium' | 'low'
+}
+export interface TimelineItem { id: string; label: Txt; start: number; end: number; ownerId?: string; lane?: Txt; color?: string; milestone?: boolean; progress?: number; /** ids of the items that must end before this one starts */ dependsOn?: string[] }
 export interface KanbanCard { id: string; title: Txt; assigneeId?: string; tag?: Txt; note?: Txt }
 export interface KanbanColumn { id: string; title: Txt; cards: KanbanCard[] }
 

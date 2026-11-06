@@ -15,7 +15,7 @@ type Deck = Extract<Artifact, { kind: 'slides' }>
 type SlideData = Deck['slides'][number]
 
 /** All sizes are in cqw, so the same slide is right as a thumbnail, on stage and presented. */
-function Slide({ slide, index, onEdit }: { slide: SlideData; index: number; onEdit?: (patch: Partial<SlideData>) => void }) {
+export function Slide({ slide, index, onEdit }: { slide: SlideData; index: number; onEdit?: (patch: Partial<SlideData>) => void }) {
   const t = useT()
   const hasBullets = !!slide.bullets?.length
   const title = useRef<HTMLParagraphElement>(null)

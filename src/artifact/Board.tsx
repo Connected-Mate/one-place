@@ -8,7 +8,9 @@ import { useT } from '../i18n'
 import { ChartBlock } from './blocks/Chart'
 import { KanbanBlock } from './blocks/Kanban'
 import { Model3DBlock } from './blocks/Model3D'
-import { CalendarBlock, FilesBlock, NotesBlock, PeopleBlock, PollBlock, SummaryBlock } from './blocks/simple'
+import { CalendarBlock } from './blocks/Calendar'
+import { FilesBlock } from './blocks/Files'
+import { NotesBlock, PeopleBlock, PollBlock, SummaryBlock } from './blocks/simple'
 import { TimelineBlock } from './blocks/Timeline'
 import { TodoBlock } from './blocks/Todo'
 import { BlockBoundary } from './shared'
@@ -33,10 +35,15 @@ function BlockSwitch({ block }: { block: Block }) {
 /** One block, full size, in its own tab. */
 export function SectionView({ block }: { block: Block }) {
   const t = useT()
+  const fallback = <p className="rp-meta">{t({ fr: 'Ce bloc n’a pas pu s’afficher.', en: 'This block could not be displayed.' })}</p>
+  // These four are whole applications: they take all of the pane and manage their own scrolling.
+  if (block.type === 'todo' || block.type === 'timeline' || block.type === 'calendar' || block.type === 'files') {
+    return <div className="rp-fillview"><BlockBoundary key={block.id} fallback={fallback}><BlockSwitch block={{ ...block, span: 3 } as Block} /></BlockBoundary></div>
+  }
   return (
     <div className="rp-board rp-section">
       <div className="rp-board-inner">
-        <BlockBoundary key={block.id} fallback={<p className="rp-meta">{t({ fr: 'Ce bloc n’a pas pu s’afficher.', en: 'This block could not be displayed.' })}</p>}>
+        <BlockBoundary key={block.id} fallback={fallback}>
           <BlockSwitch block={{ ...block, span: 3 } as Block} />
         </BlockBoundary>
       </div>

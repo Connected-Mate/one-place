@@ -15,7 +15,7 @@ import { northwind } from './seed/northwind'
 export { GEMINI_ID, ME_ID, people } from './seed/people'
 
 /** Bump when the seed changes shape: the persisted store starts clean. */
-export const SEED_VERSION = 8
+export const SEED_VERSION = 9
 
 /** `hired` comes first on purpose: it is the wink. The default active project stays `aurora` (set by id in the store). */
 export const seedProjects = (): Project[] => [hired(), aurora(), move(), hiring(), northwind()]

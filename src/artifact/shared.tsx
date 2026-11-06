@@ -108,7 +108,7 @@ export class BlockBoundary extends Component<{ fallback: ReactNode; children: Re
 }
 
 /** The frame of every block: title row, owner menu, arrival animation. Flat by design: no card around it. */
-export function Frame({ block, leading, actions, className = '', children, style }: { block: Block; leading?: ReactNode; actions?: ReactNode; className?: string; children: ReactNode; style?: CSSProperties }) {
+export function Frame({ block, leading, actions, className = '', children, style, heading }: { block: Block; leading?: ReactNode; actions?: ReactNode; className?: string; children: ReactNode; style?: CSSProperties; heading?: string }) {
   const t = useT()
   const { project, role } = useBoard()
   const moveBlock = useStore((s) => s.moveBlock)
@@ -158,7 +158,7 @@ export function Frame({ block, leading, actions, className = '', children, style
     <article ref={ref} className={`rp-block span-${block.span}${block.fresh ? ' fresh' : ''} ${className}`} aria-label={title} data-block={block.type} style={style}>
       <header className="rp-block-head">
         {leading}
-        <h3 className="rp-block-title" title={title}>{title}</h3>
+        <h3 className="rp-block-title" title={heading ?? title}>{heading ?? title}</h3>
         <span className="rp-block-actions">{actions}</span>
         {role === 'owner' && (
           <span className="rp-block-menu">

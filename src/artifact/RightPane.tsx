@@ -17,6 +17,7 @@ import { DocView } from './docs/DocView'
 import { PdfView } from './docs/PdfView'
 import { SheetView } from './docs/SheetView'
 import { SlidesView } from './docs/SlidesView'
+import { FilesButton } from './blocks/Files'
 import { Overview } from './Overview'
 import { BoardContext, KindIcon, revealIn, startOfDay } from './shared'
 
@@ -271,6 +272,8 @@ export function RightPane() {
               </div>
             )
           })}
+          {/* Links and Home press these. The Files view is reached from the paperclip, on the right. */}
+          {filesBlock && <div role="presentation" data-tab={filesBlock.id} hidden><button type="button" role="tab" aria-selected={false} tabIndex={-1} onClick={() => openSection(filesBlock.id)}>{t(filesBlock.title)}</button></div>}
           {[summaryBlock, peopleBlock].map((block) => block && (
             <div key={block.id} role="presentation" data-tab={block.id} hidden>
               <button type="button" role="tab" aria-selected={false} tabIndex={-1} onClick={() => openSection(block.id)}>{t(block.title)}</button>
@@ -305,9 +308,6 @@ export function RightPane() {
                 {tabButton(activeKey === 'call', openCall, <><i className="rp-live-dot" aria-hidden="true" />{t({ fr: 'Appel', en: 'Call' })}<span className="rp-tab-time">{mmss(now - call.startedAt)}</span></>)}
               </div>
             )}
-            <div className={`rp-tab rp-files${filesOn ? ' on' : ''}${filesBlock?.fresh && !filesOn ? ' fresh' : ''}`} role="presentation" data-tab={filesBlock?.id ?? 'part-files'}>
-              {tabButton(filesOn, () => openPart('files'), t({ fr: 'Fichiers', en: 'Files' }))}
-            </div>
           </div>
           {moreDocs.length > 0 && (
             <Menu align="right" items={filesItems} header={t({ fr: 'Documents ouverts', en: 'Open documents' })} trigger={(p) => (
@@ -345,7 +345,7 @@ export function RightPane() {
             />
           </div>
         )}
-        {role !== 'guest' && <div ref={adviceSlot} className="rp-advice-slot"><AdviceChip key={project.id} onOpenSection={openSection} /></div>}
+        {role !== 'guest' && <div ref={adviceSlot} className="rp-advice-slot"><FilesButton key={`f-${project.id}`} on={filesOn} onSeeAll={() => openPart('files')} /><AdviceChip key={project.id} onOpenSection={openSection} /></div>}
       </div>
         <div className="rp-body">
           {/* Overview stays mounted under the other tabs: scroll position kept, and its bars can animate a move. */}

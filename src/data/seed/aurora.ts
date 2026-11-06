@@ -17,6 +17,7 @@ export function aurora(): Project {
   const keynote = week(6) + 2 * DAY
   const launch = week(6) + 3 * DAY
   const noraMeeting = dayAt(1, 14)
+  const nextHour = (() => { const n = new Date(); n.setHours(n.getHours() + 1, 0, 0, 0); return n.getTime() })()
   const noraDeadline = dayAt(3, 12) // Nora must know by then
   const arrival = dayAt(2, 11) // the 300 diffusers land
   const en = (t: number) => fmtDay(t, 'en')
@@ -26,16 +27,21 @@ export function aurora(): Project {
 
   /* ---------------- todos (ids referenced by the call summary) ---------------- */
   const todos: Todo[] = [
-    { id: 'a-t1', text: { fr: 'Obtenir de Jun une date ferme pour le lot 2 de diffuseurs', en: 'Get a firm date from Jun for diffuser batch 2' }, assigneeId: 'karim', due: dayAt(1, 18), done: true, source: { fr: 'Mail de Jun Park', en: 'Email from Jun Park' } },
-    { id: 'a-t2', text: { fr: 'Chiffrer le fret aérien pour les 300 premières unités', en: 'Price air freight for the first 300 units' }, assigneeId: 'lea', due: dayAt(0, 18), done: true, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' } },
-    { id: 'a-t3', text: { fr: 'Reconfirmer le créneau de pré-série avec Lumen Works', en: 'Reconfirm the pilot run slot with Lumen Works' }, assigneeId: 'karim', due: dayAt(2, 12), done: false, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' } },
-    { id: 'a-t4', text: { fr: 'Prévenir Nora que la date peut glisser d’une semaine', en: 'Tell Nora the date may slip by a week' }, assigneeId: 'sofia', due: noraDeadline, done: false, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' } },
-    { id: 'a-t5', text: { fr: 'Trancher le coloris du visuel keynote : Sable ou Ardoise', en: 'Decide the keynote hero colorway: Sand or Slate' }, assigneeId: 'tom', due: dayAt(5, 18), done: false, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' } },
-    { id: 'a-t6', text: { fr: 'Mettre à jour le brief de lancement avec les deux scénarios', en: 'Update the launch brief with both scenarios' }, assigneeId: 'maya', due: dayAt(-1, 18), done: true, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' } },
-    { id: 'a-t7', text: { fr: 'Déposer le rapport d’essais CE dans les fichiers', en: 'Upload the CE test report to files' }, assigneeId: 'maya', due: dayAt(-2, 18), done: true },
-    { id: 'a-t8', text: { fr: 'Valider la v2 des slides keynote', en: 'Sign off keynote slides v2' }, assigneeId: 'alex', due: dayAt(6, 18), done: false },
-    { id: 'a-t9', text: { fr: 'Shooting photo coloris Sable (studio)', en: 'Product shoot, Sand colorway (studio)' }, assigneeId: 'tom', due: dayAt(-6, 18), done: true },
-    { id: 'a-t10', text: { fr: 'Briefer le support client sur la FAQ précommande', en: 'Brief customer support on the preorder FAQ' }, assigneeId: 'sofia', due: dayAt(9, 18), done: false },
+    { id: 'a-t1', text: { fr: 'Obtenir de Jun une date ferme pour le lot 2 de diffuseurs', en: 'Get a firm date from Jun for diffuser batch 2' }, assigneeId: 'karim', due: dayAt(1, 18), done: true, source: { fr: 'Mail de Jun Park', en: 'Email from Jun Park' }, mission: 'Diffuser delay', priority: 'high', subtasks: [{ id: 'a-t1-s1', text: 'Call Jun about the rerun', done: true }, { id: 'a-t1-s2', text: 'Get the new date in writing', done: true }] },
+    { id: 'a-t2', text: { fr: 'Chiffrer le fret aérien pour les 300 premières unités', en: 'Price air freight for the first 300 units' }, assigneeId: 'lea', due: dayAt(0, 18), done: true, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' }, mission: 'Diffuser delay', priority: 'medium', subtasks: [{ id: 'a-t2-s1', text: 'Ask Skyline Cargo for a quote', done: true }, { id: 'a-t2-s2', text: 'Add the line to the budget sheet', done: true }] },
+    { id: 'a-t3', text: { fr: 'Reconfirmer le créneau de pré-série avec Lumen Works', en: 'Reconfirm the pilot run slot with Lumen Works' }, assigneeId: 'karim', due: dayAt(2, 12), done: false, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' }, mission: 'Diffuser delay', priority: 'high', subtasks: [{ id: 'a-t3-s1', text: 'Check the line is free on the new date', done: true }, { id: 'a-t3-s2', text: 'Confirm 300 units are enough for the run', done: false }, { id: 'a-t3-s3', text: 'Send Jun the updated plan', done: false }] },
+    { id: 'a-t4', text: { fr: 'Prévenir Nora que la date peut glisser d’une semaine', en: 'Tell Nora the date may slip by a week' }, assigneeId: 'sofia', due: noraDeadline, done: false, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' }, mission: 'Press and keynote', priority: 'high', subtasks: [{ id: 'a-t4-s1', text: 'Agree the wording with Alex', done: true }, { id: 'a-t4-s2', text: 'Offer her 20 minutes with Tom', done: false }] },
+    { id: 'a-t5', text: { fr: 'Trancher le coloris du visuel keynote : Sable ou Ardoise', en: 'Decide the keynote hero colorway: Sand or Slate' }, assigneeId: 'tom', due: dayAt(5, 18), done: false, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' }, mission: 'Press and keynote', priority: 'medium', subtasks: [{ id: 'a-t5-s1', text: 'Render both colorways on stage', done: true }, { id: 'a-t5-s2', text: 'Run the poll with the team', done: false }, { id: 'a-t5-s3', text: 'Tell the agency the choice', done: false }] },
+    { id: 'a-t6', text: { fr: 'Mettre à jour le brief de lancement avec les deux scénarios', en: 'Update the launch brief with both scenarios' }, assigneeId: 'maya', due: dayAt(-1, 18), done: true, source: { fr: 'Appel Retard Lumen', en: 'Call: Lumen delay' }, mission: 'Launch readiness', priority: 'medium', subtasks: [{ id: 'a-t6-s1', text: 'Write scenario A', done: true }, { id: 'a-t6-s2', text: 'Write scenario B', done: true }] },
+    { id: 'a-t7', text: { fr: 'Déposer le rapport d’essais CE dans les fichiers', en: 'Upload the CE test report to files' }, assigneeId: 'maya', due: dayAt(-2, 18), done: true, mission: 'Certification', subtasks: [{ id: 'a-t7-s1', text: 'Get the signed report from the lab', done: true }, { id: 'a-t7-s2', text: 'Add it to the project files', done: true }] },
+    { id: 'a-t8', text: { fr: 'Valider la v2 des slides keynote', en: 'Sign off keynote slides v2' }, assigneeId: 'alex', due: dayAt(6, 18), done: false, mission: 'Press and keynote', priority: 'medium', subtasks: [{ id: 'a-t8-s1', text: 'Replace the red boxes on slides 2 and 4', done: true }, { id: 'a-t8-s2', text: 'Check the new survey numbers', done: false }, { id: 'a-t8-s3', text: 'Rehearse the opening', done: false }] },
+    { id: 'a-t9', text: { fr: 'Shooting photo coloris Sable (studio)', en: 'Product shoot, Sand colorway (studio)' }, assigneeId: 'tom', due: dayAt(-6, 18), done: true, mission: 'Launch readiness' },
+    { id: 'a-t10', text: { fr: 'Briefer le support client sur la FAQ précommande', en: 'Brief customer support on the preorder FAQ' }, assigneeId: 'sofia', due: dayAt(9, 18), done: false, mission: 'Launch readiness', priority: 'low', subtasks: [{ id: 'a-t10-s1', text: 'Draft the FAQ', done: true }, { id: 'a-t10-s2', text: 'Review it with Maya', done: false }, { id: 'a-t10-s3', text: 'Run a 30-minute training', done: false }] },
+    { id: 'a-t11', text: 'Run the firmware alarm fix past QA', assigneeId: 'maya', due: dayAt(3, 18), done: false, mission: 'Launch readiness', priority: 'high', subtasks: [{ id: 'a-t11-s1', text: 'Reproduce the 1-minute delay', done: true }, { id: 'a-t11-s2', text: 'Test build 0.9.4 overnight', done: false }, { id: 'a-t11-s3', text: 'Sign off for the pilot run', done: false }] },
+    { id: 'a-t12', text: 'Get the CE file through the notified body', assigneeId: 'maya', due: dayAt(4, 12), done: false, mission: 'Certification', priority: 'medium', subtasks: [{ id: 'a-t12-s1', text: 'Send the technical file', done: true }, { id: 'a-t12-s2', text: 'Answer their questions', done: false }] },
+    { id: 'a-t13', text: 'Reforecast the budget with both launch scenarios', assigneeId: 'lea', due: dayAt(2, 18), done: false, mission: 'Launch readiness', priority: 'medium', subtasks: [{ id: 'a-t13-s1', text: 'Scenario A: hold the date', done: true }, { id: 'a-t13-s2', text: 'Scenario B: move by a week', done: false }] },
+    { id: 'a-t14', text: 'Book the shipping lanes for first shipments', assigneeId: 'karim', due: dayAt(8, 18), done: false, mission: 'Launch readiness', priority: 'low' },
+    { id: 'a-t15', text: 'Confirm the venue can move the keynote', assigneeId: 'sofia', due: dayAt(2, 12), done: false, mission: 'Press and keynote', priority: 'high' },
   ]
 
   /* ---------------- artifacts ---------------- */
@@ -109,13 +115,13 @@ export function aurora(): Project {
         { id: 'tl-tooling', label: { fr: 'Outillage et moules', en: 'Tooling & molds' }, start: week(-3), end: week(-1), ownerId: 'karim', lane: { fr: 'Usine', en: 'Factory' }, color: '#188038', progress: 100 },
         { id: 'tl-design-freeze', label: { fr: 'Gel du design', en: 'Design freeze' }, start: week(-2), end: week(-2), ownerId: 'tom', lane: { fr: 'Produit', en: 'Product' }, color: '#e37400', milestone: true },
         { id: 'tl-cert', label: { fr: 'Certification CE', en: 'CE certification' }, start: week(-2), end: week(1) + 2 * DAY, ownerId: 'maya', lane: { fr: 'Produit', en: 'Product' }, color: '#8430ce', progress: 70 },
-        { id: 'tl-diffusers', label: { fr: 'Diffuseurs lot 2 (Lumen Works)', en: 'Diffusers batch 2 (Lumen Works)' }, start: week(-1), end: diffusersNew, ownerId: 'karim', lane: { fr: 'Usine', en: 'Factory' }, color: '#188038', progress: 40 },
-        { id: 'tl-pilot', label: { fr: 'Pré-série 500 unités', en: 'Pilot run, 500 units' }, start: pilotRun, end: pilotRun + 6 * DAY, ownerId: 'karim', lane: { fr: 'Usine', en: 'Factory' }, color: '#188038', progress: 0 },
-        { id: 'tl-firmware', label: { fr: 'Firmware 1.0', en: 'Firmware 1.0' }, start: week(0), end: week(3), ownerId: 'maya', lane: { fr: 'Produit', en: 'Product' }, color: '#8430ce', progress: 55 },
-        { id: 'tl-preorders', label: { fr: 'Précommandes ouvertes', en: 'Preorders open' }, start: week(4), end: launch, ownerId: 'sofia', lane: { fr: 'Marketing', en: 'Marketing' }, color: '#d01884', progress: 0 },
-        { id: 'tl-keynote', label: { fr: 'Keynote', en: 'Keynote' }, start: keynote, end: keynote, ownerId: 'sofia', lane: { fr: 'Marketing', en: 'Marketing' }, color: '#d01884', milestone: true },
-        { id: 'tl-launch', label: { fr: 'Lancement et levée d’embargo', en: 'Launch & embargo lift' }, start: launch, end: launch, ownerId: 'alex', lane: { fr: 'Marketing', en: 'Marketing' }, color: '#0b57d0', milestone: true },
-        { id: 'tl-shipping', label: { fr: 'Premières expéditions', en: 'First shipments' }, start: launch, end: week(8) + 4 * DAY, ownerId: 'karim', lane: { fr: 'Usine', en: 'Factory' }, color: '#188038', progress: 0 },
+        { id: 'tl-diffusers', label: { fr: 'Diffuseurs lot 2 (Lumen Works)', en: 'Diffusers batch 2 (Lumen Works)' }, start: week(-1), end: diffusersNew, ownerId: 'karim', lane: { fr: 'Usine', en: 'Factory' }, color: '#188038', progress: 40, dependsOn: ['tl-tooling'] },
+        { id: 'tl-pilot', label: { fr: 'Pré-série 500 unités', en: 'Pilot run, 500 units' }, start: pilotRun, end: pilotRun + 6 * DAY, ownerId: 'karim', lane: { fr: 'Usine', en: 'Factory' }, color: '#188038', progress: 0, dependsOn: ['tl-diffusers'] },
+        { id: 'tl-firmware', label: { fr: 'Firmware 1.0', en: 'Firmware 1.0' }, start: week(0), end: week(3), ownerId: 'maya', lane: { fr: 'Produit', en: 'Product' }, color: '#8430ce', progress: 55, dependsOn: ['tl-design-freeze'] },
+        { id: 'tl-preorders', label: { fr: 'Précommandes ouvertes', en: 'Preorders open' }, start: week(4), end: launch, ownerId: 'sofia', lane: { fr: 'Marketing', en: 'Marketing' }, color: '#d01884', progress: 0, dependsOn: ['tl-cert', 'tl-pilot'] },
+        { id: 'tl-keynote', label: { fr: 'Keynote', en: 'Keynote' }, start: keynote, end: keynote, ownerId: 'sofia', lane: { fr: 'Marketing', en: 'Marketing' }, color: '#d01884', milestone: true, dependsOn: ['tl-preorders'] },
+        { id: 'tl-launch', label: { fr: 'Lancement et levée d’embargo', en: 'Launch & embargo lift' }, start: launch, end: launch, ownerId: 'alex', lane: { fr: 'Marketing', en: 'Marketing' }, color: '#0b57d0', milestone: true, dependsOn: ['tl-keynote'] },
+        { id: 'tl-shipping', label: { fr: 'Premières expéditions', en: 'First shipments' }, start: launch, end: week(8) + 4 * DAY, ownerId: 'karim', lane: { fr: 'Usine', en: 'Factory' }, color: '#188038', progress: 0, dependsOn: ['tl-launch'] },
       ],
     },
     { id: 'aurora-todo', type: 'todo', span: 2, title: { fr: 'À faire', en: 'To do' }, todos },
@@ -139,6 +145,12 @@ export function aurora(): Project {
         { id: 'a-ev1', title: { fr: 'Histoire du design avec Nora', en: 'Design story with Nora' }, start: noraMeeting, durationMin: 30, attendeeIds: ['tom', 'sofia', 'alex'] },
         { id: 'a-ev2', title: { fr: 'Point hebdo Aurora', en: 'Aurora weekly' }, start: dayAt(4, 16), durationMin: 45, attendeeIds: ['alex', 'maya', 'tom', 'sofia', 'karim', 'lea'] },
         { id: 'a-ev3', title: { fr: 'Lancement pré-série (Lumen Works)', en: 'Pilot run kickoff (Lumen Works)' }, start: pilotRun, durationMin: 60, attendeeIds: ['karim', 'maya'] },
+        { id: 'a-ev4', title: 'Budget review with Léa', start: dayAt(-1, 10), durationMin: 45, attendeeIds: ['alex', 'lea'] },
+        { id: 'a-ev5', title: 'Firmware bug triage', start: dayAt(-2, 11), durationMin: 30, attendeeIds: ['maya', 'tom'] },
+        { id: 'a-ev6', title: 'Preorder page review', start: dayAt(-2, 11, 15), durationMin: 60, attendeeIds: ['sofia', 'tom', 'alex'] },
+        { id: 'a-ev7', title: 'Keynote run-through', start: dayAt(2, 10), durationMin: 60, attendeeIds: ['tom', 'sofia', 'alex'] },
+        { id: 'a-ev9', title: 'Pilot run logistics', start: nextHour, durationMin: 30, attendeeIds: ['karim', 'maya'] },
+        { id: 'a-ev8', title: 'Lumen Works weekly', start: dayAt(3, 15), durationMin: 30, attendeeIds: ['karim', 'jun'] },
       ],
     },
     { id: 'aurora-model', type: 'model3d', span: 1, title: { fr: 'Aurora, coloris Sable', en: 'Aurora, Sand colorway' }, model: 'lamp', caption: { fr: 'Rendu du gel de design. Base tournante, diffuseur opalin sans LED visible.', en: 'Design freeze render. Turning base, opal diffuser with no visible LED.' } },

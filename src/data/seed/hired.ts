@@ -22,14 +22,15 @@ export function hired(): Project {
   const t = (id: string, authorId: string, at: number, text: L, extra: Partial<Message> = {}): Message => ({ id, kind: 'text', authorId, at, visibility: all, text, ...extra } as Message)
 
   const todos: Todo[] = [
-    { id: 'hd-t1', text: { fr: 'Construire la démo', en: 'Build the demo' }, assigneeId: 'alex', due: dayAt(-1, 18), done: true },
-    { id: 'hd-t2', text: { fr: 'Écrire le paragraphe « pourquoi moi » sans le mot passionné', en: 'Write the "why me" paragraph without the word "passionate"' }, assigneeId: 'alex', due: dayAt(-2, 18), done: true, source: { fr: 'Damien', en: 'Damien' } },
-    { id: 'hd-t3', text: { fr: 'Répéter un pitch de 2 minutes avec Damien', en: 'Rehearse a 2-minute pitch with Damien' }, assigneeId: 'alex', due: rehearsal, done: false, source: { fr: 'Damien', en: 'Damien' } },
-    { id: 'hd-t4', text: { fr: 'Filmer la démo sur téléphone, tablette et ordinateur', en: 'Film the demo on phone, tablet and desktop' }, assigneeId: 'alex', due: filmDone, done: false },
-    { id: 'hd-t5', text: { fr: 'Relire la démo comme un Googler : qu’est-ce qui fait grimacer ?', en: 'Read the demo as a Googler would: what makes them wince?' }, assigneeId: 'damien', due: dayAt(1, 18), done: false },
-    { id: 'hd-t6', text: { fr: 'Publier sur X en taguant Google', en: 'Post on X, tagging Google' }, assigneeId: 'alex', due: postDay, done: false },
-    { id: 'hd-t7', text: { fr: 'L’envoyer à cinq personnes que ça intéresserait vraiment', en: 'Send it to five people who would actually care' }, assigneeId: 'alex', due: dayAt(7, 18), done: false },
-    { id: 'hd-t8', text: { fr: 'Arrêter d’ajouter des fonctionnalités', en: 'Stop adding features' }, assigneeId: 'alex', due: dayAt(0, 18), done: false, source: { fr: 'Damien, trois fois', en: 'Damien, three times' } },
+    { id: 'hd-t1', text: { fr: 'Construire la démo', en: 'Build the demo' }, assigneeId: 'alex', due: dayAt(-1, 18), done: true, mission: 'The demo' },
+    { id: 'hd-t2', text: { fr: 'Écrire le paragraphe « pourquoi moi » sans le mot passionné', en: 'Write the "why me" paragraph without the word "passionate"' }, assigneeId: 'alex', due: dayAt(-2, 18), done: true, source: { fr: 'Damien', en: 'Damien' }, mission: 'The pitch' },
+    { id: 'hd-t3', text: { fr: 'Répéter un pitch de 2 minutes avec Damien', en: 'Rehearse a 2-minute pitch with Damien' }, assigneeId: 'alex', due: rehearsal, done: false, source: { fr: 'Damien', en: 'Damien' }, mission: 'The pitch', priority: 'high', subtasks: [{ id: 'hd-t3-s1', text: 'Write the two minutes', done: true }, { id: 'hd-t3-s2', text: 'Do one run alone', done: false }, { id: 'hd-t3-s3', text: 'Do one run with Damien', done: false }] },
+    { id: 'hd-t4', text: { fr: 'Filmer la démo sur téléphone, tablette et ordinateur', en: 'Film the demo on phone, tablet and desktop' }, assigneeId: 'alex', due: filmDone, done: false, mission: 'The film', priority: 'medium', subtasks: [{ id: 'hd-t4-s1', text: 'Script the 90 seconds', done: true }, { id: 'hd-t4-s2', text: 'Record the phone', done: false }, { id: 'hd-t4-s3', text: 'Record the desktop', done: false }] },
+    { id: 'hd-t5', text: { fr: 'Relire la démo comme un Googler : qu’est-ce qui fait grimacer ?', en: 'Read the demo as a Googler would: what makes them wince?' }, assigneeId: 'damien', due: dayAt(1, 18), done: false, mission: 'The demo', priority: 'medium', subtasks: [{ id: 'hd-t5-s1', text: 'Note every wince', done: true }, { id: 'hd-t5-s2', text: 'Send Alex the top three', done: false }] },
+    { id: 'hd-t6', text: { fr: 'Publier sur X en taguant Google', en: 'Post on X, tagging Google' }, assigneeId: 'alex', due: postDay, done: false, mission: 'Going public', priority: 'high', subtasks: [{ id: 'hd-t6-s1', text: 'Write the post', done: true }, { id: 'hd-t6-s2', text: 'Pick the time', done: false }] },
+    { id: 'hd-t7', text: { fr: 'L’envoyer à cinq personnes que ça intéresserait vraiment', en: 'Send it to five people who would actually care' }, assigneeId: 'alex', due: dayAt(7, 18), done: false, mission: 'Going public', priority: 'low' },
+    { id: 'hd-t8', text: { fr: 'Arrêter d’ajouter des fonctionnalités', en: 'Stop adding features' }, assigneeId: 'alex', due: dayAt(0, 18), done: false, source: { fr: 'Damien, trois fois', en: 'Damien, three times' }, mission: 'The demo', priority: 'low' },
+    { id: 'hd-t10', text: 'Check every screen once more on a real phone', assigneeId: 'damien', due: dayAt(2, 18), done: false, mission: 'The demo', priority: 'medium', subtasks: [{ id: 'hd-t10-s1', text: 'iPhone', done: false }, { id: 'hd-t10-s2', text: 'Android', done: false }] },
   ]
 
   const artifacts: Artifact[] = [
@@ -86,12 +87,12 @@ export function hired(): Project {
       id: 'hired-timeline', type: 'timeline', span: 3, title: { fr: 'Le plan', en: 'The plan' },
       items: [
         { id: 'hd-tl1', label: { fr: 'Construire la démo', en: 'Build the demo' }, start: week(-2), end: dayAt(-1, 18), ownerId: 'alex', lane: { fr: 'Construire', en: 'Build' }, color: '#4285f4', progress: 100 },
-        { id: 'hd-tl2', label: { fr: 'Polir sur téléphone et tablette', en: 'Polish on phone and tablet' }, start: dayAt(-1, 9), end: dayAt(2, 18), ownerId: 'alex', lane: { fr: 'Construire', en: 'Build' }, color: '#4285f4', progress: 60 },
-        { id: 'hd-tl3', label: { fr: 'Film motion design', en: 'Motion design film' }, start: dayAt(1, 9), end: filmDone, ownerId: 'alex', lane: { fr: 'Lancer', en: 'Launch' }, color: '#fbbc04', progress: 10 },
-        { id: 'hd-tl4', label: { fr: 'Publier sur X', en: 'Post on X' }, start: postDay, end: postDay, ownerId: 'alex', lane: { fr: 'Lancer', en: 'Launch' }, color: '#ea4335', milestone: true },
-        { id: 'hd-tl5', label: { fr: 'Relancer', en: 'Follow up' }, start: postDay, end: dayAt(15, 18), ownerId: 'alex', lane: { fr: 'Lancer', en: 'Launch' }, color: '#ea4335', progress: 0 },
-        { id: 'hd-tl6', label: { fr: 'Café avec l’équipe', en: 'Coffee with the team' }, start: coffee, end: coffee, ownerId: 'alex', lane: { fr: 'Google', en: 'Google' }, color: '#34a853', milestone: true },
-        { id: 'hd-tl7', label: { fr: 'Premier jour (date à confirmer par Google)', en: 'First day (date to be confirmed by Google)' }, start: firstDay, end: firstDay, ownerId: 'alex', lane: { fr: 'Google', en: 'Google' }, color: '#34a853', milestone: true },
+        { id: 'hd-tl2', label: { fr: 'Polir sur téléphone et tablette', en: 'Polish on phone and tablet' }, start: dayAt(-1, 9), end: dayAt(2, 18), ownerId: 'alex', lane: { fr: 'Construire', en: 'Build' }, color: '#4285f4', progress: 60, dependsOn: ['hd-tl1'] },
+        { id: 'hd-tl3', label: { fr: 'Film motion design', en: 'Motion design film' }, start: dayAt(1, 9), end: filmDone, ownerId: 'alex', lane: { fr: 'Lancer', en: 'Launch' }, color: '#fbbc04', progress: 10, dependsOn: ['hd-tl2'] },
+        { id: 'hd-tl4', label: { fr: 'Publier sur X', en: 'Post on X' }, start: postDay, end: postDay, ownerId: 'alex', lane: { fr: 'Lancer', en: 'Launch' }, color: '#ea4335', milestone: true, dependsOn: ['hd-tl3'] },
+        { id: 'hd-tl5', label: { fr: 'Relancer', en: 'Follow up' }, start: postDay, end: dayAt(15, 18), ownerId: 'alex', lane: { fr: 'Lancer', en: 'Launch' }, color: '#ea4335', progress: 0, dependsOn: ['hd-tl4'] },
+        { id: 'hd-tl6', label: { fr: 'Café avec l’équipe', en: 'Coffee with the team' }, start: coffee, end: coffee, ownerId: 'alex', lane: { fr: 'Google', en: 'Google' }, color: '#34a853', milestone: true, dependsOn: ['hd-tl5'] },
+        { id: 'hd-tl7', label: { fr: 'Premier jour (date à confirmer par Google)', en: 'First day (date to be confirmed by Google)' }, start: firstDay, end: firstDay, ownerId: 'alex', lane: { fr: 'Google', en: 'Google' }, color: '#34a853', milestone: true, dependsOn: ['hd-tl6'] },
       ],
     },
     { id: 'hired-todo', type: 'todo', span: 2, title: { fr: 'À faire', en: 'To do' }, todos },

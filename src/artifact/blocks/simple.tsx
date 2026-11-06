@@ -8,8 +8,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { Block, Person } from '../../data/types'
 import { fmtDate, fmtTime, useT } from '../../i18n'
 import { personById, useStore } from '../../store'
-import { Avatar, AvatarStack, Button, Icon, IconButton, Sparkle } from '../../ui/kit'
-import { Empty, Frame, KindIcon, KINDS, startOfDay, upcomingEvents, useBoard } from '../shared'
+import { Avatar, Button, Icon, IconButton, Sparkle } from '../../ui/kit'
+import { Empty, Frame, startOfDay, useBoard } from '../shared'
 
 type Of<T extends Block['type']> = Extract<Block, { type: T }>
 
@@ -56,35 +56,6 @@ export function SummaryBlock({ block }: { block: Of<'summary'> }) {
   )
 }
 
-export function FilesBlock({ block }: { block: Of<'files'> }) {
-  const t = useT()
-  const lang = useStore((s) => s.lang)
-  const { project } = useBoard()
-  const setPane = useStore((s) => s.setPane)
-  const files = block.artifactIds.map((id) => project.artifacts.find((a) => a.id === id)).filter((a) => a != null)
-  return (
-    <Frame block={block}>
-      {files.length === 0 ? (
-        <Empty icon="folder_open" title={t({ fr: 'Aucun fichier', en: 'No files yet' })} hint={t({ fr: 'Partagez un fichier dans le chat : il arrive ici.', en: 'Share a file in the chat and it shows up here.' })} />
-      ) : (
-        <ul className="rp-rows">
-          {files.map((a) => {
-            const title = t(a.title)
-            return (
-              <li key={a.id}>
-                <button type="button" className="rp-row rp-row-btn" onClick={() => setPane({ type: 'artifact', id: a.id })}>
-                  <KindIcon kind={a.kind} />
-                  <span className="rp-row-main"><span className="rp-trunc" title={title}>{title}</span><span className="rp-row-sub rp-trunc">{t(KINDS[a.kind].label)}, {personById(a.ownerId).name.split(' ')[0]}, {fmtDate(a.updatedAt, lang)}</span></span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </Frame>
-  )
-}
-
 export function PeopleBlock({ block }: { block: Of<'people'> }) {
   const t = useT()
   const { project, role, viewerId } = useBoard()
@@ -117,46 +88,6 @@ export function PeopleBlock({ block }: { block: Of<'people'> }) {
                 {p.id !== viewerId && !guest && role !== 'guest' && (
                   <IconButton icon="chat_bubble" size={32} label={t({ fr: `Écrire en privé à ${p.name}`, en: `Message ${p.name} privately` })} onClick={() => write(p)} />
                 )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </Frame>
-  )
-}
-
-export function CalendarBlock({ block }: { block: Of<'calendar'> }) {
-  const t = useT()
-  const lang = useStore((s) => s.lang)
-  const now = Date.now()
-  const { project, viewerId } = useBoard()
-  const events = upcomingEvents(block, project, viewerId, now)
-  const today = startOfDay(now)
-  const locale = lang === 'fr' ? 'fr-FR' : 'en-US'
-  return (
-    <Frame block={block}>
-      {events.length === 0 ? (
-        <Empty icon="event_available" title={t({ fr: 'Rien de prévu', en: 'Nothing planned' })} hint={t({ fr: 'Demandez à Gemini de caler un moment.', en: 'Ask Gemini to find a time.' })} />
-      ) : (
-        <ul className="rp-rows">
-          {events.map((e) => {
-            const title = t(e.title)
-            const isToday = startOfDay(e.start) === today
-            return (
-              <li key={e.id} className="rp-row rp-event">
-                <span className={`rp-date${isToday ? ' today' : ''}`} aria-hidden="true">
-                  <span>{new Date(e.start).toLocaleDateString(locale, { month: 'short' }).replace('.', '')}</span>
-                  <b>{new Date(e.start).getDate()}</b>
-                </span>
-                <span className="rp-row-main">
-                  <span className="rp-trunc" title={title}>{title}</span>
-                  <span className="rp-row-sub rp-trunc">
-                    <span className="sr-only">{fmtDate(e.start, lang)} </span>
-                    {fmtTime(e.start, lang)}, {e.durationMin} min
-                  </span>
-                </span>
-                <AvatarStack ids={e.attendeeIds} size={24} max={3} />
               </li>
             )
           })}
