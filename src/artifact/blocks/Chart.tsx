@@ -2,7 +2,7 @@
 // Plain HTML marks: 16px bars, 4px rounded data-end, square at the baseline, hairline grid.
 import { useState } from 'react'
 import type { Block } from '../../data/types'
-import { useT } from '../../i18n'
+import { useT, withUnit } from '../../i18n'
 import { useStore } from '../../store'
 import { Button } from '../../ui/kit'
 import { Empty, Frame, useTip } from '../shared'
@@ -23,7 +23,7 @@ export function ChartBlock({ block }: { block: Extract<Block, { type: 'chart' }>
   const lang = useStore((s) => s.lang)
   const [asTable, setAsTable] = useState(false)
   const { bind, node } = useTip()
-  const fmt = (v: number) => `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 1, notation: Math.abs(v) >= 1e5 ? 'compact' : 'standard' }).format(v)}${block.unit ? ` ${block.unit}` : ''}`
+  const fmt = (v: number) => withUnit(new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 1, notation: Math.abs(v) >= 1e5 ? 'compact' : 'standard' }).format(v), block.unit)
   const series = block.series
   const hasTarget = series.some((s) => s.target != null)
   const ticks = niceTicks(Math.max(0, ...series.flatMap((s) => [s.value, s.target ?? 0])))

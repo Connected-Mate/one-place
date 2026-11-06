@@ -20,3 +20,12 @@ export const fmtDay = (at: number, l: Lang) => {
   if (days === -1) return l === 'fr' ? 'Demain' : 'Tomorrow'
   return d.toLocaleDateString(locale(l), { weekday: 'long', day: 'numeric', month: 'long' })
 }
+
+/** US order: "€118.5K", "€2,400", "42%", "12 units". */
+export const withUnit = (n: string, unit?: string) => {
+  if (!unit) return n
+  if (unit === 'k€') return `€${n}K`
+  if (unit === '€' || unit === '$') return `${unit}${n}`
+  if (unit === '%') return `${n}%`
+  return `${n} ${unit}`
+}

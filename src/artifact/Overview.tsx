@@ -1,7 +1,7 @@
 // The Overview tab: everything about the project at a glance, the same for everyone. Each tile opens its full tab.
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { Block } from '../data/types'
-import { fmtDate, fmtDay, fmtTime, useT } from '../i18n'
+import { fmtDate, fmtDay, fmtTime, useT, withUnit } from '../i18n'
 import { personById, useStore } from '../store'
 import { Avatar, AvatarStack, Button, Icon, Sparkle } from '../ui/kit'
 import { ModelTilePreview } from './blocks/Model3D'
@@ -98,14 +98,13 @@ function ChartTile({ block }: { block: Of<'chart'> }) {
   const series = block.series
   if (!series.length) return <span className="rp-t-none">{t({ fr: 'Pas encore de données', en: 'No data yet' })}</span>
   const nf = new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 1, notation: 'compact' })
-  const unit = block.unit ? ` ${block.unit}` : ''
   const total = series.reduce((n, s) => n + s.value, 0)
   const planned = series.reduce((n, s) => n + (s.target ?? 0), 0)
   const top = Math.max(...series.flatMap((s) => [s.value, s.target ?? 0]), 1)
   return (
     <>
-      <span className="rp-t-big">{nf.format(total)}{unit}</span>
-      {planned > 0 && <span className="rp-t-meta">{t({ fr: `pour ${nf.format(planned)}${unit} prévus`, en: `against ${nf.format(planned)}${unit} planned` })}</span>}
+      <span className="rp-t-big">{withUnit(nf.format(total), block.unit)}</span>
+      {planned > 0 && <span className="rp-t-meta">{t({ fr: `pour ${withUnit(nf.format(planned), block.unit)} prévus`, en: `against ${withUnit(nf.format(planned), block.unit)} planned` })}</span>}
       <span className="rp-t-bars" aria-hidden="true">
         {series.slice(0, 4).map((s, i) => (
           <span key={i} className="rp-t-barrow">
