@@ -1,7 +1,7 @@
 // Pieces shared by every board block and document view.
 import { Component, createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import type { Artifact, Block, L, Project } from '../data/types'
+import type { Artifact, Block, BlockType, L, Project } from '../data/types'
 import { useT } from '../i18n'
 import { useStore } from '../store'
 import { Icon, IconButton, Menu, type MenuItem } from '../ui/kit'
@@ -33,6 +33,20 @@ export const KINDS: Record<Artifact['kind'], { icon: string; color: string; labe
   slides: { icon: 'slideshow', color: 'var(--yellow)', label: { fr: 'Présentation', en: 'Slides' } },
   pdf: { icon: 'picture_as_pdf', color: 'var(--red)', label: { fr: 'PDF', en: 'PDF' } },
 }
+export const BLOCK_META: Record<BlockType, { icon: string; label: L }> = {
+  summary: { icon: 'auto_awesome', label: { fr: 'Résumé', en: 'Summary' } },
+  timeline: { icon: 'view_timeline', label: { fr: 'Calendrier', en: 'Timeline' } },
+  todo: { icon: 'task_alt', label: { fr: 'À faire', en: 'To-do' } },
+  kanban: { icon: 'view_kanban', label: { fr: 'Kanban', en: 'Kanban' } },
+  files: { icon: 'folder', label: { fr: 'Fichiers', en: 'Files' } },
+  people: { icon: 'group', label: { fr: 'Équipe', en: 'People' } },
+  calendar: { icon: 'event', label: { fr: 'Agenda', en: 'Calendar' } },
+  chart: { icon: 'bar_chart', label: { fr: 'Graphique', en: 'Chart' } },
+  model3d: { icon: 'view_in_ar', label: { fr: '3D', en: '3D' } },
+  notes: { icon: 'notes', label: { fr: 'Notes', en: 'Notes' } },
+  poll: { icon: 'ballot', label: { fr: 'Sondage', en: 'Poll' } },
+}
+
 export function KindIcon({ kind, size = 20 }: { kind: Artifact['kind']; size?: number }) {
   return <Icon name={KINDS[kind].icon} fill size={size} style={{ color: KINDS[kind].color }} />
 }

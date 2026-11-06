@@ -211,34 +211,76 @@ function buildBadge(textures: Texture[]): Built {
   return { root, height: 1.25, distance: 8 }
 }
 
-export function createScene(host: HTMLElement, opts: Options): SceneControl {
-  const renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' })
+function makeRig(renderer: WebGLRenderer, model: Options['model']) {
   renderer.setClearColor(0x000000, 0) // transparent: the panel shows through, in light and in dark
   renderer.outputColorSpace = SRGBColorSpace
   renderer.toneMapping = ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.05
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2))
-  const canvas = renderer.domElement
-  host.appendChild(canvas)
-
   const scene = new Scene()
   const pmrem = new PMREMGenerator(renderer)
   const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
   scene.environment = env
   scene.environmentIntensity = 0.55
-
   const key = new DirectionalLight(0xffffff, 1.2)
   key.position.set(2.5, 4, 3)
   scene.add(key, new AmbientLight(0xffffff, 0.18))
-
   const textures: Texture[] = []
-  const built = opts.model === 'lamp' ? buildLamp(textures) : opts.model === 'desk' ? buildDesk(textures) : buildBadge(textures)
+  const built = model === 'lamp' ? buildLamp(textures) : model === 'desk' ? buildDesk(textures) : buildBadge(textures)
   const pivot = new Group()
   pivot.add(built.root)
   scene.add(pivot)
   const camera = new PerspectiveCamera(28, 1, 0.1, 40)
   camera.position.set(0, built.height + 1.15, built.distance)
   camera.lookAt(0, built.height, 0)
+  const frame = (w: number, h: number) => {
+    camera.aspect = w / h
+    // stay framed when the block is much narrower than it is tall
+    camera.fov = w / h < 1 ? Math.min(46, 28 / (w / h)) : 28
+    camera.updateProjectionMatrix()
+  }
+  const dispose = () => {
+    scene.traverse((o: Object3D) => {
+      const m = o as Mesh
+      m.geometry?.dispose?.()
+      const mats = (Array.isArray(m.material) ? m.material : m.material ? [m.material] : []) as Material[]
+      mats.forEach((x) => x.dispose())
+    })
+    textures.forEach((x) => x.dispose())
+    env.dispose()
+    pmrem.dispose()
+    renderer.dispose()
+    renderer.forceContextLoss()
+  }
+  return { scene, built, pivot, camera, frame, dispose }
+}
+
+const posters = new Map<string, string>()
+/** One real render as a picture, for the Overview tile: no running WebGL context until someone hovers it. */
+export function renderPoster(model: Options['model'], w: number, h: number): string {
+  const key = `${model}:${w}x${h}`
+  const known = posters.get(key)
+  if (known) return known
+  const renderer = new WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'low-power' })
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2))
+  renderer.setSize(w, h, false)
+  const rig = makeRig(renderer, model)
+  rig.built.update?.(new Color(TINT.warm))
+  rig.frame(w, h)
+  rig.pivot.rotation.set(0, model === 'badge' ? -0.35 : 0.5, 0)
+  renderer.render(rig.scene, rig.camera)
+  const url = renderer.domElement.toDataURL('image/png')
+  rig.dispose()
+  posters.set(key, url)
+  return url
+}
+
+export function createScene(host: HTMLElement, opts: Options): SceneControl {
+  const renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' })
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2))
+  const canvas = renderer.domElement
+  host.appendChild(canvas)
+  const rig = makeRig(renderer, opts.model)
+  const { scene, built, pivot, camera } = rig
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
   const color = new Color(TINT[opts.tint])
@@ -287,10 +329,7 @@ export function createScene(host: HTMLElement, opts: Options): SceneControl {
     const w = host.clientWidth, h = host.clientHeight
     if (!w || !h) return
     renderer.setSize(w, h, false)
-    camera.aspect = w / h
-    // stay framed when the block is much narrower than it is tall
-    camera.fov = w / h < 1 ? Math.min(46, 28 / (w / h)) : 28
-    camera.updateProjectionMatrix()
+    rig.frame(w, h)
     dirty = true
     wake()
   })
@@ -337,17 +376,7 @@ export function createScene(host: HTMLElement, opts: Options): SceneControl {
       io.disconnect(); ro.disconnect()
       document.removeEventListener('visibilitychange', onVisibility)
       canvas.removeEventListener('webglcontextlost', lost)
-      scene.traverse((o: Object3D) => {
-        const m = o as Mesh
-        m.geometry?.dispose?.()
-        const mats = (Array.isArray(m.material) ? m.material : m.material ? [m.material] : []) as Material[]
-        mats.forEach((x) => x.dispose())
-      })
-      textures.forEach((x) => x.dispose())
-      env.dispose()
-      pmrem.dispose()
-      renderer.dispose()
-      renderer.forceContextLoss()
+      rig.dispose()
       canvas.remove()
     },
   }

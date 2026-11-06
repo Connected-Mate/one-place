@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Block } from '../../data/types'
 import { useT } from '../../i18n'
-import { Frame } from '../shared'
+import { Frame, prefersReducedMotion } from '../shared'
 import type { SceneControl, Tint } from './scene3d'
 
 const hasWebGL = () => {
@@ -24,6 +24,56 @@ function StaticModel({ model, color }: { model: 'lamp' | 'desk' | 'badge'; color
       {model === 'desk' && <><i className="screen" /><i className="top" /><i className="leg l" /><i className="leg r" /></>}
       {model === 'badge' && <><i className="strap" /><i className="card" /></>}
     </div>
+  )
+}
+
+/** The Overview tile: a real render as a picture, turning live only while hovered or focused. */
+export function ModelTilePreview({ model }: { model: 'lamp' | 'desk' | 'badge' }) {
+  const root = useRef<HTMLSpanElement>(null)
+  const host = useRef<HTMLSpanElement>(null)
+  const [poster, setPoster] = useState<string | null>(null)
+  const [live, setLive] = useState(false)
+  useEffect(() => {
+    if (!hasWebGL()) return
+    let dead = false
+    const run = () => import('./scene3d').then((m) => {
+      if (dead) return
+      const r = root.current?.getBoundingClientRect()
+      setPoster(m.renderPoster(model, Math.round(r?.width || 320) || 320, Math.round(r?.height || 240) || 240))
+    }).catch(() => { /* the CSS still image stays */ })
+    const idle = window.requestIdleCallback?.(run, { timeout: 1500 }) ?? window.setTimeout(run, 300)
+    return () => { dead = true; if (window.cancelIdleCallback) window.cancelIdleCallback(idle); else clearTimeout(idle) }
+  }, [model])
+  useEffect(() => {
+    const tile = root.current?.closest('button')
+    if (!tile || prefersReducedMotion() || !hasWebGL()) return
+    let made: SceneControl | null = null
+    let timer = 0
+    let wanted = false
+    const on = () => {
+      wanted = true
+      timer = window.setTimeout(() => {
+        import('./scene3d').then((m) => {
+          if (!wanted || made || !host.current) return
+          made = m.createScene(host.current, { model, tint: 'warm', onLost: () => { made = null; setLive(false) } })
+          setLive(true)
+        }).catch(() => undefined)
+      }, 180)
+    }
+    const off = () => { wanted = false; clearTimeout(timer); made?.dispose(); made = null; setLive(false) }
+    tile.addEventListener('pointerenter', on); tile.addEventListener('pointerleave', off)
+    tile.addEventListener('focus', on); tile.addEventListener('blur', off)
+    return () => {
+      tile.removeEventListener('pointerenter', on); tile.removeEventListener('pointerleave', off)
+      tile.removeEventListener('focus', on); tile.removeEventListener('blur', off)
+      off()
+    }
+  }, [model])
+  return (
+    <span ref={root} className={`rp-t-3d${live ? ' live' : ''}`} aria-hidden="true">
+      {poster ? <img src={poster} alt="" /> : <StaticModel model={model} color="#ffb26b" />}
+      <span ref={host} className="rp-t-3d-live" />
+    </span>
   )
 }
 

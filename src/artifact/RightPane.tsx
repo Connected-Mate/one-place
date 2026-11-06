@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { CallView } from '../call/CallView'
-import type { Artifact, PaneView } from '../data/types'
+import type { Artifact, Block, PaneView } from '../data/types'
 import { useT } from '../i18n'
 import { roleIn, useProject, useStore } from '../store'
 import { Icon } from '../ui/kit'
+import { AdviceChip } from './AdviceChip'
 import './artifact.css'
 import { BlockGallery } from './BlockGallery'
-import { Board } from './Board'
+import { SectionView } from './Board'
 import { DocView } from './docs/DocView'
 import { PdfView } from './docs/PdfView'
 import { SheetView } from './docs/SheetView'
 import { SlidesView } from './docs/SlidesView'
-import { BoardContext, KindIcon, revealIn } from './shared'
+import { Overview } from './Overview'
+import { BLOCK_META, BoardContext, KindIcon, revealIn } from './shared'
 
 const BOARD_VIEW: PaneView = { type: 'board' }
 const TABS_KEY = 'one-place-open-tabs'
@@ -21,6 +23,26 @@ const loadTabs = (): TabMap => {
 }
 const saveTabs = (m: TabMap) => {
   try { localStorage.setItem(TABS_KEY, JSON.stringify(m)) } catch { /* private mode: tabs just won't come back */ }
+}
+// Which part of the board is showing, per project. 'overview' or a block id.
+const SECTIONS_KEY = 'one-place-board-section'
+const loadSections = (): Record<string, string> => {
+  try { return JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? '{}') as Record<string, string> } catch { return {} }
+}
+const saveSections = (m: Record<string, string>) => {
+  try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(m)) } catch { /* private mode: back to Overview on reload */ }
+}
+/** A tab is named after its kind, so the row stays short. A chart goes by its own title; a second of a kind too. */
+function sectionTabs(blocks: Block[], t: (v: { fr: string; en: string } | string) => string) {
+  const seen = new Map<string, number>()
+  return blocks.map((b) => {
+    const n = (seen.get(b.type) ?? 0) + 1
+    seen.set(b.type, n)
+    const kind = t(BLOCK_META[b.type].label)
+    const own = t(b.title)
+    const label = b.type === 'chart' ? own : n === 1 ? kind : own && own !== kind ? own : `${kind} ${n}`
+    return { block: b, label }
+  })
 }
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
@@ -49,6 +71,8 @@ export function RightPane() {
   const galleryOpen = useStore((s) => s.blockGalleryOpen)
   const setBlockGallery = useStore((s) => s.setBlockGallery)
   const [tabMap, setTabMap] = useState<TabMap>(loadTabs)
+  const [sectionMap, setSectionMap] = useState<Record<string, string>>(loadSections)
+  const [overflow, setOverflow] = useState({ left: false, right: false })
   const [now, setNow] = useState(() => Date.now())
   const tablist = useRef<HTMLDivElement>(null)
   const warned = useRef<string | null>(null)
@@ -84,10 +108,58 @@ export function RightPane() {
     return () => clearInterval(timer)
   }, [call])
 
-  const activeKey = view === 'call' ? 'call' : view === 'artifact' ? openArtifact!.id : 'board'
+  const blocks = project?.blocks
+  const storedSection = sectionMap[pid] ?? 'overview'
+  const openBlock = storedSection === 'overview' ? undefined : blocks?.find((b) => b.id === storedSection)
+  const section = openBlock ? openBlock.id : 'overview'
+  const activeKey = view === 'call' ? 'call' : view === 'artifact' ? openArtifact!.id : section
+  const pickSection = useCallback((id: string) => {
+    setSectionMap((m) => { const next = { ...m, [useStore.getState().activeProjectId]: id }; saveSections(next); return next })
+  }, [])
+  const openSection = useCallback((id: string) => {
+    pickSection(id)
+    useStore.getState().setPane({ type: 'board' })
+  }, [pickSection])
+
+  // Something just landed on the board. On Overview its tile glows, right there. On another part of the
+  // board, its own tab opens. In a document or a call nothing is taken away: its tab lights up instead.
+  const freshIds = useMemo(() => (blocks ?? []).filter((b) => b.fresh).map((b) => b.id), [blocks])
+  const knownFresh = useRef({ pid, ids: freshIds })
   useEffect(() => {
-    revealIn(tablist.current, tablist.current?.querySelector('[aria-selected="true"]')?.parentElement)
-  }, [activeKey, tabIds.length])
+    const known = knownFresh.current
+    knownFresh.current = { pid, ids: freshIds }
+    if (known.pid !== pid) return
+    const arrived = freshIds.filter((id) => !known.ids.includes(id))
+    if (arrived.length && view === 'board' && section !== 'overview') pickSection(arrived[0])
+    const tab = tablist.current?.querySelector(`[data-tab="${CSS.escape(arrived[0] ?? '')}"]`)
+    if (tab) revealIn(tablist.current, tab, { top: 0, right: 40, bottom: 0, left: 40 })
+  }, [freshIds, pid, view, section, pickSection])
+  // The flag can outlive its timer (a reload in mid-animation, a block that is not on screen).
+  useEffect(() => {
+    if (!freshIds.length) return
+    const timer = setTimeout(() => { for (const id of freshIds) useStore.getState().patchBlock(pid, id, { fresh: false }) }, 2400)
+    return () => clearTimeout(timer)
+  }, [freshIds, pid])
+
+  const tabCount = (blocks?.length ?? 0) + tabIds.length + (call ? 1 : 0)
+  const readOverflow = useCallback(() => {
+    const el = tablist.current
+    if (!el) return
+    const left = el.scrollLeft > 2, right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
+    setOverflow((o) => (o.left === left && o.right === right ? o : { left, right }))
+  }, [])
+  useLayoutEffect(() => {
+    const el = tablist.current
+    if (!el) return
+    readOverflow()
+    const ro = new ResizeObserver(readOverflow)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [readOverflow, tabCount, pid])
+  useEffect(() => {
+    revealIn(tablist.current, tablist.current?.querySelector('[aria-selected="true"]')?.parentElement, { top: 0, right: 40, bottom: 0, left: 40 })
+  }, [activeKey, tabCount])
+  const scrollTabs = (dir: -1 | 1) => tablist.current?.scrollBy({ left: dir * tablist.current.clientWidth * 0.7 })
 
   if (!project) return <section className="pane right-pane" />
 
@@ -118,12 +190,25 @@ export function RightPane() {
 
   return (
     <section className="pane right-pane" aria-label={t({ fr: 'Vue partagée du projet', en: 'Shared project view' })}>
-      <div ref={tablist} className="rp-tabs" role="tablist" aria-label={t({ fr: 'Ouvert dans ce projet', en: 'Open in this project' })} onKeyDown={onTabsKey}>
-        <div className={`rp-tab${activeKey === 'board' ? ' on' : ''}`} role="presentation">
-          <button type="button" role="tab" aria-selected={activeKey === 'board'} tabIndex={activeKey === 'board' ? 0 : -1} className="rp-tab-btn" onClick={() => setPane({ type: 'board' })}>
-            <Icon name="dashboard" size={18} fill={activeKey === 'board'} />{t({ fr: 'Tableau', en: 'Board' })}
+      <BoardContext.Provider value={{ project, role, viewerId }}>
+      <div className="rp-tabbar">
+      {overflow.left && <button type="button" className="rp-tab-scroll prev" tabIndex={-1} aria-hidden="true" onClick={() => scrollTabs(-1)}><Icon name="chevron_left" size={20} /></button>}
+      <div ref={tablist} className="rp-tabs" role="tablist" aria-label={t({ fr: 'Parties du projet', en: 'Parts of this project' })} onKeyDown={onTabsKey} onScroll={readOverflow}>
+        <div className={`rp-tab${activeKey === 'overview' ? ' on' : ''}`} role="presentation" data-tab="overview">
+          <button type="button" role="tab" aria-selected={activeKey === 'overview'} tabIndex={activeKey === 'overview' ? 0 : -1} className="rp-tab-btn" onClick={() => openSection('overview')}>
+            <Icon name="dashboard" size={18} fill={activeKey === 'overview'} />{t({ fr: 'Vue d’ensemble', en: 'Overview' })}
           </button>
         </div>
+        {sectionTabs(project.blocks, t).map(({ block, label }) => {
+          const on = activeKey === block.id
+          return (
+            <div key={block.id} className={`rp-tab${on ? ' on' : ''}${block.fresh && !on ? ' fresh' : ''}`} role="presentation" data-tab={block.id}>
+              <button type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1} className="rp-tab-btn" title={label} onClick={() => openSection(block.id)}>
+                <span className="rp-trunc">{label}</span>
+              </button>
+            </div>
+          )
+        })}
         {tabIds.map((id) => {
           const a = project.artifacts.find((x) => x.id === id)!
           const title = t(a.title)
@@ -145,10 +230,13 @@ export function RightPane() {
           </div>
         )}
       </div>
-      <BoardContext.Provider value={{ project, role, viewerId }}>
+      {overflow.right && <button type="button" className="rp-tab-scroll next" tabIndex={-1} aria-hidden="true" onClick={() => scrollTabs(1)}><Icon name="chevron_right" size={20} /></button>}
+      {role !== 'guest' && <div className="rp-advice-slot"><AdviceChip key={project.id} onOpenSection={openSection} /></div>}
+      </div>
         <div className="rp-body">
-          {/* The board stays mounted under a document: scroll position kept, 3D paused by its own observer. */}
-          <div className="rp-view" hidden={view !== 'board'} role="tabpanel"><Board key={project.id} /></div>
+          {/* Overview stays mounted under the other tabs: scroll position kept, and its bars can animate a move. */}
+          <div className="rp-view" hidden={view !== 'board' || section !== 'overview'} role="tabpanel"><Overview key={project.id} onOpen={openSection} /></div>
+          {view === 'board' && openBlock && <div className="rp-view" role="tabpanel" key={openBlock.id}><SectionView block={openBlock} /></div>}
           {view === 'artifact' && <div className="rp-view" role="tabpanel" key={openArtifact!.id}><ArtifactView artifact={openArtifact!} /></div>}
           {/* The call keeps running behind other tabs and other projects. */}
           {call && <div className="rp-view" role="tabpanel" hidden={view !== 'call'}><CallView /></div>}
