@@ -3,7 +3,7 @@ import type { Artifact } from '../../data/types'
 import { useT } from '../../i18n'
 import { useStore } from '../../store'
 import { Button, Icon } from '../../ui/kit'
-import { useBoard } from '../shared'
+import { revealIn, useBoard } from '../shared'
 import { colName, computeCell, parseInput, type Cell } from './formula'
 import { ArtifactHeader, takeFocus, TB, TBSep } from './Header'
 
@@ -126,7 +126,7 @@ export function SheetView({ sheet: source }: { sheet: Sheet }) {
 
   useEffect(() => { takeFocus(grid.current) }, [])
   useEffect(() => {
-    grid.current?.querySelector(`[data-pos="${sel.r}-${sel.c}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    revealIn(grid.current?.closest('.rp-sheet-scroll') as HTMLElement | null, grid.current?.querySelector(`[data-pos="${sel.r}-${sel.c}"]`), { top: 26, right: 4, bottom: 28, left: 46 })
   }, [sel])
 
   const onGridKey = (e: React.KeyboardEvent) => {

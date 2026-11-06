@@ -10,6 +10,17 @@ export const DAY = 864e5
 export const prefersReducedMotion = () => {
   try { return matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false }
 }
+/** Scroll one container only. el.scrollIntoView would also move every ancestor, even overflow:hidden ones. */
+export function revealIn(box: HTMLElement | null, el: Element | null | undefined, pad = { top: 0, right: 0, bottom: 0, left: 0 }, smooth = false) {
+  if (!box || !el) return
+  const b = box.getBoundingClientRect(), r = el.getBoundingClientRect()
+  let dx = 0, dy = 0
+  if (r.left < b.left + pad.left) dx = r.left - b.left - pad.left
+  else if (r.right > b.right - pad.right) dx = Math.min(r.right - b.right + pad.right, r.left - b.left - pad.left)
+  if (r.top < b.top + pad.top) dy = r.top - b.top - pad.top
+  else if (r.bottom > b.bottom - pad.bottom) dy = Math.min(r.bottom - b.bottom + pad.bottom, r.top - b.top - pad.top)
+  if (dx || dy) box.scrollBy({ left: dx, top: dy, behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto' })
+}
 export const startOfDay = (at: number) => { const d = new Date(at); d.setHours(0, 0, 0, 0); return d.getTime() }
 
 export interface BoardCtx { project: Project; role: 'owner' | 'member' | 'guest'; viewerId: string }
@@ -79,7 +90,7 @@ export function Frame({ block, leading, actions, className = '', children, style
   useEffect(() => {
     if (!block.fresh) return
     const el = ref.current
-    if (el?.offsetParent) el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'nearest' })
+    if (el?.offsetParent) revealIn(el.closest('.rp-board'), el, { top: 24, right: 0, bottom: 24, left: 0 }, true)
     // the flag may have been persisted by a reload in mid-animation: always clear it.
     const timer = setTimeout(() => patchBlock(project.id, block.id, { fresh: false }), 2400)
     return () => clearTimeout(timer)

@@ -1,7 +1,8 @@
 /* Right pane: tabs, board, blocks, documents. Everything is scoped under .rp-* */
-.right-pane{position:relative;--viz-1:#2a78d6;--paper-line:rgba(100,121,143,.28)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .right-pane{--viz-1:#3987e5}}
-:root[data-theme="dark"] .right-pane{--viz-1:#3987e5}
+:root{--viz-1:#2a78d6;--paper-line:rgba(100,121,143,.28)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--viz-1:#3987e5}}
+:root[data-theme="dark"]{--viz-1:#3987e5}
+.right-pane{position:relative}
 .right-pane h1,.right-pane h2,.right-pane h3,.right-pane h4,.right-pane p,.right-pane ul{margin:0;padding:0}
 .right-pane ul{list-style:none}
 .rp-trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -223,7 +224,7 @@
 
 /* ---- Gallery ---- */
 .rp-gal-note{margin:0 0 12px;font-size:13px;color:var(--text-3)}
-.rp-gal-ask{display:flex;align-items:center;gap:12px;height:48px;padding:0 8px 0 16px;border-radius:var(--r-xl);background:var(--surface-2);margin-bottom:20px}
+.rp-gal-ask{display:flex;align-items:center;gap:12px;height:48px;padding:0 8px 0 16px;border-radius:var(--r-xl);background:var(--surface-2);margin:2px 2px 20px}
 .rp-gal-ask:focus-within{box-shadow:0 0 0 2px var(--primary)}
 .rp-gal-ask input{flex:1;min-width:0;height:100%;background:none;border:0;outline:0;color:var(--text)}
 .rp-gal-ask input::placeholder{color:var(--text-3)}
@@ -459,3 +460,10 @@
   .rp-block.span-2 .rp-todo-meta,.rp-block.span-3 .rp-todo-meta{grid-column:2;grid-row:1;margin:0;max-width:220px}
   .rp-block.span-2 .rp-todo>.avatar,.rp-block.span-3 .rp-todo>.avatar{grid-column:3;grid-row:1}
 }
+
+/* Long titles: the title gives way first, then the extras */
+.rp-doc-head{flex-wrap:nowrap}
+.rp-doc-head .rp-share{flex:none}
+.rp-doc-title{min-width:48px}
+@container doc (max-width:640px){.rp-doc-head-extra .avatar-stack{display:none}}
+@container doc (max-width:420px){.rp-share.btn{padding:0;width:36px;font-size:0;gap:0}.rp-present-btn.btn{padding:0;width:36px;font-size:0;gap:0}}

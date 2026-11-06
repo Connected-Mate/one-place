@@ -64,7 +64,7 @@ function buildLamp(textures: Texture[]): Built {
   const emissiveMap = new CanvasTexture(strip)
   emissiveMap.colorSpace = SRGBColorSpace
   textures.push(emissiveMap)
-  const glassMat = new MeshStandardMaterial({ color: 0xfff6ec, roughness: 0.32, metalness: 0, emissive: 0xffffff, emissiveMap, emissiveIntensity: 1.5, side: DoubleSide })
+  const glassMat = new MeshStandardMaterial({ color: 0xd9d4ce, roughness: 0.32, metalness: 0, emissive: 0xffffff, emissiveMap, emissiveIntensity: 0.92, envMapIntensity: 0.35, side: DoubleSide })
   root.add(new Mesh(new LatheGeometry(profile, 96), glassMat))
 
   // A thin brass hoop around the globe: it also makes the rotation readable on a round object.

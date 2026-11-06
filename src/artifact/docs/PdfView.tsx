@@ -39,7 +39,8 @@ export function PdfView({ pdf }: { pdf: Pdf }) {
 
   const goTo = (n: number) => {
     const target = Math.max(1, Math.min(pages, n))
-    scroller.current?.querySelector(`[data-page="${target}"]`)?.scrollIntoView({ block: 'start' })
+    const box = scroller.current, el = box?.querySelector(`[data-page="${target}"]`)
+    if (box && el) box.scrollTop += el.getBoundingClientRect().top - box.getBoundingClientRect().top - 16
     setPage(target)
   }
   const stepZoom = (d: number) => setZoom((z) => ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, ZOOMS.indexOf(z) + d))])

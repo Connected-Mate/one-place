@@ -1,4 +1,4 @@
-// A real Gantt: positions are percentages of a track that is at least 10px per day, so it
+// A real Gantt: positions are percentages of a track that is at least 8px per day, so it
 // fills wide columns and scrolls inside the block on narrow ones.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Block, TimelineItem } from '../../data/types'
@@ -7,7 +7,7 @@ import { personById, useStore } from '../../store'
 import { Avatar } from '../../ui/kit'
 import { DAY, Empty, Frame, prefersReducedMotion, startOfDay, useBoard, useTip } from '../shared'
 
-const PX_PER_DAY = 10
+const PX_PER_DAY = 8
 const monday = (at: number) => { const d = new Date(startOfDay(at)); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime() }
 const addDays = (at: number, n: number) => { const d = new Date(at); d.setDate(d.getDate() + n); return d.getTime() }
 
@@ -105,7 +105,8 @@ export function TimelineBlock({ block }: { block: Extract<Block, { type: 'timeli
       <div ref={scroller} className="rp-gantt-scroll" role="region" tabIndex={0} aria-label={t({ fr: `${t(block.title)}, défilement horizontal`, en: `${t(block.title)}, scrolls horizontally` })} onScroll={hide}>
         <div className="rp-gantt" style={{ minWidth: totalDays * PX_PER_DAY }}>
           <div className="rp-g-axis" aria-hidden="true">
-            {weeks.map((w) => <span key={w} className="rp-g-week" style={{ left: `${pct(w)}%` }}>{fmtDate(w, lang).replace('.', '')}</span>)}
+            {/* the week label under the Today pill would be half hidden: skip that one */}
+            {weeks.filter((w) => { const px = ((now - w) / DAY) * pxPerDay; return px < -16 || px > 68 }).map((w) => <span key={w} className="rp-g-week" style={{ left: `${pct(w)}%` }}>{fmtDate(w, lang).replace('.', '')}</span>)}
           </div>
           <div className="rp-g-body">
             {weeks.map((w) => <span key={w} className="rp-g-grid" style={{ left: `${pct(w)}%` }} />)}

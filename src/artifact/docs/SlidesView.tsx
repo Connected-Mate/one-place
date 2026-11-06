@@ -3,7 +3,7 @@ import type { Artifact } from '../../data/types'
 import { useT } from '../../i18n'
 import { useStore } from '../../store'
 import { Button, IconButton } from '../../ui/kit'
-import { Empty, useBoard } from '../shared'
+import { Empty, revealIn, useBoard } from '../shared'
 import { ArtifactHeader, takeFocus, TB, TBSep } from './Header'
 
 type Deck = Extract<Artifact, { kind: 'slides' }>
@@ -60,7 +60,7 @@ export function SlidesView({ deck }: { deck: Deck }) {
 
   const go = (i: number) => setAt(Math.max(0, Math.min(total - 1, i)))
   useEffect(() => { takeFocus(root.current) }, [])
-  useEffect(() => { strip.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [current])
+  useEffect(() => { revealIn(strip.current, strip.current?.querySelector('[aria-current="true"]'), { top: 8, right: 8, bottom: 8, left: 8 }) }, [current])
   useEffect(() => {
     if (present) overlay.current?.focus()
     else root.current?.focus({ preventScroll: true })

@@ -11,7 +11,7 @@ import { DocView } from './docs/DocView'
 import { PdfView } from './docs/PdfView'
 import { SheetView } from './docs/SheetView'
 import { SlidesView } from './docs/SlidesView'
-import { BoardContext, KindIcon } from './shared'
+import { BoardContext, KindIcon, revealIn } from './shared'
 
 const BOARD_VIEW: PaneView = { type: 'board' }
 const TABS_KEY = 'one-place-open-tabs'
@@ -86,7 +86,7 @@ export function RightPane() {
 
   const activeKey = view === 'call' ? 'call' : view === 'artifact' ? openArtifact!.id : 'board'
   useEffect(() => {
-    tablist.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    revealIn(tablist.current, tablist.current?.querySelector('[aria-selected="true"]')?.parentElement)
   }, [activeKey, tabIds.length])
 
   if (!project) return <section className="pane right-pane" />
