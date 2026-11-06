@@ -24,22 +24,33 @@ export function SuggestionChips({ project, quoteId, onPick, className = '' }: { 
   )
 }
 
-function pad(n: number) { return String(n).padStart(2, '0') }
-function defaultWhen() {
-  const d = new Date(Date.now() + 864e5)
-  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1)
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T10:00`
+/** The next working days, as chips: no native date picker, always US format. */
+function dayChoices() {
+  const out: { at: number; label: string }[] = []
+  const d = new Date(); d.setHours(0, 0, 0, 0)
+  for (let i = 0; out.length < 8 && i < 16; i++, d.setDate(d.getDate() + 1)) {
+    if (d.getDay() === 0 || d.getDay() === 6) continue
+    if (i === 0 && new Date().getHours() >= 18) continue
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    out.push({ at: d.getTime(), label })
+  }
+  return out
 }
+const TIMES = Array.from({ length: 22 }, (_, i) => 8 * 60 + i * 30) // 8:00 AM to 6:30 PM
+const timeLabel = (min: number) => { const d = new Date(); d.setHours(Math.floor(min / 60), min % 60, 0, 0); return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }
 function MeetingDialog({ pid, onClose }: { pid: string; onClose: () => void }) {
   const t = useT()
+  const days = useMemo(dayChoices, [])
   const [title, setTitle] = useState('')
-  const [when, setWhen] = useState(defaultWhen)
+  const [day, setDay] = useState(() => days[days[0]?.label === 'Today' ? 1 : 0]?.at ?? days[0]?.at)
+  const [time, setTime] = useState(600)
   const [err, setErr] = useState<'title' | 'when' | null>(null)
   const submit = () => {
     if (!title.trim()) { setErr('title'); return }
-    const at = new Date(when).getTime()
-    if (!when || Number.isNaN(at) || at < Date.now()) { setErr('when'); return }
-    scheduleMeeting(pid, title.trim(), at, 30)
+    const at = day + time * 6e4
+    const d = new Date(day); d.setHours(Math.floor(time / 60), time % 60, 0, 0)
+    if (d.getTime() < Date.now() || Number.isNaN(at)) { setErr('when'); return }
+    scheduleMeeting(pid, title.trim(), d.getTime(), 30)
     onClose()
   }
   return (
@@ -49,10 +60,20 @@ function MeetingDialog({ pid, onClose }: { pid: string; onClose: () => void }) {
         <input id="mt-title" data-autofocus className={`input${err === 'title' ? ' bad' : ''}`} value={title} maxLength={120} onChange={(e) => { setTitle(e.target.value); setErr(null) }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit() } }} />
         {err === 'title' && <span className="field-err" role="alert">{t({ fr: 'Donne un titre à la réunion.', en: 'Give the meeting a title.' })}</span>}
       </div>
+      <div className="field" role="group" aria-labelledby="mt-day-label">
+        <span id="mt-day-label" className="field-label">{t({ fr: 'Jour', en: 'Day' })}</span>
+        <div className="day-chips">
+          {days.map((d) => (
+            <button key={d.at} type="button" className={`chip click day-chip${day === d.at ? ' selected' : ''}`} aria-pressed={day === d.at} onClick={() => { setDay(d.at); setErr(null) }}>{d.label}</button>
+          ))}
+        </div>
+      </div>
       <div className="field">
-        <label htmlFor="mt-when">{t({ fr: 'Date et heure', en: 'Date and time' })}</label>
-        <input id="mt-when" type="datetime-local" className={`input${err === 'when' ? ' bad' : ''}`} value={when} onChange={(e) => { setWhen(e.target.value); setErr(null) }} />
-        {err === 'when' && <span className="field-err" role="alert">{t({ fr: 'Choisis une date à venir.', en: 'Pick a date in the future.' })}</span>}
+        <label htmlFor="mt-time">{t({ fr: 'Heure', en: 'Time' })}</label>
+        <select id="mt-time" className={`input${err === 'when' ? ' bad' : ''}`} value={time} onChange={(e) => { setTime(Number(e.target.value)); setErr(null) }}>
+          {TIMES.map((m) => <option key={m} value={m}>{timeLabel(m)}</option>)}
+        </select>
+        {err === 'when' && <span className="field-err" role="alert">{t({ fr: 'Choisis une heure à venir.', en: 'That time has passed. Pick a later one.' })}</span>}
       </div>
     </Dialog>
   )
@@ -116,11 +137,12 @@ export function Composer({ project }: { project: Project }) {
   // the shell's "Things to try" panel can start something in the composer
   useEffect(() => {
     const on = (e: Event) => {
-      const text = (e as CustomEvent<{ text?: string }>).detail?.text
-      if (typeof text !== 'string') return
+      const text = (e as CustomEvent<{ text?: string }>).detail?.text ?? ''
       useStore.getState().setMobilePane('chat')
       const cur = useChat.getState().drafts[pid] ?? ''
-      setDraft(pid, cur && !/\s$/.test(cur) ? `${cur} ${text}` : cur + text)
+      // already there, or nothing to add: just bring the cursor back, never "@ @"
+      if (text && !cur.trimEnd().endsWith(text)) setDraft(pid, cur && !/\s$/.test(cur) ? `${cur} ${text}` : cur + text)
+      inputRef.current?.blur()
       inputRef.current?.focus()
     }
     window.addEventListener('oneplace:compose', on)
@@ -197,8 +219,8 @@ export function Composer({ project }: { project: Project }) {
       {mailReply && mailTarget && (
         <div className="composer-banner mail">
           <Icon name="forward_to_inbox" size={18} />
-          <span className="banner-text">{t({ fr: `Réponse par mail à ${mailName(mailTarget)} (${mailAddress(mailTarget)}). Pas besoin de compte pour la recevoir.`, en: `Reply by mail to ${mailName(mailTarget)} (${mailAddress(mailTarget)}). They do not need an account.` })}</span>
-          <IconButton icon="close" size={28} label={t({ fr: 'Annuler la réponse par mail', en: 'Cancel reply by mail' })} onClick={() => setMailReply(null)} />
+          <span className="banner-text">{t({ fr: `Réponse par mail à ${mailName(mailTarget)} (${mailAddress(mailTarget)}). Pas besoin de compte pour la recevoir.`, en: `Reply by email to ${mailName(mailTarget)} (${mailAddress(mailTarget)}). They don’t need an account.` })}</span>
+          <IconButton icon="close" size={28} label={t({ fr: 'Annuler la réponse par mail', en: 'Cancel reply by email' })} onClick={() => setMailReply(null)} />
         </div>
       )}
 
@@ -229,7 +251,7 @@ export function Composer({ project }: { project: Project }) {
           <button type="button" {...p} className="composer-plus" aria-label={t({ fr: 'Ajouter', en: 'Add' })}><Icon name="add" size={24} /></button>
         )} />
         <MentionInput pid={pid} value={draft} onChange={(v) => setDraft(pid, v)} onSubmit={() => { if (canSend) send() }} onEscape={clearModes} inputRef={inputRef} label={placeholder} placeholder={placeholder} />
-        <button type="button" className="composer-send" disabled={!canSend} aria-label={mailReply ? t({ fr: 'Envoyer par mail', en: 'Send by mail' }) : t({ fr: 'Envoyer', en: 'Send' })} title={t({ fr: 'Envoyer', en: 'Send' })} onClick={send}>
+        <button type="button" className="composer-send" disabled={!canSend} aria-label={mailReply ? t({ fr: 'Envoyer par mail', en: 'Send by email' }) : t({ fr: 'Envoyer', en: 'Send' })} title={t({ fr: 'Envoyer', en: 'Send' })} onClick={send}>
           <Icon name="send" fill size={20} />
         </button>
       </div>

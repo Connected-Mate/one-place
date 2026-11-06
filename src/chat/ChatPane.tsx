@@ -1,7 +1,7 @@
 // The project chat: header, message log and composer.
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { fmtDay, tx, useT } from '../i18n'
-import { canSee, personById, roleIn, useProject, useStore } from '../store'
+import { canSee, GEMINI_ID, personById, roleIn, useProject, useStore } from '../store'
 import { startCall } from '../call/callActions'
 import { Avatar, AvatarStack, Button, Icon, IconButton, Menu, Sparkle } from '../ui/kit'
 import type { Message, Project } from '../data/types'
@@ -26,7 +26,8 @@ function Header({ project }: { project: Project }) {
   const toast = useStore((s) => s.toast)
   const role = roleIn(project, viewerId)
   const live = inThisCall || project.messages.some((m) => m.kind === 'meeting' && m.live && !m.ended && canSee(m.visibility, viewerId))
-  const roleLabel = role === 'owner' ? { fr: 'Propriétaire', en: 'Owner' } : role === 'member' ? { fr: 'Membre', en: 'Member' } : { fr: 'Invité', en: 'Guest' }
+  const peopleCount = project.memberIds.filter((id) => id !== GEMINI_ID).length
+  const roleLabel = `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} · ${role === 'owner' ? 'you’re the owner' : role === 'member' ? 'you’re a member' : 'you’re a guest'}`
   const roleHelp = role === 'owner'
     ? { fr: 'Tu décides de ce qui arrive sur le board', en: 'You decide what goes on the board' }
     : { fr: `Tu proposes, ${firstName(project.ownerId)} approuve`, en: `You propose, ${firstName(project.ownerId)} approves` }
@@ -39,20 +40,22 @@ function Header({ project }: { project: Project }) {
     }
   }
   return (
-    <header className="chat-head">
+    <header className={`chat-head${inThisCall ? ' in-call' : ''}`}>
       <div className="chat-title">
         <h2 className="chat-name">{t(project.name)}</h2>
-        <span className="role-label" title={t(roleHelp)}>{t(roleLabel)}</span>
+        <span className="role-label" title={t(roleHelp)}>{roleLabel}</span>
       </div>
       <AvatarStack ids={project.memberIds} size={28} max={4} />
-      {live
-        ? <Button variant="filled" size="s" icon="videocam" className="join-green" onClick={() => { if (inThisCall) setPane({ type: 'call' }); else startCall(pid) }}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>
+      {inThisCall
+        ? <button type="button" className="in-call-note" onClick={() => setPane({ type: 'call' })}><Icon name="check_circle" size={16} />{t({ fr: 'Tu es dans cet appel', en: 'You’re in this call' })}</button>
+        : live
+        ? <Button variant="filled" size="s" icon="videocam" onClick={() => startCall(pid)}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>
         : <IconButton icon="videocam" label={t({ fr: 'Lancer un appel', en: 'Start a call' })} onClick={() => startCall(pid)} />}
       <Menu align="right" items={[
         { icon: 'dashboard', label: t({ fr: 'Voir le board', en: 'Open the board' }), onSelect: () => setPane({ type: 'board' }) },
         { icon: 'alternate_email', label: t({ fr: 'Copier l’adresse du projet', en: 'Copy project address' }), hint: undefined, onSelect: () => { void copyAddress() } },
         { divider: true, label: '' },
-        { icon: 'group', label: t({ fr: `${project.memberIds.length} membres`, en: `${project.memberIds.length} members` }), disabled: true },
+        { icon: 'group', label: t({ fr: `${peopleCount} membres`, en: `${peopleCount} ${peopleCount === 1 ? 'member' : 'members'}` }), disabled: true },
       ]} trigger={(p) => <IconButton {...p} icon="more_vert" label={t({ fr: 'Plus d’options', en: 'More options' })} />} />
     </header>
   )
@@ -64,7 +67,7 @@ function EmptyState({ project, onPick }: { project: Project; onPick: (text: stri
     <div className="chat-empty">
       <Sparkle size={40} />
       <h3>{t({ fr: 'Tout le projet commence ici', en: 'The whole project starts here' })}</h3>
-      <p>{t({ fr: `Écrivez à l’équipe, ou demandez à Gemini. Les mails envoyés à ${project.address} arrivent aussi ici.`, en: `Write to the team, or ask Gemini. Mail sent to ${project.address} lands here too.` })}</p>
+      <p>{t({ fr: `Écrivez à l’équipe, ou demandez à Gemini. Les mails envoyés à ${project.address} arrivent aussi ici.`, en: `Write to the team, or ask Gemini. Email sent to ${project.address} shows up here too.` })}</p>
       <SuggestionChips project={project} onPick={onPick} className="center" />
     </div>
   )

@@ -6,9 +6,11 @@
 .chat-head{display:flex;align-items:center;gap:8px;min-height:64px;padding:8px 8px 8px 20px;flex:none;border-bottom:1px solid var(--hairline)}
 .chat-title{flex:1;min-width:0;display:flex;flex-direction:column}
 .chat-name{margin:0;font-size:18px;line-height:24px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.role-label{font-size:12px;line-height:16px;color:var(--text-3);width:fit-content}
-.join-green.btn{background:var(--green-strong);color:var(--panel)}
-.chat-head .join-green{flex:none}
+.role-label{font-size:12px;line-height:16px;color:var(--text-3);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-head.in-call .avatar-stack{display:none}
+.in-call-note{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:var(--r-pill);font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap;flex:none;transition:background var(--t-fast) var(--ease)}
+.in-call-note:hover{background:var(--hover)}
+.in-call-note .ms{color:var(--green-strong)}
 
 /* log */
 .log-wrap{position:relative;flex:1;min-height:0;display:flex}
@@ -56,7 +58,7 @@
 
 /* action bar */
 .msg-actions{position:absolute;top:-30px;right:0;display:flex;align-items:center;gap:0;background:var(--panel);border-radius:var(--r-pill);box-shadow:var(--shadow-1);padding:2px;opacity:0;pointer-events:none;transition:opacity var(--t-fast) var(--ease);z-index:3}
-.msg:hover>.msg-main>.msg-content>.msg-actions,.msg:focus-within>.msg-main>.msg-content>.msg-actions,.msg.touched>.msg-main>.msg-content>.msg-actions{opacity:1;pointer-events:auto}
+.msg:hover>.msg-main>.msg-content>.msg-actions,.msg:focus-within>.msg-main>.msg-content>.msg-actions,.msg.touched>.msg-main>.msg-content>.msg-actions,.msg-actions.shown{opacity:1;pointer-events:auto}
 .ask-btn{width:32px;height:32px}
 .emoji-btn{width:32px;height:32px;border-radius:50%;font-size:17px;line-height:1;transition:background var(--t-fast) var(--ease)}
 .emoji-btn:hover{background:var(--hover)}
@@ -211,6 +213,12 @@ button.file-card:hover{background:var(--surface-2)}
 .mention-name{font-weight:500;flex:none;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mention-hint{font-size:12px;color:var(--text-3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* meeting dialog */
+.field-label{font-size:12px;color:var(--text-3)}
+.day-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.day-chip{transition:background var(--t-fast) var(--ease)}
+select.input{appearance:auto;background:transparent;color:var(--text)}
+
 /* attach dialog */
 .attach-list{display:flex;flex-direction:column;gap:2px}
 .attach-item{display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 8px;border-radius:var(--r-s);text-align:left;color:var(--text);transition:background var(--t-fast) var(--ease)}
@@ -229,7 +237,9 @@ button.file-card:active{background:var(--surface-3)}
 @media (hover:none){
   .msg-actions .icon-btn,.msg-actions .emoji-btn,.ask-btn{width:40px!important;height:40px!important}
   .msg-actions{top:-38px}
-  .reaction{height:32px}
+  .reaction{height:40px;min-width:40px;justify-content:center}
+  .mail-more{display:inline-flex;align-items:center;min-height:40px}
+  .in-call-note{min-height:40px}
   .thread-toggle{min-height:40px}
   .btn.s{height:40px}
   .suggestion{min-height:40px}

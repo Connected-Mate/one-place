@@ -49,8 +49,9 @@ function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string
   const t = useT()
   const [open, setOpen] = useState(false)
   const body = t(m.body)
-  const long = body.length > 180 || body.split('\n').length > 3
   const draft = isDraftMail(m)
+  // a draft is read in full before it leaves
+  const long = !draft && (body.length > 180 || body.split('\n').length > 3)
   const { setMailReply, focusComposer, setDraft } = useChat.getState()
   const reply = () => { setMailReply({ pid, messageId: m.id }); focusComposer() }
   const edit = () => {
@@ -68,8 +69,8 @@ function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string
         <span>{draft
           ? t({ fr: `Brouillon de mail pour ${outName}, pas encore envoyé`, en: `Draft to ${outName}, not sent yet` })
           : m.direction === 'in'
-            ? t({ fr: `Mail reçu, envoyé à ${address}`, en: `Mail received, sent to ${address}` })
-            : t({ fr: `Envoyé par mail à ${outName}, pas besoin de compte pour le recevoir`, en: `Sent by mail to ${outName}, they do not need an account` })}</span>
+            ? t({ fr: `Mail reçu, envoyé à ${address}`, en: `Email received, sent to ${address}` })
+            : t({ fr: `Envoyé par mail à ${outName}, pas besoin de compte pour le recevoir`, en: `Sent by email to ${outName}. They don’t need an account.` })}</span>
       </div>
       <div className="mail-meta">
         {m.direction === 'in'
@@ -92,7 +93,7 @@ function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string
             <Button size="s" onClick={discard}>{t({ fr: 'Supprimer', en: 'Discard' })}</Button>
           </>
         )}
-        {!draft && m.direction === 'in' && <Button variant="tonal" size="s" icon="reply" onClick={reply}>{t({ fr: 'Répondre par mail', en: 'Reply by mail' })}</Button>}
+        {!draft && m.direction === 'in' && <Button variant="tonal" size="s" icon="reply" onClick={reply}>{t({ fr: 'Répondre par mail', en: 'Reply by email' })}</Button>}
       </div>
     </article>
   )
@@ -155,7 +156,9 @@ function MeetingCard({ m, pid }: { m: MeetingMessage; pid: string }) {
         )}
         {!m.ended && (
           <div className="card-actions">
-            <Button variant="filled" size="s" icon="videocam" className={m.live || inCall ? 'join-green' : ''} onClick={join}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>
+            {inCall && m.live
+              ? <button type="button" className="in-call-note" onClick={join}><Icon name="check_circle" size={16} />{t({ fr: 'Tu es dans cet appel', en: 'You’re in this call' })}</button>
+              : <Button variant="filled" size="s" icon="videocam" onClick={join}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>}
             <Button variant="outlined" size="s" icon="person_add" onClick={() => setGuest(true)}>{t({ fr: 'Ajouter un invité', en: 'Add guest' })}</Button>
           </div>
         )}
@@ -300,6 +303,10 @@ function privateTarget(m: Message, pid: string, viewerId: string) {
 function ActionBar({ m, pid, viewerId, parentId }: { m: Message; pid: string; viewerId: string; parentId?: string }) {
   const t = useT()
   const [picking, setPicking] = useState(false)
+  const closePicker = (row: Element | null) => {
+    setPicking(false)
+    requestAnimationFrame(() => row?.querySelector<HTMLElement>('.msg-actions button')?.focus())
+  }
   const openThread = () => {
     const { setThread, setThreadCompose } = useChat.getState()
     const root = parentId ?? m.id
@@ -324,9 +331,11 @@ function ActionBar({ m, pid, viewerId, parentId }: { m: Message; pid: string; vi
   }
   if (picking) {
     return (
-      <div className="msg-actions" role="toolbar" aria-label={t({ fr: 'Choisir une réaction', en: 'Pick a reaction' })}>
-        {EMOJIS.map((e) => <button key={e} type="button" className="emoji-btn" aria-label={e} onClick={() => { reactTo(pid, m.id, e); setPicking(false) }}>{e}</button>)}
-        <IconButton icon="close" size={32} label={t({ fr: 'Fermer', en: 'Close' })} onClick={() => setPicking(false)} />
+      <div className="msg-actions shown" role="toolbar" aria-label={t({ fr: 'Choisir une réaction', en: 'Pick a reaction' })}
+        ref={(el) => { if (el && !el.contains(document.activeElement)) el.querySelector('button')?.focus() }}
+        onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePicker(e.currentTarget.closest('.msg')) } }}>
+        {EMOJIS.map((e) => <button key={e} type="button" className="emoji-btn" aria-label={e} onClick={(ev) => { reactTo(pid, m.id, e); closePicker(ev.currentTarget.closest('.msg')) }}>{e}</button>)}
+        <IconButton icon="close" size={32} label={t({ fr: 'Fermer', en: 'Close' })} onClick={(ev) => closePicker(ev.currentTarget.closest('.msg'))} />
       </div>
     )
   }

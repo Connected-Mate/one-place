@@ -132,7 +132,7 @@ export function MentionInput({ pid, value, onChange, onSubmit, onEscape, label, 
           onChange={(e) => { setDismissed(false); setCaret(e.target.selectionStart ?? 0); onChange(e.target.value) }}
           onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
           onKeyDown={onKey}
-          onFocus={() => setFocused(true)}
+          onFocus={() => { setFocused(true); setDismissed(false) }}
           onBlur={() => setFocused(false)}
           onScroll={(e) => { if (mirror.current) mirror.current.scrollTop = e.currentTarget.scrollTop }}
         />

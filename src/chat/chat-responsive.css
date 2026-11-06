@@ -1,0 +1,74 @@
+/* The chat on tablets and phones: CSS only, on top of chat.css. Loaded after it from App.tsx. */
+
+/* Under 900 ProjectBar is the header: name, call and menu live there */
+@media (max-width:899px){
+  .chat-head{display:none}
+}
+@media (max-width:1279px){
+  .chat-head .avatar-stack{display:none}
+}
+
+/* Phone: full-bleed, the composer sits on the keyboard or on the home indicator */
+@media (max-width:599px){
+  .chat-log-inner{padding:8px 12px}
+  .composer{padding:4px 8px calc(8px + env(safe-area-inset-bottom))}
+  .bubble{max-width:calc(100% - 24px)}
+  .ocard{max-width:none}
+  .suggestions{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -8px;padding:0 8px}
+  .suggestions::-webkit-scrollbar{display:none}
+  .suggestion{flex:none;white-space:nowrap}
+  .suggestions.center{flex-wrap:wrap;justify-content:center;overflow:visible}
+  .suggestions.center .suggestion{white-space:normal}
+}
+
+/* The @ list spans the whole composer, right above the keyboard */
+@media (max-width:899px){
+  .composer-pill{position:relative}
+  .composer-pill .mi{position:static}
+  .mention-menu{left:0;right:0;min-width:0;max-height:min(280px,calc(100dvh - var(--kb,0px) - 180px))}
+  .mention-menu li{min-height:48px}
+}
+
+/* Touch: no hover bar left behind, every target big enough, 16px text so iOS doesn't zoom on focus */
+@media (hover:none){
+  .msg:hover>.msg-main>.msg-content>.msg-actions:not(.shown),.msg:focus-within:not(.touched)>.msg-main>.msg-content>.msg-actions:not(.shown){opacity:0;pointer-events:none}
+  .msg.touched>.msg-main>.msg-content>.msg-actions{opacity:1;pointer-events:auto}
+  .mi-mirror,.mi-input{font-size:16px;line-height:22px;padding-block:9px}
+  .to-switch{height:40px}
+  .composer-to{min-height:40px}
+  .composer-banner .icon-btn,.composer-to .icon-btn{width:40px!important;height:40px!important}
+  .thread-compose .icon-btn{width:40px!important;height:40px!important}
+  .op-link{min-height:40px;display:inline-flex;align-items:center}
+  .mail-more{min-height:40px}
+  .summary-todos{min-height:40px}
+  .chat-log{-webkit-overflow-scrolling:touch}
+}
+
+/* Message actions on a phone: a bottom sheet of named actions. The labels are the buttons' own, the scrim closes it. */
+@media (hover:none) and (max-width:599px),(hover:none) and (max-height:480px) and (max-width:1279px){
+  .msg.touched>.msg-main>.msg-content>.msg-actions{position:fixed;top:auto;left:0;right:0;bottom:var(--kb,0px);margin-inline:auto;width:min(100%,640px);z-index:110;flex-direction:column;align-items:stretch;gap:0;padding:28px 8px calc(12px + env(safe-area-inset-bottom));background:var(--panel);border-radius:28px 28px 0 0;box-shadow:none;animation:sheet-up var(--t-slow) var(--ease-out)}
+  .msg.touched>.msg-main>.msg-content>.msg-actions::before{content:'';position:fixed;inset:0;z-index:-1;background:rgba(0,0,0,.32);animation:fade var(--t) var(--ease)}
+  .msg.touched>.msg-main>.msg-content>.msg-actions::after{content:'';position:absolute;top:12px;left:50%;width:32px;height:4px;margin-left:-16px;border-radius:2px;background:var(--outline)}
+  /* the sheet's own surface sits above its scrim */
+  .msg.touched>.msg-main>.msg-content>.msg-actions>*{position:relative}
+  .msg.touched>.msg-main>.msg-content>.msg-actions .icon-btn{width:100%!important;height:52px!important;justify-content:flex-start;gap:16px;padding:0 16px;border-radius:var(--r-m);color:var(--text);font-size:16px}
+  .msg.touched>.msg-main>.msg-content>.msg-actions .icon-btn::after{content:attr(aria-label)}
+  /* the emoji row of that sheet */
+  .msg.touched>.msg-main>.msg-content>.msg-actions.shown{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center}
+  .msg.touched>.msg-main>.msg-content>.msg-actions.shown .emoji-btn{width:52px!important;height:52px!important;font-size:26px}
+  .msg.touched>.msg-main>.msg-content>.msg-actions.shown .icon-btn{width:52px!important;justify-content:center;padding:0;border-radius:50%}
+  .msg.touched>.msg-main>.msg-content>.msg-actions.shown .icon-btn::after{content:none}
+  /* the tapped message itself stays marked behind the sheet */
+  .msg.touched{background:var(--hover)}
+}
+
+/* A short screen: the composer keeps its pill; the rest steps aside */
+@media (max-height:480px) and (max-width:1279px){
+  .chat-head{min-height:48px;padding-block:0}
+  .role-label{display:none}
+  .composer{padding-block:0 6px;gap:2px}
+  .suggestions{display:none}
+}
+@media (max-height:300px){
+  .composer-to{display:none}
+}

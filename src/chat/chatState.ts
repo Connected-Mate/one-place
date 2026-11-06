@@ -122,7 +122,7 @@ export function sendMailReply(pid: string, messageId: string, raw: string): bool
   s.push(pid, { id: uid('m'), kind: 'email', direction: 'out', authorId: s.viewerId, at: Date.now(), visibility: { type: 'all' }, subject: { fr: subject('fr'), en: subject('en') }, body, from: p.address, to: source.direction === 'in' ? source.from : source.to, quoteId: source.id })
   useChat.getState().setMailReply(null)
   useChat.getState().scrollToEnd()
-  s.toast({ icon: 'forward_to_inbox', text: { fr: `Mail envoyé à ${mailName(source.from)}`, en: `Mail sent to ${mailName(source.from)}` } })
+  s.toast({ icon: 'forward_to_inbox', text: { fr: `Mail envoyé à ${mailName(source.from)}`, en: `Email sent to ${mailName(source.from)}` } })
   return true
 }
 
@@ -133,7 +133,7 @@ export function sendDraft(pid: string, messageId: string) {
   const m = p && findMessage(p, messageId)
   if (!m || m.kind !== 'email' || !isDraftMail(m)) return
   updateMessage(pid, messageId, { authorId: s.viewerId, at: Date.now(), visibility: { type: 'all' } })
-  s.toast({ icon: 'forward_to_inbox', text: { fr: `Mail envoyé à ${mailName(m.to)}`, en: `Mail sent to ${mailName(m.to)}` } })
+  s.toast({ icon: 'forward_to_inbox', text: { fr: `Mail envoyé à ${mailName(m.to)}`, en: `Email sent to ${mailName(m.to)}` } })
 }
 
 /* ---------- files ---------- */
