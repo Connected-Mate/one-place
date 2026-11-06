@@ -25,7 +25,12 @@ const APPS = [
 export function Welcome({ onClose }: { onClose: () => void }) {
   const t = useT()
   const [merged, setMerged] = useState(false)
-  useEffect(() => { const x = setTimeout(() => setMerged(true), 1100); return () => clearTimeout(x) }, [])
+  useEffect(() => {
+    // Wait for the loading logo to leave (about 1.6 s after page load), or the merge plays unseen behind it.
+    const splashLeft = Math.max(0, 1600 - performance.now())
+    const x = setTimeout(() => setMerged(true), splashLeft + 1800)
+    return () => clearTimeout(x)
+  }, [])
   const mid = (APPS.length - 1) / 2
   return (
     <Dialog
