@@ -27,8 +27,9 @@
   .suggestion{flex:none;white-space:nowrap}
   .suggestions.center{flex-wrap:wrap;justify-content:center;overflow:visible;margin:0;padding:0}
   .suggestions.center .suggestion{flex:0 1 auto;white-space:normal}
-  .mi-input:placeholder-shown{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
+/* At any width: a placeholder stays on one line and truncates, it never wraps out of the pill. */
+.mi-input:placeholder-shown{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* The @ list spans the whole composer, right above the keyboard */
 @media (max-width:1279px){

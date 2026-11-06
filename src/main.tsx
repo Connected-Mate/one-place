@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './tokens.css'
 import App from './App'
+import { useStore } from './store'
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)
 
@@ -21,3 +22,6 @@ console.log(
   'font:500 24px "Google Sans",sans-serif;color:#0b57d0', 'font:14px/22px "Google Sans",sans-serif',
 )
 Object.assign(window, { hireMe: () => window.open('https://www.linkedin.com/in/alex-cormeraie/', '_blank', 'noopener') })
+
+// Lets the layout audit (scripts/layout-audit.mjs) walk every screen.
+Object.assign(window, { __opStore: useStore })

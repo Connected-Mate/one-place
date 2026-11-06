@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "sign": "node scripts/sign-sources.mjs",
+    "audit:layout": "node scripts/layout-audit.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
