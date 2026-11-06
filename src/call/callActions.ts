@@ -10,9 +10,11 @@ import { people } from '../data/seed'
 import type { Block, CallState, CallSummaryMessage, MeetingMessage, Message, PaneView, Person, Project, ProjectScript, Todo, Txt } from '../data/types'
 import { tx } from '../i18n'
 import { GEMINI_ID, personById, roleIn, uid, useStore } from '../store'
+import { stopMedia } from './media'
+import { stopVoice, unlockAudio } from './voice'
 
-const FIRST_JOIN_MS = 900
-const JOIN_STEP_MS = 1700
+const FIRST_JOIN_MS = 700
+const JOIN_STEP_MS = 1100
 const INVITE_JOIN_MS = 2200
 const WRITEUP_MS = 2400
 const SAVED_KEY = 'one-place-call'
@@ -85,6 +87,7 @@ export function startCall(projectId: string) {
   const s = useStore.getState()
   const project = projectById(projectId)
   if (!project || roleIn(project, s.viewerId) === 'guest') return
+  unlockAudio() // we are inside the click: sound can then play on its own
   if (s.call?.projectId === projectId) { // already running here: rejoin, nothing else
     openCallPane(projectId)
     s.markTour('call')
@@ -114,7 +117,9 @@ export function startCall(projectId: string) {
 /** Bring the view back to the running call, wherever the user went. */
 export function returnToCall() {
   const { call } = useStore.getState()
-  if (call) openCallPane(call.projectId)
+  if (!call) return
+  unlockAudio()
+  openCallPane(call.projectId)
 }
 
 export function endCall() {
@@ -122,6 +127,8 @@ export function endCall() {
   const call = s.call
   if (!call) return // second click on hang-up: nothing left to do
   clearCallTimers()
+  stopVoice()
+  stopMedia()
   s.setCall(null)
   useCallUi.setState({ hand: false, captionLine: 0, pendingInvites: [] })
   if (s.panes[call.projectId]?.type === 'call') setPaneFor(call.projectId, { type: 'board' })
@@ -206,11 +213,11 @@ function finishWriteup(projectId: string, meetingId: string) {
   s.toast({
     icon: 'task_alt',
     text: {
-      fr: added.length > 1 ? `Compte rendu publié, ${added.length} tâches ajoutées` : added.length === 1 ? 'Compte rendu publié, 1 tâche ajoutée' : 'Compte rendu publié',
-      en: added.length > 1 ? `Summary posted, ${added.length} to-dos added` : added.length === 1 ? 'Summary posted, 1 to-do added' : 'Summary posted',
+      fr: added.length > 1 ? `Résumé publié, ${added.length} tâches` : added.length === 1 ? 'Résumé publié, 1 tâche' : 'Résumé publié',
+      en: added.length > 1 ? `Summary posted, ${added.length} to-dos` : added.length === 1 ? 'Summary posted, 1 to-do' : 'Summary posted',
     },
     action: {
-      label: { fr: 'Voir sur le board', en: 'See on board' },
+      label: { fr: 'Voir', en: 'View' },
       run: () => {
         const st = useStore.getState()
         if (st.activeProjectId !== projectId) st.selectProject(projectId)
@@ -267,7 +274,7 @@ export function inviteGuest(rawName: string, rawEmail: string): InviteErrors | n
   if (!call) return null
   const guest = { name: rawName.trim(), email: rawEmail.trim().toLowerCase() }
   useCallUi.setState((u) => ({ pendingInvites: [...u.pendingInvites, guest] }))
-  s.toast({ icon: 'mail', text: { fr: `Invitation envoyée à ${guest.name}`, en: `Invitation sent to ${guest.name}` } })
+  s.toast({ icon: 'mail', text: { fr: `${guest.name} invité`, en: `${guest.name} invited` } })
   callTimers.push(setTimeout(() => {
     const st = useStore.getState()
     useCallUi.setState((u) => ({ pendingInvites: u.pendingInvites.filter((g) => g.email !== guest.email) }))
@@ -295,7 +302,7 @@ export async function copyCallLink(startedAt: number) {
   const { toast } = useStore.getState()
   try {
     await navigator.clipboard.writeText(link)
-    toast({ icon: 'link', text: { fr: 'Lien de l’appel copié', en: 'Call link copied' } })
+    toast({ icon: 'link', text: { fr: 'Lien copié', en: 'Link copied' } })
   } catch { // clipboard refused: still give the link, in plain sight
     toast({ icon: 'link', text: link })
   }

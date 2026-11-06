@@ -11,7 +11,9 @@ import { Avatar, AvatarStack, Button, Icon, Sparkle } from '../ui/kit'
 import { Logo } from '../ui/Logo'
 import { endCall, expectedIds, guestAsPerson, returnToCall, scriptFor, startCall, useCallUi } from './callActions'
 import { InviteDialog } from './InviteDialog'
-import { CtlButton, Stage, Tile, useElapsed, type CaptionLine, type StagePerson } from './Stage'
+import { setCamera, setMicrophone, useLiveMedia } from './media'
+import { unlockAudio } from './voice'
+import { CtlButton, MediaNotice, Stage, Tile, useElapsed, type CaptionLine, type StagePerson } from './Stage'
 import './call.css'
 
 /* ---- The call inside the project ---- */
@@ -36,16 +38,18 @@ function ProjectStage({ call, project }: { call: CallState; project: Project }) 
   }, [call.participantIds, call.guests, viewerId, project.memberIds])
   const expected = expectedIds(project, viewerId, script.captions)
   const waiting = expected.filter((id) => !call.participantIds.includes(id)).length + pending
+  useLiveMedia(true, call.cam, call.mic, (what) => patchCall(what === 'cam' ? { cam: false } : { mic: false }))
 
   return (
     <>
       <Stage mode="project" title={call.title} startedAt={call.startedAt} selfId={viewerId} people={people} waiting={waiting}
         mic={call.mic} cam={call.cam} captions={call.captions} sharing={call.sharing} hand={hand} doc={doc}
-        lines={script.captions} line={line} onLine={(n) => useCallUi.setState({ captionLine: n })}
-        onMic={() => patchCall({ mic: !call.mic })} onCam={() => patchCall({ cam: !call.cam })}
+        lines={script.captions} voicePrefix={project.id} line={line} onLine={(n) => useCallUi.setState({ captionLine: n })}
+        onMic={() => { void setMicrophone(!call.mic); patchCall({ mic: !call.mic }) }}
+        onCam={() => { void setCamera(!call.cam); patchCall({ cam: !call.cam }) }}
         onCaptions={() => patchCall({ captions: !call.captions })} onHand={() => useCallUi.setState({ hand: !hand })}
         onShare={() => {
-          if (!doc) { toast({ icon: 'info', text: { fr: 'Ce projet n’a pas encore de document à présenter.', en: 'This project has no document to present yet.' } }); return }
+          if (!doc) { toast({ icon: 'info', text: { fr: 'Aucun document à présenter.', en: 'No document to present yet.' } }); return }
           patchCall({ sharing: !call.sharing })
         }}
         onInvite={() => setInviting(true)} onHangUp={endCall} />
@@ -213,11 +217,14 @@ export function GuestScreen() {
 
   useEffect(() => {
     if (phase !== 'joined') return
-    const timers = others.map((_, i) => setTimeout(() => setJoinedCount((n) => Math.max(n, i + 1)), 700 + i * 1500))
+    const timers = others.map((_, i) => setTimeout(() => setJoinedCount((n) => Math.max(n, i + 1)), 700 + i * 1100))
     return () => timers.forEach(clearTimeout)
   }, [phase, others])
 
-  const join = () => { setHeld(meeting); setStartedAt(Date.now()); setLine(0); setJoinedCount(0); setHand(false); setPhase('joined') }
+  // Pre-join shows a real preview, as Meet does; leaving lets go of the camera at once.
+  useLiveMedia(phase !== 'left' && !!current, cam, mic, (what) => (what === 'cam' ? setCam(false) : setMic(false)))
+
+  const join = () => { unlockAudio(); setHeld(meeting); setStartedAt(Date.now()); setLine(0); setJoinedCount(0); setHand(false); setPhase('joined') }
 
   if (phase === 'joined' && current) {
     const inCall: StagePerson[] = [
@@ -228,7 +235,8 @@ export function GuestScreen() {
       <div className="cv-guest-stage">
         <Stage mode="guest" title={current.title} startedAt={startedAt} selfId={viewer.id} people={inCall} waiting={others.length - joinedCount}
           mic={mic} cam={cam} captions={captions} hand={hand} lines={lines} line={line} onLine={setLine}
-          onMic={() => setMic((v) => !v)} onCam={() => setCam((v) => !v)} onCaptions={() => setCaptions((v) => !v)} onHand={() => setHand((v) => !v)}
+          voicePrefix="guest"
+          onMic={() => { void setMicrophone(!mic); setMic(!mic) }} onCam={() => { void setCamera(!cam); setCam(!cam) }} onCaptions={() => setCaptions((v) => !v)} onHand={() => setHand((v) => !v)}
           onHangUp={() => setPhase('left')} topSlot={<ViewAsAlex compact />} />
       </div>
     )
@@ -264,9 +272,10 @@ export function GuestScreen() {
       <div className="cv-prejoin">
         <div className="cv-preview">
           <Tile person={viewer} self cam={cam} muted={!mic} />
+          <MediaNotice />
           <div className="cv-preview-ctl">
-            <CtlButton icon={mic ? 'mic' : 'mic_off'} label={mic ? t({ fr: 'Couper le micro', en: 'Turn off microphone' }) : t({ fr: 'Activer le micro', en: 'Turn on microphone' })} tone={mic ? undefined : 'off'} onClick={() => setMic(!mic)} />
-            <CtlButton icon={cam ? 'videocam' : 'videocam_off'} label={cam ? t({ fr: 'Couper la caméra', en: 'Turn off camera' }) : t({ fr: 'Activer la caméra', en: 'Turn on camera' })} tone={cam ? undefined : 'off'} onClick={() => setCam(!cam)} />
+            <CtlButton icon={mic ? 'mic' : 'mic_off'} label={mic ? t({ fr: 'Couper le micro', en: 'Turn off microphone' }) : t({ fr: 'Activer le micro', en: 'Turn on microphone' })} tone={mic ? undefined : 'off'} onClick={() => { void setMicrophone(!mic); setMic(!mic) }} />
+            <CtlButton icon={cam ? 'videocam' : 'videocam_off'} label={cam ? t({ fr: 'Couper la caméra', en: 'Turn off camera' }) : t({ fr: 'Activer la caméra', en: 'Turn on camera' })} tone={cam ? undefined : 'off'} onClick={() => { void setCamera(!cam); setCam(!cam) }} />
           </div>
         </div>
         <div className="cv-prejoin-text">

@@ -11,6 +11,8 @@ import type { Artifact, Person, Txt } from '../data/types'
 import { useT } from '../i18n'
 import { useStore } from '../store'
 import { Avatar, Icon, Sparkle, base } from '../ui/kit'
+import { clearNotice, subscribeLevel, useMedia, useTabVisible } from './media'
+import { clipFor, enableSound, estimateSeconds, loadManifest, setCallAudioMuted, speak, useVoice } from './voice'
 import './call.css'
 
 export interface StagePerson { person: Person; callOnly?: boolean }
@@ -31,6 +33,8 @@ export interface StageProps {
   sharing?: boolean
   hand: boolean
   lines: CaptionLine[]
+  /** names the clips of these lines, see voice.ts */
+  voicePrefix?: string
   line: number
   doc?: Artifact
   onLine(n: number): void
@@ -61,50 +65,91 @@ export function useElapsed(startedAt: number) {
   return fmtElapsed(now - startedAt)
 }
 
-/** Plays the script word by word. Stops at the end; every timer dies with the component. */
-function useCaptionPlayer({ lines, line, onLine, joined, selfId, mic }: { lines: CaptionLine[]; line: number; onLine(n: number): void; joined: Set<string>; selfId: string; mic: boolean }) {
+const GAP_MS = 600
+const LAST_LINE_HOLD_MS = 2200
+
+/** Plays the script line by line, in sync with each clip. Stops at the end; everything dies with the component. */
+function useCaptionPlayer({ lines, line, onLine, joined, selfId, mic, allHere, voicePrefix }: { lines: CaptionLine[]; line: number; onLine(n: number): void; joined: Set<string>; selfId: string; mic: boolean; allHere: boolean; voicePrefix?: string }) {
   const lang = useStore((s) => s.lang)
   const [count, setCount] = useState(0)
+  const [talking, setTalking] = useState(false)
+  const visible = useTabVisible()
+  const hasMic = useMedia((m) => !!m.audio)
   const current = lines[line] as CaptionLine | undefined
   const who = current?.who
-  // Nobody speaks before arriving, and you don't speak with your mic off.
-  const skip = who === selfId && !mic
-  const ready = !!who && (joined.has(who) || who === 'gemini')
+  // You don't speak with your mic off. With no mic at all, your lines stay: the conversation needs them.
+  const skip = who === selfId && !mic && hasMic
+  // People must be there before they speak; the opening line waits for the whole room.
+  const ready = !!who && (joined.has(who) || who === 'gemini') && (line > 0 || allHere)
   const text = current ? (typeof current.text === 'string' ? current.text : current.text[lang]) : ''
   const words = useMemo(() => text.split(/\s+/).filter(Boolean), [text])
   const onLineRef = useRef(onLine)
   onLineRef.current = onLine
 
   useEffect(() => {
-    if (!current) return
     setCount(0)
+    setTalking(false)
+    if (!current || !visible) return
     if (skip) {
       const t = setTimeout(() => onLineRef.current(line + 1), 0)
       return () => clearTimeout(t)
     }
     if (!ready) return
-    let t: ReturnType<typeof setTimeout>
-    const next = () => { t = setTimeout(() => onLineRef.current(line + 1), 1300) }
-    if (reducedMotion()) {
-      setCount(words.length)
-      t = setTimeout(() => onLineRef.current(line + 1), 1300 + words.length * 240)
-      return () => clearTimeout(t)
+    let dead = false
+    let stop: (() => void) | undefined
+    let hold: ReturnType<typeof setTimeout> | undefined
+    // Words appear in proportion to their length, which follows speech better than a word count.
+    const total = words.reduce((n, w) => n + w.length + 1, 0) || 1
+    const countAt = (f: number) => {
+      if (reducedMotion()) return words.length
+      let seen = 0, n = 0
+      for (const w of words) { seen += w.length + 1; if (seen / total > f + .02) break; n += 1 }
+      return Math.max(1, n)
     }
-    let shown = 0
-    const step = () => {
-      shown += 1
-      setCount(shown)
-      if (shown >= words.length) return next()
-      t = setTimeout(step, /[.,;:?!]$/.test(words[shown - 1]) ? 340 : 170)
-    }
-    t = setTimeout(step, 450)
-    return () => clearTimeout(t)
+    void loadManifest().then((m) => {
+      if (dead) return
+      const clip = clipFor(m, voicePrefix, line, who!, text, selfId)
+      stop = speak({
+        src: clip?.src,
+        duration: clip?.duration ?? estimateSeconds(words.length),
+        onTalk: setTalking,
+        onProgress: (f) => { const n = countAt(f); setCount((c) => (c === n ? c : n)) },
+        onDone: () => {
+          setTalking(false)
+          setCount(words.length)
+          hold = setTimeout(() => onLineRef.current(line + 1), lines[line + 1] ? GAP_MS : LAST_LINE_HOLD_MS)
+        },
+      })
+    })
+    return () => { dead = true; stop?.(); if (hold) clearTimeout(hold) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [line, words, skip, ready])
+  }, [line, words, skip, ready, visible, voicePrefix])
 
-  const live = !!current && ready && !skip && count > 0
-  return { who: live ? who : undefined, text: live ? words.slice(0, count).join(' ') : '', pending: !!current }
+  const shown = !!current && count > 0
+  return { who: talking ? who : undefined, captionWho: shown ? who : undefined, text: shown ? words.slice(0, count).join(' ') : '' }
 }
+
+/** One quiet line at the top of the stage: the privacy note, or why the camera is off. Never blocks anything. */
+export function MediaNotice() {
+  const notice = useMedia((m) => m.notice)
+  useEffect(() => {
+    if (!notice) return
+    const t = setTimeout(clearNotice, 7000)
+    return () => clearTimeout(t)
+  }, [notice])
+  const t = useT()
+  if (!notice) return null
+  return <div key={notice.id} className="cv-quiet" role="status">{t(notice.text)}</div>
+}
+
+const SoundIcon = ({ on }: { on: boolean }) => (
+  <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M4 9.5v5h3.5L12 19V5L7.5 9.5H4Z" />
+    {on
+      ? <path d="M14.5 8.2a5 5 0 0 1 0 7.6l-1-1.2a3.4 3.4 0 0 0 0-5.2l1-1.2Zm2.3-2.6a8.4 8.4 0 0 1 0 12.8l-1-1.2a6.8 6.8 0 0 0 0-10.4l1-1.2Z" />
+      : <path d="m15 9.1 1.1-1.1 2.4 2.4 2.4-2.4 1.1 1.1-2.4 2.4 2.4 2.4-1.1 1.1-2.4-2.4-2.4 2.4-1.1-1.1 2.4-2.4L15 9.1Z" />}
+  </svg>
+)
 
 /* ---- Tooltip: fixed, clamped to the window, also shown on keyboard focus ---- */
 function Tip({ anchor, label, shortcut }: { anchor: HTMLElement; label: string; shortcut?: string }) {
@@ -141,12 +186,12 @@ function useTip() {
 }
 
 type Tone = 'off' | 'active'
-export function CtlButton({ icon, label, shortcut, tone, pressed, expanded, onClick, className = '' }: { icon: string; label: string; shortcut?: string; tone?: Tone; pressed?: boolean; expanded?: boolean; onClick(e: React.MouseEvent<HTMLButtonElement>): void; className?: string }) {
+export function CtlButton({ icon, iconNode, label, shortcut, tone, pressed, expanded, onClick, className = '' }: { icon?: string; iconNode?: ReactNode; label: string; shortcut?: string; tone?: Tone; pressed?: boolean; expanded?: boolean; onClick(e: React.MouseEvent<HTMLButtonElement>): void; className?: string }) {
   const { anchor, bind } = useTip()
   return (
     <>
       <button type="button" className={`cv-ctl ${tone ?? ''} ${className}`} aria-label={label} aria-pressed={pressed} aria-expanded={expanded} aria-keyshortcuts={shortcut?.toLowerCase()} onClick={onClick} {...bind}>
-        <Icon name={icon} fill={tone === 'active'} size={22} />
+        {iconNode ?? <Icon name={icon ?? ''} fill={tone === 'active'} size={22} />}
       </button>
       {anchor && <Tip anchor={anchor} label={label} shortcut={shortcut} />}
     </>
@@ -154,27 +199,152 @@ export function CtlButton({ icon, label, shortcut, tone, pressed, expanded, onCl
 }
 
 /* ---- A person on the stage ---- */
+/** Webcam-framed stills of the fictional cast. Real people (Alex, Damien) keep their real photo, camera-off style. */
+const STILLS = new Set(['maya', 'tom', 'sofia', 'karim', 'lea', 'jun', 'nora', 'priya', 'ben'])
+
+function SelfVideo({ track }: { track: MediaStreamTrack }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const v = ref.current!
+    v.srcObject = new MediaStream([track]) // video only: your own voice never comes back at you
+    void v.play().catch(() => {})
+    return () => { v.srcObject = null }
+  }, [track])
+  return <video ref={ref} className="cv-self-video" autoPlay muted playsInline aria-hidden="true" />
+}
+
+/** Each face moves a little differently, and at its own moment. */
+function stillMotion(id: string): React.CSSProperties {
+  const h = [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 11)
+  return {
+    '--cv-delay': `-${h % 29}s`,
+    '--cv-x': `${(h % 2 ? 1 : -1) * (.5 + (h % 5) * .12)}%`,
+    '--cv-y': `${(h % 3 ? 1 : -1) * (.3 + (h % 4) * .1)}%`,
+    '--cv-breath': `${5.4 + (h % 7) * .35}s`,
+  } as React.CSSProperties
+}
+
 export function Tile({ person, self, muted, speaking, cam = true, hand, callOnly, arrive, youLabel }: { person: Person; self?: boolean; muted?: boolean; speaking?: boolean; cam?: boolean; hand?: boolean; callOnly?: boolean; arrive?: boolean; youLabel?: string }) {
   const t = useT()
+  const ref = useRef<HTMLElement>(null)
+  const track = useMedia((m) => (self && cam ? m.video : null))
+  const [broken, setBroken] = useState(false)
+  const [talking, setTalking] = useState(false)
+  useEffect(() => {
+    if (!self) return
+    return subscribeLevel((v) => {
+      ref.current?.style.setProperty('--cv-level', v.toFixed(2))
+      setTalking((was) => (was ? v > .1 : v > .18))
+    })
+  }, [self])
+  const still = !self && STILLS.has(person.id) && !broken
+  const video = !!track
+  const talkingNow = speaking || (self && talking && !muted)
   return (
-    <figure className={`cv-tile${speaking ? ' speaking' : ''}${arrive ? ' arrive' : ''}${cam ? '' : ' cam-off'}`} aria-label={person.name}>
-      {cam && (person.avatar
-        ? <img className="cv-tile-photo" src={base + person.avatar} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-        : null)}
-      {cam && <span className="cv-tile-glow" style={{ background: person.hue }} aria-hidden="true" />}
-      <span className="cv-face"><Avatar person={person} size={160} /></span>
+    <figure ref={ref} className={`cv-tile${talkingNow ? ' speaking' : ''}${arrive ? ' arrive' : ''}${video || still ? ' has-video' : ' cam-off'}${self && talking && !muted ? ' level' : ''}`} aria-label={person.name}>
+      {video && <SelfVideo track={track} />}
+      {still && (
+        <span className="cv-still" style={stillMotion(person.id)} aria-hidden="true">
+          <img src={`${base}call/${person.id}.webp`} alt="" onError={() => setBroken(true)} />
+        </span>
+      )}
+      {!video && !still && <span className="cv-face"><Avatar person={person} size={160} /></span>}
       <span className="cv-tile-top">
         {hand && <span className="cv-badge hand" title={t({ fr: 'Main levée', en: 'Hand raised' })}><Icon name="back_hand" fill size={16} /></span>}
-        {!cam && self && <span className="cv-badge"><Icon name="videocam_off" size={16} /></span>}
         {muted
           ? <span className="cv-badge" title={t({ fr: 'Micro coupé', en: 'Muted' })}><Icon name="mic_off" size={16} /><span className="sr-only">{t({ fr: 'Micro coupé', en: 'Muted' })}</span></span>
-          : speaking ? <span className="cv-badge talk" aria-hidden="true"><i /><i /><i /></span> : null}
+          : talkingNow ? <span className="cv-badge talk" aria-hidden="true"><i /><i /><i /></span> : null}
       </span>
       <figcaption className="cv-tag">
         <span className="cv-tag-name">{person.name}{self ? ` (${youLabel ?? t({ fr: 'vous', en: 'you' })})` : ''}</span>
         {callOnly && <span className="cv-only">{t({ fr: 'Cet appel uniquement', en: 'Call only' })}</span>}
       </figcaption>
     </figure>
+  )
+}
+
+/* ---- Gemini, at the crossing of the grid ---- */
+const nearest = (list: number[], target: number) => list.reduce((best, v) => (Math.abs(v - target) < Math.abs(best - target) - .5 ? v : best), list[0])
+
+/** Where the tiles' corners meet. Measured from the layout (not the animation), so it stays right as the grid resizes. */
+function useCrossing(wrap: React.RefObject<HTMLDivElement | null>, n: number, captioning: boolean) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
+  useLayoutEffect(() => {
+    const w = wrap.current
+    if (!w) return
+    const measure = () => {
+      const grid = w.querySelector<HTMLElement>('.cv-grid')
+      if (!grid) return
+      const tiles = [...grid.children] as HTMLElement[]
+      const W = w.clientWidth, H = w.clientHeight
+      let x = W / 2, y = H / 2
+      if (tiles.length <= 1) y = H - (captioning ? 116 : 40) // one face: below it, above the captions
+      else {
+        const rows = new Map<number, HTMLElement[]>()
+        for (const el of tiles) rows.set(el.offsetTop, [...(rows.get(el.offsetTop) ?? []), el])
+        const tops = [...rows.keys()].sort((a, b) => a - b)
+        const rowGaps = tops.slice(1).map((top, i) => (tops[i] + rows.get(tops[i])![0].offsetHeight + top) / 2 - grid.scrollTop)
+        const widest = [...rows.values()].sort((a, b) => b.length - a.length)[0].slice().sort((a, b) => a.offsetLeft - b.offsetLeft)
+        const colGaps = widest.slice(1).map((el, i) => (widest[i].offsetLeft + widest[i].offsetWidth + el.offsetLeft) / 2)
+        if (rowGaps.length) y = nearest(rowGaps, H / 2)
+        // Over a column gutter when the middle is one; an odd grid keeps its true center along the row gutter.
+        if (colGaps.length && (widest.length % 2 === 0 || !rowGaps.length)) x = nearest(colGaps, W / 2)
+      }
+      setPos((p) => (p && Math.abs(p.x - x) < .25 && Math.abs(p.y - y) < .25 ? p : { x, y }))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(w)
+    const grid = w.querySelector('.cv-grid')
+    grid?.addEventListener('scroll', measure, { passive: true })
+    return () => { ro.disconnect(); grid?.removeEventListener('scroll', measure) }
+  }, [wrap, n, captioning])
+  return pos
+}
+
+function GeminiBadge({ mode, talking, notes, style, className = '' }: { mode: StageProps['mode']; talking: boolean; notes: { who: string; text: string }[]; style?: React.CSSProperties; className?: string }) {
+  const t = useT()
+  const label = t({ fr: 'Gemini prend des notes', en: 'Gemini is taking notes' })
+  const { anchor, bind } = useTip()
+  const [open, setOpen] = useState(false)
+  const btn = useRef<HTMLButtonElement>(null)
+  const pop = useRef<HTMLDivElement>(null)
+  const [popPos, setPopPos] = useState<React.CSSProperties>({ visibility: 'hidden' })
+  useLayoutEffect(() => {
+    if (!open || !btn.current || !pop.current) return
+    const a = btn.current.getBoundingClientRect(), r = pop.current.getBoundingClientRect()
+    const top = a.top - r.height - 10
+    setPopPos({ left: Math.max(8, Math.min(a.left + a.width / 2 - r.width / 2, innerWidth - r.width - 8)), top: top < 8 ? a.bottom + 10 : top })
+  }, [open, notes.length])
+  useEffect(() => {
+    if (!open) return
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); btn.current?.focus() } }
+    const down = (e: MouseEvent) => { if (!pop.current?.contains(e.target as Node) && !btn.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('keydown', key)
+    document.addEventListener('mousedown', down)
+    return () => { document.removeEventListener('keydown', key); document.removeEventListener('mousedown', down) }
+  }, [open])
+
+  // A guest gets the plain mark: notes are on, and that is all she needs to know.
+  if (mode === 'guest') {
+    const plain = t({ fr: 'Notes activées', en: 'Notes are on' })
+    return <span className={`cv-gemini plain ${className}`} style={style} role="img" aria-label={plain} title={plain}><Sparkle size={22} /></span>
+  }
+  return (
+    <>
+      <button ref={btn} type="button" className={`cv-gemini${talking ? ' hearing' : ''} ${className}`} style={style} aria-label={label} aria-expanded={open} onClick={() => setOpen((o) => !o)} {...bind}>
+        <Sparkle size={22} />
+      </button>
+      {anchor && !open && <Tip anchor={anchor} label={label} />}
+      {open && createPortal(
+        <div ref={pop} className="cv-gemini-pop" role="dialog" aria-label={t({ fr: 'Notes de Gemini', en: 'Gemini’s notes' })} style={popPos}>
+          <header><Sparkle size={16} />{label}</header>
+          {notes.length
+            ? <ul>{notes.map((n, i) => <li key={i}><b>{n.who}</b> {n.text}</li>)}</ul>
+            : <p>{t({ fr: 'Gemini écoute. Les notes arrivent ici dès que quelqu’un parle.', en: 'Listening. Notes show up here as soon as someone talks.' })}</p>}
+        </div>,
+        document.body)}
+    </>
   )
 }
 
@@ -240,7 +410,7 @@ function PeoplePanel({ people, selfId, hand, mic, mode, muted, onClose, onInvite
   )
 }
 
-function MoreSheet({ items, onClose }: { items: { icon: string; label: string; active?: boolean; run(): void }[]; onClose(): void }) {
+function MoreSheet({ items, onClose }: { items: { icon: string; node?: ReactNode; label: string; active?: boolean; run(): void }[]; onClose(): void }) {
   const t = useT()
   const ref = useSheetBehaviour(onClose, true)
   return (
@@ -250,7 +420,7 @@ function MoreSheet({ items, onClose }: { items: { icon: string; label: string; a
         <span className="cv-grab" aria-hidden="true" />
         {items.map((it) => (
           <button key={it.icon} type="button" className={`cv-sheet-item${it.active ? ' active' : ''}`} onClick={() => { onClose(); it.run() }}>
-            <Icon name={it.icon} fill={it.active} />{it.label}
+            {it.node ?? <Icon name={it.icon} fill={it.active} />}{it.label}
           </button>
         ))}
       </div>
@@ -308,7 +478,9 @@ export function Stage(p: StageProps) {
 
   const ids = p.people.map((x) => x.person.id)
   const joined = useMemo(() => new Set(ids), [ids.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
-  const captions = useCaptionPlayer({ lines: p.lines, line: p.line, onLine: p.onLine, joined, selfId: p.selfId, mic: p.mic })
+  const captions = useCaptionPlayer({ lines: p.lines, line: p.line, onLine: p.onLine, joined, selfId: p.selfId, mic: p.mic, allHere: p.waiting === 0, voicePrefix: p.voicePrefix })
+  const audioMuted = useVoice((v) => v.muted)
+  const soundBlocked = useVoice((v) => v.blocked)
   const talkers = useMemo(() => new Set(p.lines.map((l) => l.who)), [p.lines])
   const muted = (id: string) => (id === p.selfId ? !p.mic : !talkers.has(id))
 
@@ -348,6 +520,7 @@ export function Stage(p: StageProps) {
       const k = e.key.toLowerCase()
       if (k === 'm') { e.preventDefault(); toggleMic() }
       if (k === 'c') { e.preventDefault(); toggleCam() }
+      if (k === 's') { e.preventDefault(); setCallAudioMuted(!useVoice.getState().muted) }
     }
     document.addEventListener('keydown', key)
     return () => document.removeEventListener('keydown', key)
@@ -356,6 +529,7 @@ export function Stage(p: StageProps) {
   const label = {
     mic: p.mic ? t({ fr: 'Couper le micro', en: 'Turn off microphone' }) : t({ fr: 'Activer le micro', en: 'Turn on microphone' }),
     cam: p.cam ? t({ fr: 'Couper la caméra', en: 'Turn off camera' }) : t({ fr: 'Activer la caméra', en: 'Turn on camera' }),
+    sound: audioMuted ? t({ fr: 'Réactiver le son de l’appel', en: 'Unmute call audio' }) : t({ fr: 'Couper le son de l’appel', en: 'Mute call audio' }),
     captions: p.captions ? t({ fr: 'Masquer les sous-titres', en: 'Turn off captions' }) : t({ fr: 'Afficher les sous-titres', en: 'Turn on captions' }),
     hand: p.hand ? t({ fr: 'Baisser la main', en: 'Lower hand' }) : t({ fr: 'Lever la main', en: 'Raise hand' }),
     share: p.sharing ? t({ fr: 'Arrêter de présenter', en: 'Stop presenting' }) : t({ fr: 'Présenter un document', en: 'Present a document' }),
@@ -376,8 +550,16 @@ export function Stage(p: StageProps) {
     const talking = captions.who && ordered.find((x) => x.person.id === captions.who)
     if (talking && !visible.includes(talking)) visible = [...visible.slice(0, -1), talking]
   }
-  const speaker = captions.who ? p.people.find((x) => x.person.id === captions.who)?.person : undefined
+  const speaker = captions.captionWho ? p.people.find((x) => x.person.id === captions.captionWho)?.person : undefined
   const showDoc = p.sharing && p.doc
+
+  const captioning = p.captions && !!captions.text
+  const cells = Math.min(visible.length + (overflow ? 1 : 0), MAX_TILES)
+  const wrap = useRef<HTMLDivElement>(null)
+  const crossing = useCrossing(wrap, showDoc ? 0 : cells, captioning)
+  const firstName = (id: string) => (p.people.find((x) => x.person.id === id)?.person.name ?? '').split(' ')[0]
+  const heard = p.lines.slice(0, captions.captionWho ? p.line + 1 : p.line).slice(-3)
+  const notes = p.mode === 'guest' ? [] : heard.map((l) => ({ who: firstName(l.who), text: t(l.text) }))
 
   const tiles = visible.map(({ person, callOnly }) => {
     const isSelf = person.id === p.selfId
@@ -395,9 +577,6 @@ export function Stage(p: StageProps) {
           <h2>{t(p.title)}</h2>
           <span className="cv-timer" role="timer" aria-label={t({ fr: `Durée de l’appel : ${elapsed}`, en: `Call time: ${elapsed}` })}>{elapsed}</span>
         </div>
-        {p.mode === 'project'
-          ? <span className="cv-notes"><Sparkle size={16} /><span className="cv-notes-text">{t({ fr: 'Gemini prend des notes', en: 'Gemini is taking notes' })}</span></span>
-          : <span className="cv-notes plain"><Icon name="edit_note" size={16} /><span className="cv-notes-text">{t({ fr: 'Notes activées', en: 'Notes on' })}</span></span>}
         {p.topSlot}
       </header>
 
@@ -405,10 +584,10 @@ export function Stage(p: StageProps) {
         <div className="cv-main">
           {showDoc && <DocCard doc={p.doc!} onStop={p.onShare} />}
           {showDoc
-            ? <div className="cv-strip">{tiles}</div>
+            ? <div className="cv-strip-wrap"><div className="cv-strip">{tiles}</div><GeminiBadge mode={p.mode} talking={!!captions.who} notes={notes} className="on-strip" /></div>
             : (
-              <div className="cv-grid-wrap">
-                <div className="cv-grid" data-n={Math.min(visible.length + (overflow ? 1 : 0), MAX_TILES)}>
+              <div ref={wrap} className="cv-grid-wrap">
+                <div className="cv-grid" data-n={cells}>
                   {tiles}
                   {overflow > 0 && (
                     <button type="button" className="cv-tile cv-more-tile" onClick={() => setPeopleOpen(true)} aria-label={t({ fr: `Voir ${overflow} autres participants`, en: `See ${overflow} more people` })}>
@@ -416,6 +595,7 @@ export function Stage(p: StageProps) {
                     </button>
                   )}
                 </div>
+                {crossing && <GeminiBadge mode={p.mode} talking={!!captions.who} notes={notes} style={{ left: crossing.x, top: crossing.y }} />}
                 {p.people.length === 1 && (
                   <div className="cv-alone">
                     {p.waiting > 0
@@ -425,14 +605,15 @@ export function Stage(p: StageProps) {
                 )}
               </div>
             )}
-          {p.captions && p.lines[p.line] && (
-            <div className="cv-captions" aria-live="off" aria-label={t({ fr: 'Sous-titres en direct', en: 'Live captions' })}>
-              {speaker
-                ? <><Avatar person={speaker} size={24} /><div className="cv-cap-text"><b>{speaker.name}</b><p>{captions.text}</p></div></>
-                : captions.who
-                  ? <div className="cv-cap-text"><p>{captions.text}</p></div>
-                  : <div className="cv-cap-text idle"><p>{t({ fr: 'Sous-titres activés', en: 'Captions on' })}</p></div>}
+          {captioning && (
+            <div className={`cv-captions${showDoc ? ' over-strip' : ''}`} aria-live="off" aria-label={t({ fr: 'Sous-titres en direct', en: 'Live captions' })}>
+              {speaker && <Avatar person={speaker} size={24} />}
+              <div className="cv-cap-text">{speaker && <b>{speaker.name}</b>}<p>{captions.text}</p></div>
             </div>
+          )}
+          <MediaNotice />
+          {soundBlocked && !audioMuted && (
+            <button type="button" className="cv-sound-chip" onClick={enableSound}><SoundIcon on />{t({ fr: 'Activer le son', en: 'Turn on sound' })}</button>
           )}
         </div>
         {peopleOpen && (
@@ -446,6 +627,7 @@ export function Stage(p: StageProps) {
       <div className="cv-controls" role="toolbar" aria-label={t({ fr: 'Commandes de l’appel', en: 'Call controls' })}>
         <CtlButton icon={p.mic ? 'mic' : 'mic_off'} label={label.mic} shortcut="M" tone={p.mic ? undefined : 'off'} onClick={toggleMic} />
         <CtlButton icon={p.cam ? 'videocam' : 'videocam_off'} label={label.cam} shortcut="C" tone={p.cam ? undefined : 'off'} onClick={toggleCam} />
+        <CtlButton className="wide-only" iconNode={<SoundIcon on={!audioMuted} />} label={label.sound} shortcut="S" tone={audioMuted ? 'off' : undefined} onClick={() => setCallAudioMuted(!audioMuted)} />
         <CtlButton className="wide-only" icon={p.captions ? 'closed_caption' : 'closed_caption_off'} label={label.captions} tone={p.captions ? 'active' : undefined} pressed={p.captions} onClick={p.onCaptions} />
         <CtlButton className="wide-only" icon="back_hand" label={label.hand} tone={p.hand ? 'active' : undefined} pressed={p.hand} onClick={toggleHand} />
         {p.onShare && <CtlButton className="wide-only" icon="present_to_all" label={label.share} tone={p.sharing ? 'active' : undefined} pressed={!!p.sharing} onClick={p.onShare} />}
@@ -460,6 +642,7 @@ export function Stage(p: StageProps) {
 
       {moreOpen && (
         <MoreSheet onClose={() => setMoreOpen(false)} items={[
+          { icon: 'sound', node: <SoundIcon on={!audioMuted} />, label: label.sound, active: audioMuted, run: () => setCallAudioMuted(!audioMuted) },
           { icon: p.captions ? 'closed_caption' : 'closed_caption_off', label: label.captions, active: p.captions, run: p.onCaptions },
           { icon: 'back_hand', label: label.hand, active: p.hand, run: toggleHand },
           ...(p.onShare ? [{ icon: 'present_to_all', label: label.share, active: !!p.sharing, run: p.onShare }] : []),
