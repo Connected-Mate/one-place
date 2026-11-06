@@ -327,7 +327,7 @@ function buildTracker(ctx: Ctx, p: Project): { block: Block; name: string } {
       const target = Math.round((total * weights[i]) / sum)
       return { label, target, value: Math.round(target * (i === 0 ? 0.9 : i === 1 ? 0.55 : 0.2)) }
     })
-    return { name: `a ${lowerFirst(title)} chart`, block: { id, type: 'chart', title, span: 2, unit: money ? 'k€' : undefined, series } }
+    return { name: /chart/i.test(title) ? `a ${lowerFirst(title).replace(/^a /, '')}` : `a ${lowerFirst(title)} chart`, block: { id, type: 'chart', title, span: 2, unit: money ? 'k€' : undefined, series } }
   }
   const words = ctx.norm.split(/[^a-z0-9]+/).filter((w) => w.length > 3)
   const related = openTodos(p).filter((t) => words.some((w) => normalize(en(t.text)).includes(w)))
