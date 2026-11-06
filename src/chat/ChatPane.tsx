@@ -102,6 +102,7 @@ export function ChatPane() {
   const scroller = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
+  const lastTop = useRef(0)
   const [newCount, setNewCount] = useState(0)
   const [flashId, setFlashId] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -178,9 +179,14 @@ export function ChatPane() {
       <div className="log-wrap">
         <div ref={scroller} className="chat-log" role="log" aria-live="polite" aria-label={t({ fr: 'Messages', en: 'Messages' })} tabIndex={0}
           onScroll={(e) => {
+            // Only the reader scrolling up unsticks. A gap alone proves nothing: scroll events arrive a frame late,
+            // and by then a new card may have grown the content under a scroll that was on its way to the bottom.
             const el = e.currentTarget
-            stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48
-            if (stick.current && newCount) setNewCount(0)
+            const atEnd = el.scrollHeight - el.scrollTop - el.clientHeight < 48
+            if (atEnd) stick.current = true
+            else if (el.scrollTop < lastTop.current - 1) stick.current = false
+            lastTop.current = el.scrollTop
+            if (atEnd && newCount) setNewCount(0)
           }}>
           <div ref={inner} className="chat-log-inner">
             {isEmpty && <EmptyState project={project} onPick={(text) => { sendChat(pid, `@Gemini ${text}`, { privateTo, quoteId }) }} />}

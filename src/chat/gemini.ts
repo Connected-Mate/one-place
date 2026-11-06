@@ -266,7 +266,7 @@ function planBlock(type: (typeof BLOCK_WORDS)[number][0], ctx: Ctx, p: Project):
       : `On this project, ${ownerName(p)} decides what goes on the board. I prepared ${name.en} and sent it as a proposal.`)),
     after: () => postProposal(ctx, p,
       both((l) => (l === 'fr' ? `Ajouter ${name.fr} au board` : `Add ${name.en} to the board`)),
-      both((l) => (l === 'fr' ? `Demandé par ${asker} à Gemini : ${tx(block.title, 'fr')}, prêt à arriver sur le board.` : `${asker} asked Gemini: ${tx(block.title, 'en')}, ready to land on the board.`)),
+      both((l) => (l === 'fr' ? `${asker} a demandé : « ${oneLine(ctx.plain, 90)} ». C’est prêt à arriver sur le board.` : `${asker} asked: "${oneLine(ctx.plain, 90)}". It’s ready to land on the board.`)),
       { type: 'add-block', block }),
   }
 }

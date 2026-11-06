@@ -46,7 +46,6 @@ function Thinking() {
 /* ---------- mail ---------- */
 function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string; address: string; viewerId: string }) {
   const t = useT()
-  const lang = useStore((s) => s.lang)
   const [open, setOpen] = useState(false)
   const body = t(m.body)
   const long = body.length > 180 || body.split('\n').length > 3
@@ -84,7 +83,7 @@ function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string
         </button>
       )}
       {!!m.attachmentIds?.length && <div className="chip-row">{m.attachmentIds.map((id) => <ArtifactChip key={id} pid={pid} id={id} />)}</div>}
-      <div className="card-actions">
+      <div className="card-actions empty-hide">
         {draft && m.visibility.type === 'private' && m.visibility.with.includes(viewerId) && (
           <>
             <Button variant="filled" size="s" icon="send" onClick={() => sendDraft(pid, m.id)}>{t({ fr: 'Envoyer', en: 'Send' })}</Button>
@@ -93,7 +92,6 @@ function EmailCard({ m, pid, address, viewerId }: { m: EmailMessage; pid: string
           </>
         )}
         {!draft && m.direction === 'in' && <Button variant="tonal" size="s" icon="reply" onClick={reply}>{t({ fr: 'Répondre par mail', en: 'Reply by mail' })}</Button>}
-        {!draft && m.direction === 'out' && <span className="mail-sent-at"><Icon name="check" size={16} />{fmtTime(m.at, lang)}</span>}
       </div>
     </article>
   )
