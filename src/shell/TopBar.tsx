@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Avatar, Button, Chip, Icon, IconButton, Menu, Sparkle } from '../ui/kit'
+import { Avatar, Button, Icon, IconButton, Menu, Sparkle } from '../ui/kit'
 import { Logo } from '../ui/Logo'
 import { askGemini } from '../chat/gemini'
 import { canSee, ME_ID, personById, useStore, useViewer } from '../store'
@@ -118,26 +118,24 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="only-wide"><IconButton icon="menu" label={t({ fr: 'Réduire les projets', en: 'Collapse projects' })} onClick={() => s.toggleRail()} /></span>
-        <Logo size={32} />
+        <span className="only-wide"><IconButton icon="menu" size={36} label={t({ fr: 'Réduire les projets', en: 'Collapse projects' })} onClick={() => s.toggleRail()} /></span>
+        <Logo size={26} />
         <span className="wordmark">One Place</span>
         <button type="button" className="concept" onClick={onAbout} title={t({ fr: 'À propos de ce concept', en: 'About this concept' })}>{t({ fr: 'Concept', en: 'Concept' })}</button>
       </div>
       <Search />
       <div className="top-actions">
-        <Menu
-          align="right"
-          header={t({ fr: 'Voir la démo avec les yeux de :', en: 'See the demo through the eyes of:' })}
-          items={personas.map((p) => ({ icon: <Avatar id={p.id} size={28} />, label: <span className="persona"><strong>{personById(p.id).name}</strong><small>{t(p.role)}</small></span>, selected: viewer.id === p.id, onSelect: () => s.setViewer(p.id) }))}
-          trigger={(p) => (
-            <Chip className="viewas" onClick={p.onClick} icon={<Icon name="visibility" size={16} />}>
-              <span className="viewas-text">{t({ fr: 'Vu par', en: 'Viewing as' })} <strong>{viewer.name.split(' ')[0]}</strong></span>
-            </Chip>
-          )}
-        />
+        {viewer.id !== ME_ID && (
+          <Button size="s" variant="tonal" icon="visibility" className="viewing" onClick={() => s.setViewer(ME_ID)} title={t({ fr: 'Revenir à Alex', en: 'Back to Alex' })}>
+            {t({ fr: 'Vu par', en: 'Viewing as' })} {viewer.name.split(' ')[0]}
+          </Button>
+        )}
         <Menu
           align="right"
           items={[
+            { label: <span className="menu-section">{t({ fr: 'Voir la démo en tant que', en: 'View the demo as' })}</span>, disabled: true },
+            ...personas.map((p) => ({ icon: <Avatar id={p.id} size={28} />, label: <span className="persona"><strong>{personById(p.id).name}</strong><small>{t(p.role)}</small></span>, selected: viewer.id === p.id, onSelect: () => s.setViewer(p.id) })),
+            { divider: true, label: '' },
             { icon: 'info', label: t({ fr: 'À propos de ce concept', en: 'About this concept' }), onSelect: onAbout },
             { divider: true, label: '' },
             { icon: 'brightness_auto', label: t({ fr: 'Thème automatique', en: 'Automatic theme' }), selected: theme === 'auto', onSelect: () => s.setTheme('auto') },
@@ -146,9 +144,9 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
             { divider: true, label: '' },
             { icon: 'restart_alt', label: t({ fr: 'Remettre la démo à zéro', en: 'Reset the demo' }), onSelect: () => { s.reset(); s.toast({ text: { fr: 'Démo remise à zéro.', en: 'Demo reset.' }, icon: 'restart_alt' }) } },
           ]}
-          trigger={(p) => <IconButton icon="settings" label={t({ fr: 'Réglages', en: 'Settings' })} {...p} />}
+          trigger={(p) => <IconButton icon="settings" size={36} label={t({ fr: 'Réglages', en: 'Settings' })} {...p} />}
         />
-        <span className="me"><Avatar person={viewer} size={32} /></span>
+        <span className="me"><Avatar person={viewer} size={28} /></span>
       </div>
       <Button className="sr-only" onClick={onAbout}>{t({ fr: 'À propos', en: 'About' })}</Button>
     </header>

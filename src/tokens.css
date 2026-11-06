@@ -1,7 +1,7 @@
 /* Fonts self-hosted: no request to Google from the visitor's browser (GDPR). */
 @font-face{font-family:'Google Sans';src:url('/one-place/fonts/gs-latin.woff2') format('woff2');font-weight:400 700;font-display:swap;unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
 @font-face{font-family:'Google Sans';src:url('/one-place/fonts/gs-latin-ext.woff2') format('woff2');font-weight:400 700;font-display:swap;unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
-@font-face{font-family:'Material Symbols Outlined';src:url('/one-place/fonts/material-symbols.woff2') format('woff2');font-weight:400;font-display:block}
+@font-face{font-family:'Material Symbols Outlined';src:url('/one-place/fonts/material-symbols.woff2') format('woff2');font-weight:300 400;font-display:block}
 
 /* ---- Measured on Gmail, 06/11/2026 (see DESIGN.md) ---- */
 :root{
@@ -48,7 +48,7 @@
   --ease-out:cubic-bezier(.05,.7,.1,1);
   --t-fast:120ms; --t:200ms; --t-slow:350ms;
   /* layout */
-  --header-h:64px; --rail-w:256px; --rail-w-min:72px; --chat-w:440px; --gap:8px;
+  --header-h:52px; --rail-w:256px; --rail-w-min:72px; --chat-w:440px; --gap:8px;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -77,8 +77,8 @@ button{background:none;border:0;padding:0;cursor:pointer}
 a{color:var(--primary)}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.ms{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;font-size:20px;line-height:1;display:inline-block;white-space:nowrap;direction:ltr;font-feature-settings:'liga';-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20;user-select:none;flex:none}
-.ms.fill{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 20}
+.ms{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;font-size:20px;line-height:1;display:inline-block;white-space:nowrap;direction:ltr;font-feature-settings:'liga';-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none;flex:none}
+.ms.fill{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:transparent;border-radius:8px}
 :hover::-webkit-scrollbar-thumb{background:var(--outline)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

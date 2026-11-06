@@ -51,7 +51,7 @@ export function Button({ icon, variant = 'text', size = 'm', className = '', chi
 export function IconButton({ icon, label, active, fill, size = 40, className = '', ...r }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: string; label: string; active?: boolean; fill?: boolean; size?: number }) {
   return (
     <button type="button" {...r} aria-label={label} title={label} aria-pressed={active} className={`icon-btn${active ? ' active' : ''} ${className}`} style={{ width: size, height: size }}>
-      <Icon name={icon} fill={fill || active} size={size >= 40 ? 20 : 18} />
+      <Icon name={icon} fill={fill || active} size={size >= 36 ? 22 : 18} />
     </button>
   )
 }

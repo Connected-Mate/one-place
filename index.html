@@ -16,6 +16,28 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="splash" role="status" aria-label="Loading One Place">
+      <svg width="72" height="72" viewBox="0 0 48 48" fill="none" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="butt" aria-hidden="true">
+        <path pathLength="1" stroke="#4285f4" d="M5 20V17A12 12 0 0 1 17 5H24.3" />
+        <path pathLength="1" stroke="#ea4335" d="M24 5H31A12 12 0 0 1 43 17V20.3" />
+        <path pathLength="1" stroke="#fbbc04" d="M43 20V23A12 12 0 0 1 31 35H23.7" />
+        <path pathLength="1" stroke="#34a853" d="M24 35H21L11.5 43V33.67A12 12 0 0 1 5 23V19.7" />
+      </svg>
+      <span>One Place</span>
+    </div>
+    <style>
+      #splash{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#f8fafd;font:400 22px 'Google Sans',Roboto,Helvetica,Arial,sans-serif;color:#444746;transition:opacity 260ms cubic-bezier(.2,0,0,1)}
+      #splash.out{opacity:0;pointer-events:none}
+      #splash path{stroke-dasharray:1;stroke-dashoffset:1;animation:sp-draw 420ms cubic-bezier(.2,0,0,1) forwards}
+      #splash path:nth-child(2){animation-delay:120ms}#splash path:nth-child(3){animation-delay:240ms}#splash path:nth-child(4){animation-delay:360ms}
+      #splash svg{animation:sp-pop 420ms cubic-bezier(.05,.7,.1,1) 720ms}
+      #splash span{opacity:0;transform:translateY(6px);animation:sp-in 320ms cubic-bezier(.05,.7,.1,1) 560ms forwards}
+      @keyframes sp-draw{to{stroke-dashoffset:0}}
+      @keyframes sp-pop{40%{transform:scale(1.08)}}
+      @keyframes sp-in{to{opacity:1;transform:none}}
+      @media (prefers-color-scheme:dark){#splash{background:#1b1b1b;color:#c4c7c5}}
+      @media (prefers-reduced-motion:reduce){#splash *{animation:none!important;stroke-dashoffset:0!important;opacity:1!important;transform:none!important}}
+    </style>
     <noscript>One Place is an interactive concept demo and needs JavaScript.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
