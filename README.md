@@ -1,32 +1,25 @@
-# React + TypeScript + Vite
+# One Place
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**The last app.** A design concept: what comes after email, chat and scattered apps.
 
-Currently, two official plugins are available:
+A project is one chat and one shared view. Messages, incoming mail, documents, calls and tasks all happen there, with one AI you call with `@`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**[Open the demo](https://connected-mate.github.io/one-place/)**
 
-## React Compiler
+## What to try
+- Ask `@Gemini` to catch you up, add a to-do, or build a block on the board.
+- Reply privately to a message, in context. Nobody else sees it.
+- Approve a proposal from a teammate.
+- Start a call, invite a guest for that call only, hang up, and read the summary.
+- Switch "Viewing as" to Tom (a member) or Nora (a guest on one call).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## What this is, and isn't
+A front-end only demo. Everything is simulated: no backend, no real AI, no account, nothing is sent, no tracker. All people and companies are fictional.
 
-## Expanding the Oxlint configuration
+A concept by Alex Cormeraie. **Not a Google product**, and not affiliated with or endorsed by Google. Google, Gemini, Gmail and other names belong to their owners and are used descriptively. The interface uses Google Sans and Material Symbols, under their open licenses. The logo is original.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## Run it
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+npm ci
+npm run dev
+```
