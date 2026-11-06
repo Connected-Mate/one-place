@@ -14,6 +14,8 @@ import './artifact.css'
 import { BlockGallery } from './BlockGallery'
 import { SectionView } from './Board'
 import { DocView } from './docs/DocView'
+import { FileView, ImageView, VideoView } from './docs/MediaViews'
+import { NotebookView } from './docs/NotebookView'
 import { PdfView } from './docs/PdfView'
 import { SheetView } from './docs/SheetView'
 import { SlidesView } from './docs/SlidesView'
@@ -82,6 +84,10 @@ function ArtifactView({ artifact }: { artifact: Artifact }) {
     case 'sheet': return <SheetView sheet={artifact} />
     case 'slides': return <SlidesView deck={artifact} />
     case 'pdf': return <PdfView pdf={artifact} />
+    case 'notebook': return <NotebookView nb={artifact} />
+    case 'image': return <ImageView image={artifact} />
+    case 'video': return <VideoView video={artifact} />
+    case 'file': return <FileView file={artifact} />
   }
 }
 

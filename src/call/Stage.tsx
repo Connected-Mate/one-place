@@ -578,7 +578,7 @@ function MoreSheet({ items, onClose }: { items: { icon: string; node?: ReactNode
 }
 
 /* ---- The document being presented ---- */
-const KIND_ICON = { doc: 'description', sheet: 'table_chart', slides: 'slideshow', pdf: 'picture_as_pdf' } as const
+const KIND_ICON = { doc: 'description', sheet: 'table_chart', slides: 'slideshow', pdf: 'picture_as_pdf', notebook: 'auto_stories', image: 'image', video: 'movie', file: 'draft' } as const
 
 function DocCard({ doc, onStop }: { doc: Artifact; onStop?(): void }) {
   const t = useT()

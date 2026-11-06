@@ -5,6 +5,7 @@
  */
 import type { Artifact, Block, L, Message, Project, ProjectScript, Todo, Visibility } from '../types'
 import { dayAt, fmtDay, rel, weekday } from './time'
+import { filesFor } from './files'
 
 const all: Visibility = { type: 'all' }
 const priv = (...ids: string[]): Visibility => ({ type: 'private', with: ids })
@@ -167,6 +168,6 @@ export function hiring(): Project {
     id: 'hiring', name: { fr: 'Recrutement Design lead', en: 'Hiring: Design lead' }, icon: 'person_search', color: '#8430ce',
     description: { fr: `Un ou une Design lead pour Aurora et la suite. Entretien ${rel(interview).fr}.`, en: `A Design lead for Aurora and what comes next. Interview ${rel(interview).en}.` },
     ownerId: 'maya', memberIds: ['maya', 'alex', 'tom', 'lea'], externalIds: ['ben'],
-    unread: 5, mentions: 2, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts, script, address: 'hiring@oneplace.example',
+    unread: 5, mentions: 2, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts: [...artifacts, ...filesFor('hiring')], script, address: 'hiring@oneplace.example',
   }
 }

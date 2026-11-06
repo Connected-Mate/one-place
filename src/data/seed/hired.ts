@@ -8,6 +8,7 @@
 // is an invented fact about either of them. No Google people, no Google claims. It is a pitch, not an affiliation.
 import type { Artifact, Block, L, Message, Project, ProjectScript, Todo, Visibility } from '../types'
 import { DAY, dayAt, fmtDay, rel, week } from './time'
+import { filesFor } from './files'
 
 const all: Visibility = { type: 'all' }
 const priv = (...ids: string[]): Visibility => ({ type: 'private', with: ids })
@@ -221,6 +222,6 @@ export function hired(): Project {
     id: 'hired', name: { fr: 'Entrer chez Google', en: 'Get hired by Google' }, icon: 'rocket_launch', color: '#4285f4',
     description: { fr: 'La stratégie : cette démo. Un produit qui marche vaut plus qu’un CV.', en: 'The strategy: this demo. A working product beats a résumé.' },
     ownerId: 'alex', memberIds: ['alex', 'damien'], externalIds: [],
-    unread: 2, mentions: 1, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts, script, address: 'hired@oneplace.example',
+    unread: 2, mentions: 1, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts: [...artifacts, ...filesFor('hired')], script, address: 'hired@oneplace.example',
   }
 }

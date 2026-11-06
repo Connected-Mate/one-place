@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Avatar, Button, Icon, IconButton, Menu, Sparkle } from '../ui/kit'
 import { Logo } from '../ui/Logo'
-import { appOfKind, WorkspaceIcon, type WorkspaceApp } from '../ui/WorkspaceIcon'
+import { appOf, WorkspaceIcon, type WorkspaceApp } from '../ui/WorkspaceIcon'
 import { askGemini } from '../chat/gemini'
 import { canSee, ME_ID, personById, useStore, useViewer } from '../store'
 import { AccountButton } from './AccountPanel'
@@ -54,7 +54,7 @@ function Search({ lead, trail }: { lead?: React.ReactNode; trail?: React.ReactNo
     for (const p of projects.filter((x) => x.memberIds.includes(viewerId))) {
       const pn = tx(p.name, lang)
       for (const a of p.artifacts) if (tx(a.title, lang).toLowerCase().includes(s)) {
-        out.push({ key: a.id, app: a.kind === 'pdf' ? undefined : appOfKind[a.kind], icon: { doc: 'description', sheet: 'table_chart', slides: 'slideshow', pdf: 'picture_as_pdf' }[a.kind], title: tx(a.title, lang), sub: pn, run: () => { st().selectProject(p.id); st().setPane({ type: 'artifact', id: a.id }) } })
+        out.push({ key: a.id, app: appOf(a.kind) ?? undefined, icon: { doc: 'description', sheet: 'table_chart', slides: 'slideshow', pdf: 'picture_as_pdf', notebook: 'auto_stories', image: 'image', video: 'movie', file: 'draft' }[a.kind], title: tx(a.title, lang), sub: pn, run: () => { st().selectProject(p.id); st().setPane({ type: 'artifact', id: a.id }) } })
       }
       for (const b of p.blocks) if (b.type === 'todo') for (const x of b.todos) if (tx(x.text, lang).toLowerCase().includes(s)) {
         out.push({ key: x.id, icon: 'task_alt', title: tx(x.text, lang), sub: pn, run: () => { st().selectProject(p.id); st().setPane({ type: 'board' }) } })

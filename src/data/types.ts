@@ -111,12 +111,22 @@ export type Block =
   | (BlockBase & { type: 'poll'; question: Txt; options: { id: string; label: Txt; votes: string[] }[] })
 export type BlockType = Block['type']
 
+export interface TranscriptLine { at: number; who?: string; text: Txt }
+export interface NotebookSource { id: string; title: Txt; type: 'pdf' | 'doc' | 'web' | 'slides' | 'audio' | 'text'; note?: Txt }
+export interface Overview { id: string; type: 'audio' | 'video'; title: Txt; durationSec: number; poster?: string; transcript: TranscriptLine[] }
+
 /** A document living inside the project. Everything opens in the right-hand pane, never another app. */
 export type Artifact =
   | { id: string; kind: 'doc'; title: Txt; ownerId: string; updatedAt: number; sections: { heading?: Txt; body: Txt }[] }
   | { id: string; kind: 'sheet'; title: Txt; ownerId: string; updatedAt: number; columns: Txt[]; rows: (string | number)[][] }
   | { id: string; kind: 'slides'; title: Txt; ownerId: string; updatedAt: number; slides: { title: Txt; subtitle?: Txt; bullets?: Txt[]; accent?: string }[] }
   | { id: string; kind: 'pdf'; title: Txt; ownerId: string; updatedAt: number; pages: number; excerpt: Txt }
+  | { id: string; kind: 'notebook'; title: Txt; ownerId: string; updatedAt: number; summary: Txt; sources: NotebookSource[]; notes: Txt[]; overviews: Overview[] }
+  | { id: string; kind: 'image'; title: Txt; ownerId: string; updatedAt: number; src: string; width: number; height: number; sizeKb: number; format: string; caption?: Txt }
+  /** A video file, or an Audio or Video Overview made by NotebookLM. Playback is simulated: a poster, a progress bar, a transcript. */
+  | { id: string; kind: 'video'; title: Txt; ownerId: string; updatedAt: number; durationSec: number; sizeMb: number; poster?: string; overview?: 'audio' | 'video'; transcript?: TranscriptLine[] }
+  /** Anything else that was shared: a CSV, a ZIP. `preview` shows the first rows of a table. */
+  | { id: string; kind: 'file'; title: Txt; ownerId: string; updatedAt: number; ext: string; sizeKb: number; description?: Txt; preview?: string[][] }
 
 export interface Project {
   id: string

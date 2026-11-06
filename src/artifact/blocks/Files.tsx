@@ -9,12 +9,45 @@ import { createPortal } from 'react-dom'
 import type { Artifact, Block } from '../../data/types'
 import { fmtDate, fmtTime, useT } from '../../i18n'
 import { personById, useStore } from '../../store'
-import { Avatar, Button, Icon } from '../../ui/kit'
+import { Avatar, base, Button, Icon } from '../../ui/kit'
+import { WorkspaceIcon, type WorkspaceApp } from '../../ui/WorkspaceIcon'
 import { Slide } from '../docs/SlidesView'
-import { Empty, Frame, KindIcon, KINDS, startOfDay, useBoard } from '../shared'
+import { Empty, FileIcon, Frame, KINDS, startOfDay, useBoard } from '../shared'
 
 const whenOf = (at: number, lang: 'fr' | 'en') => (startOfDay(at) === startOfDay(Date.now()) ? fmtTime(at, lang) : fmtDate(at, lang))
 const newestFirst = (list: Artifact[]) => [...list].sort((a, b) => b.updatedAt - a.updatedAt)
+type SectionKey = 'docs' | 'sheets' | 'slides' | 'notebooklm' | 'images' | 'videos' | 'pdfs' | 'other'
+/** Everything that was shared, always in this order. */
+const SECTIONS: { key: SectionKey; label: string; app?: WorkspaceApp; icon?: string; color?: string }[] = [
+  { key: 'docs', label: 'Docs', app: 'docs' },
+  { key: 'sheets', label: 'Sheets', app: 'sheets' },
+  { key: 'slides', label: 'Slides', app: 'slides' },
+  { key: 'notebooklm', label: 'NotebookLM', app: 'notebooklm' },
+  { key: 'images', label: 'Images', icon: 'image', color: 'var(--blue)' },
+  { key: 'videos', label: 'Videos', icon: 'movie', color: 'var(--red)' },
+  { key: 'pdfs', label: 'PDFs', icon: 'picture_as_pdf', color: 'var(--red)' },
+  { key: 'other', label: 'Other', icon: 'draft', color: 'var(--text-3)' },
+]
+function sectionOf(a: Artifact): SectionKey {
+  switch (a.kind) {
+    case 'doc': return 'docs'
+    case 'sheet': return 'sheets'
+    case 'slides': return 'slides'
+    case 'notebook': return 'notebooklm'
+    case 'image': return 'images'
+    case 'video': return a.overview ? 'notebooklm' : 'videos'
+    case 'pdf': return 'pdfs'
+    default: return 'other'
+  }
+}
+const SectionIcon = ({ s, size = 18 }: { s: (typeof SECTIONS)[number]; size?: number }) => (s.app ? <WorkspaceIcon app={s.app} size={size} /> : <Icon name={s.icon!} fill size={size} style={{ color: s.color }} />)
+const typeOf = (a: Artifact, t: ReturnType<typeof useT>) => {
+  if (a.kind === 'video' && a.overview) return a.overview === 'audio' ? t({ fr: 'Synthèse audio', en: 'Audio Overview' }) : t({ fr: 'Synthèse vidéo', en: 'Video Overview' })
+  if (a.kind === 'image') return a.format
+  if (a.kind === 'file') return a.ext.toUpperCase()
+  return t(KINDS[a.kind]?.label)
+}
+
 const askForBrief = () => window.dispatchEvent(new CustomEvent('oneplace:compose', { detail: { text: '@Gemini draft a project brief' } }))
 
 /** A real miniature of the document's own content, not a picture of a generic page. */
@@ -41,8 +74,32 @@ function Thumb({ a }: { a: Artifact }) {
       return a.slides[0] ? <span className="rp-th rp-th-slide" aria-hidden="true"><Slide slide={a.slides[0]} index={0} /></span> : <span className="rp-th" aria-hidden="true" />
     case 'pdf':
       return <span className="rp-th rp-th-doc rp-th-pdf" aria-hidden="true"><b>{t(a.title)}</b><span>{t(a.excerpt)}</span></span>
-    default:
-      return <span className="rp-th" aria-hidden="true" />
+    case 'notebook':
+      return (
+        <span className="rp-th rp-th-nb" aria-hidden="true">
+          <WorkspaceIcon app="notebooklm" size={22} />
+          <b>{a.sources.length} source{a.sources.length === 1 ? '' : 's'}</b>
+          <span>{t(a.summary)}</span>
+        </span>
+      )
+    case 'image':
+      return <span className="rp-th rp-th-img" aria-hidden="true"><img src={base + a.src} alt="" loading="lazy" /></span>
+    case 'video':
+      return (
+        <span className={`rp-th rp-th-video${a.overview === 'audio' ? ' audio' : ''}`} aria-hidden="true">
+          {a.poster && a.overview !== 'audio' && <img src={base + a.poster} alt="" loading="lazy" />}
+          {a.overview === 'audio' && <span className="rp-th-wave">{Array.from({ length: 22 }, (_, i) => <i key={i} style={{ height: `${25 + Math.abs(Math.sin(i * 1.7)) * 75}%` }} />)}</span>}
+          <em><Icon name={a.overview === 'audio' ? 'graphic_eq' : 'play_arrow'} fill size={16} />{Math.floor(a.durationSec / 60)}:{String(a.durationSec % 60).padStart(2, '0')}</em>
+        </span>
+      )
+    case 'file':
+      return (
+        <span className="rp-th rp-th-file" aria-hidden="true">
+          {a.preview
+            ? <table><tbody>{a.preview.slice(0, 8).map((r, i) => <tr key={i}>{r.slice(0, 4).map((c, x) => (i === 0 ? <th key={x}>{c}</th> : <td key={x}>{c}</td>))}</tr>)}</tbody></table>
+            : <><Icon name={/zip|tar/i.test(a.ext) ? 'folder_zip' : 'draft'} size={40} /><b>{a.ext.toUpperCase()}</b></>}
+        </span>
+      )
   }
 }
 
@@ -54,6 +111,7 @@ export function FilesButton({ onSeeAll, on }: { onSeeAll: () => void; on: boolea
   const setPane = useStore((s) => s.setPane)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [folded, setFolded] = useState<SectionKey[]>([])
   const chip = useRef<HTMLButtonElement>(null)
   const pop = useRef<HTMLDivElement>(null)
   const restore = useRef(true)
@@ -97,20 +155,39 @@ export function FilesButton({ onSeeAll, on }: { onSeeAll: () => void; on: boolea
       ) : found.length === 0 ? (
         <p className="rp-files-none">{t({ fr: 'Aucun résultat', en: 'No file matches that search' })}</p>
       ) : (
-        <ul className="rp-files-list">
-          {found.map((a) => {
-            const title = t(a.title)
+        <div className="rp-files-list">
+          {SECTIONS.map((sec) => {
+            const list = found.filter((a) => sectionOf(a) === sec.key)
+            if (!list.length) return null
+            const closed = folded.includes(sec.key) && !q
             return (
-              <li key={a.id}>
-                <button type="button" onClick={() => openDoc(a)} title={title}>
-                  <KindIcon kind={a.kind} size={20} />
-                  <span className="rp-row-main"><span className="rp-trunc">{title}</span><span className="rp-row-sub rp-trunc">{t(KINDS[a.kind]?.label)}, {whenOf(a.updatedAt, lang)}</span></span>
-                  <Avatar id={a.ownerId} size={24} />
+              <section key={sec.key}>
+                <button type="button" className="rp-files-sec" aria-expanded={!closed} onClick={() => setFolded((f) => (f.includes(sec.key) ? f.filter((x) => x !== sec.key) : [...f, sec.key]))}>
+                  <Icon name={closed ? 'chevron_right' : 'expand_more'} size={18} />
+                  <SectionIcon s={sec} size={16} />
+                  <span>{sec.label}</span>
+                  <em>{list.length}</em>
                 </button>
-              </li>
+                {!closed && (
+                  <ul>
+                    {list.map((a) => {
+                      const title = t(a.title)
+                      return (
+                        <li key={a.id}>
+                          <button type="button" className="rp-files-row" onClick={() => openDoc(a)} title={title}>
+                            <FileIcon a={a} size={20} />
+                            <span className="rp-row-main"><span className="rp-trunc">{title}</span><span className="rp-row-sub rp-trunc">{typeOf(a, t)}, {whenOf(a.updatedAt, lang)}</span></span>
+                            <Avatar id={a.ownerId} size={24} />
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </section>
             )
           })}
-        </ul>
+        </div>
       )}
       <div className="rp-files-foot"><Button size="s" onClick={seeAll}>{t({ fr: 'Voir tous les fichiers', en: 'See all files' })}</Button></div>
     </div>
@@ -126,7 +203,6 @@ export function FilesButton({ onSeeAll, on }: { onSeeAll: () => void; on: boolea
   )
 }
 
-type Kind = 'all' | Artifact['kind']
 type Sort = { by: 'modified' | 'name'; dir: 1 | -1 }
 
 export function FilesBlock({ block }: { block: Extract<Block, { type: 'files' }> }) {
@@ -134,19 +210,19 @@ export function FilesBlock({ block }: { block: Extract<Block, { type: 'files' }>
   const lang = useStore((s) => s.lang)
   const { project, role } = useBoard()
   const setPane = useStore((s) => s.setPane)
-  const [kind, setKind] = useState<Kind>('all')
+  const [only, setOnly] = useState<'all' | SectionKey>('all')
   const [layout, setLayout] = useState<'grid' | 'list'>('grid')
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<Sort>({ by: 'modified', dir: -1 })
+  const [folded, setFolded] = useState<SectionKey[]>([])
   const docs = project.artifacts
-  const kinds = useMemo(() => [...new Set(docs.map((a) => a.kind))], [docs])
+  const present = SECTIONS.filter((s) => docs.some((a) => sectionOf(a) === s.key))
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const list = docs.filter((a) => (kind === 'all' || a.kind === kind) && (!q || t(a.title).toLowerCase().includes(q)))
+    const list = docs.filter((a) => (only === 'all' || sectionOf(a) === only) && (!q || t(a.title).toLowerCase().includes(q)))
     return [...list].sort((a, b) => (sort.by === 'name' ? t(a.title).localeCompare(t(b.title)) : a.updatedAt - b.updatedAt) * sort.dir)
-  }, [docs, kind, query, sort]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [docs, only, query, sort]) // eslint-disable-line react-hooks/exhaustive-deps
   const open = (a: Artifact) => setPane({ type: 'artifact', id: a.id })
-  const CHIP_NAMES: Record<string, string> = { doc: t({ fr: 'Documents', en: 'Docs' }), sheet: t({ fr: 'Feuilles', en: 'Sheets' }), slides: t({ fr: 'Présentations', en: 'Slides' }), pdf: 'PDFs' }
   const sortBy = (by: Sort['by']) => setSort((s) => (s.by === by ? { by, dir: s.dir === 1 ? -1 : 1 } : { by, dir: by === 'name' ? 1 : -1 }))
   const arrow = (by: Sort['by']) => (sort.by === by ? <Icon name={sort.dir === 1 ? 'arrow_upward' : 'arrow_downward'} size={14} /> : null)
 
@@ -171,10 +247,10 @@ export function FilesBlock({ block }: { block: Extract<Block, { type: 'files' }>
         <>
           <div className="rp-drive-tools">
             <div className="rp-td-chips" role="group" aria-label={t({ fr: 'Type', en: 'Type' })}>
-              <button type="button" className={`chip click${kind === 'all' ? ' selected' : ''}`} aria-pressed={kind === 'all'} onClick={() => setKind('all')}>{t({ fr: 'Tous', en: 'All' })}<span className="rp-td-chipn">{docs.length}</span></button>
-              {kinds.map((k) => (
-                <button key={k} type="button" className={`chip click${kind === k ? ' selected' : ''}`} aria-pressed={kind === k} onClick={() => setKind(k)}>
-                  <KindIcon kind={k} size={16} />{CHIP_NAMES[k] ?? k}
+              <button type="button" className={`chip click${only === 'all' ? ' selected' : ''}`} aria-pressed={only === 'all'} onClick={() => setOnly('all')}>{t({ fr: 'Tous', en: 'All' })}<span className="rp-td-chipn">{docs.length}</span></button>
+              {present.map((sec) => (
+                <button key={sec.key} type="button" className={`chip click${only === sec.key ? ' selected' : ''}`} aria-pressed={only === sec.key} onClick={() => setOnly(sec.key)}>
+                  <SectionIcon s={sec} size={16} />{sec.label}
                 </button>
               ))}
             </div>
@@ -186,48 +262,63 @@ export function FilesBlock({ block }: { block: Extract<Block, { type: 'files' }>
           <div className="rp-drive-body">
             {shown.length === 0 ? (
               <p className="rp-files-none">{t({ fr: 'Aucun résultat', en: 'No file matches' })}</p>
-            ) : layout === 'grid' ? (
-              <ul className="rp-drive-grid">
-                {shown.map((a) => {
-                  const title = t(a.title)
-                  const owner = personById(a.ownerId)
-                  return (
-                    <li key={a.id}>
-                      <button type="button" className="rp-drive-card" onClick={() => open(a)} title={title}>
-                        <span className="rp-drive-top"><KindIcon kind={a.kind} size={20} /><span className="rp-trunc">{title}</span></span>
-                        <span className="rp-drive-thumb"><Thumb a={a} /></span>
-                        <span className="rp-drive-foot"><Avatar person={owner} size={24} /><span className="rp-trunc">{owner.name.split(' ')[0]}, {whenOf(a.updatedAt, lang)}</span></span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : (
-              <table className="rp-drive-table">
-                <thead>
-                  <tr>
-                    <th scope="col" aria-sort={sort.by === 'name' ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}><button type="button" onClick={() => sortBy('name')}>{t({ fr: 'Nom', en: 'Name' })}{arrow('name')}</button></th>
-                    <th scope="col" className="rp-drive-owner">{t({ fr: 'Propriétaire', en: 'Owner' })}</th>
-                    <th scope="col" className="rp-drive-kind">{t({ fr: 'Type', en: 'Type' })}</th>
-                    <th scope="col" aria-sort={sort.by === 'modified' ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}><button type="button" onClick={() => sortBy('modified')}>{t({ fr: 'Modifié', en: 'Last modified' })}{arrow('modified')}</button></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map((a) => {
-                    const owner = personById(a.ownerId)
-                    const title = t(a.title)
-                    return (
-                      <tr key={a.id}>
-                        <td><button type="button" className="rp-drive-name" title={title} onClick={() => open(a)}><KindIcon kind={a.kind} size={20} /><span className="rp-trunc">{title}</span></button></td>
-                        <td className="rp-drive-owner"><span className="rp-drive-person"><Avatar person={owner} size={24} /><span className="rp-trunc">{owner.name}</span></span></td>
-                        <td className="rp-drive-kind">{t(KINDS[a.kind]?.label)}</td>
-                        <td className="rp-drive-when">{whenOf(a.updatedAt, lang)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
+            ) : SECTIONS.map((sec) => {
+              const list = shown.filter((a) => sectionOf(a) === sec.key)
+              if (!list.length) return null
+              const closed = folded.includes(sec.key)
+              return (
+                <section key={sec.key} className="rp-dv-sec" data-section={sec.key}>
+                  <button type="button" className="rp-dv-sechead" aria-expanded={!closed} onClick={() => setFolded((f) => (f.includes(sec.key) ? f.filter((x) => x !== sec.key) : [...f, sec.key]))}>
+                    <Icon name={closed ? 'chevron_right' : 'expand_more'} size={20} />
+                    <SectionIcon s={sec} size={20} />
+                    <span>{sec.label}</span>
+                    <em>{list.length}</em>
+                  </button>
+                  {!closed && (layout === 'grid' ? (
+                    <ul className="rp-drive-grid">
+                      {list.map((a) => {
+                        const title = t(a.title)
+                        const owner = personById(a.ownerId)
+                        return (
+                          <li key={a.id}>
+                            <button type="button" className="rp-drive-card" onClick={() => open(a)} title={title}>
+                              <span className="rp-drive-top"><FileIcon a={a} size={20} /><span className="rp-trunc">{title}</span></span>
+                              <span className="rp-drive-thumb"><Thumb a={a} /></span>
+                              <span className="rp-drive-foot"><Avatar person={owner} size={24} /><span className="rp-trunc">{owner.name.split(' ')[0]}, {whenOf(a.updatedAt, lang)}</span></span>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : (
+                    <table className="rp-drive-table">
+                      <thead>
+                        <tr>
+                          <th scope="col" aria-sort={sort.by === 'name' ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}><button type="button" onClick={() => sortBy('name')}>{t({ fr: 'Nom', en: 'Name' })}{arrow('name')}</button></th>
+                          <th scope="col" className="rp-drive-owner">{t({ fr: 'Propriétaire', en: 'Owner' })}</th>
+                          <th scope="col" className="rp-drive-kind">{t({ fr: 'Type', en: 'Type' })}</th>
+                          <th scope="col" aria-sort={sort.by === 'modified' ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}><button type="button" onClick={() => sortBy('modified')}>{t({ fr: 'Modifié', en: 'Last modified' })}{arrow('modified')}</button></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {list.map((a) => {
+                          const owner = personById(a.ownerId)
+                          const title = t(a.title)
+                          return (
+                            <tr key={a.id}>
+                              <td><button type="button" className="rp-drive-name" title={title} onClick={() => open(a)}><FileIcon a={a} size={20} /><span className="rp-trunc">{title}</span></button></td>
+                              <td className="rp-drive-owner"><span className="rp-drive-person"><Avatar person={owner} size={24} /><span className="rp-trunc">{owner.name}</span></span></td>
+                              <td className="rp-drive-kind rp-trunc">{typeOf(a, t)}</td>
+                              <td className="rp-drive-when">{whenOf(a.updatedAt, lang)}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  ))}
+                </section>
+              )
+            })}
           </div>
         </>
       )}

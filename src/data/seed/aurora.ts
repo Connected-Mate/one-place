@@ -5,6 +5,7 @@
  */
 import type { Artifact, Block, L, Message, Project, ProjectScript, Todo, Visibility } from '../types'
 import { DAY, dayAt, fmtDay, rel, week, weekday } from './time'
+import { filesFor } from './files'
 
 const all: Visibility = { type: 'all' }
 const priv = (...ids: string[]): Visibility => ({ type: 'private', with: ids })
@@ -377,6 +378,6 @@ export function aurora(): Project {
     id: 'aurora', name: { fr: 'Lancement Aurora', en: 'Aurora launch' }, icon: 'lightbulb', color: '#f29900',
     description: { fr: `Lampe de chevet qui réveille par la lumière. Lancement ${wd(launch).fr} ${d(launch).fr}.`, en: `Bedside lamp that wakes you with light. Launch on ${wd(launch).en}, ${d(launch).en}.` },
     ownerId: 'alex', memberIds: ['alex', 'maya', 'tom', 'sofia', 'karim', 'lea'], externalIds: ['jun', 'nora'],
-    unread: 0, mentions: 0, messages: sorted, blocks, artifacts, script, address: 'aurora@oneplace.example',
+    unread: 0, mentions: 0, messages: sorted, blocks, artifacts: [...artifacts, ...filesFor('aurora')], script, address: 'aurora@oneplace.example',
   }
 }

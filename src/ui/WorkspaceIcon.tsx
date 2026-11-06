@@ -7,10 +7,12 @@
 // They belong to Google. Every screen that shows them is reachable from "A concept. Not a Google product."
 import { base } from './kit'
 
-export type WorkspaceApp = 'gmail' | 'chat' | 'calendar' | 'meet' | 'docs' | 'sheets' | 'slides' | 'drive' | 'tasks' | 'keep'
-export const appOfKind = { doc: 'docs', sheet: 'sheets', slides: 'slides' } as const
-export const APP_NAME: Record<WorkspaceApp, string> = { gmail: 'Gmail', chat: 'Chat', calendar: 'Calendar', meet: 'Meet', docs: 'Docs', sheets: 'Sheets', slides: 'Slides', drive: 'Drive', tasks: 'Tasks', keep: 'Keep' }
+export type WorkspaceApp = 'gmail' | 'chat' | 'calendar' | 'meet' | 'docs' | 'sheets' | 'slides' | 'drive' | 'tasks' | 'keep' | 'notebooklm'
+export const appOfKind = { doc: 'docs', sheet: 'sheets', slides: 'slides', notebook: 'notebooklm' } as const
+/** The Google product a kind of file belongs to, when there is one. */
+export const appOf = (kind: string): WorkspaceApp | null => (appOfKind as Record<string, WorkspaceApp>)[kind] ?? null
+export const APP_NAME: Record<WorkspaceApp, string> = { notebooklm: 'NotebookLM', gmail: 'Gmail', chat: 'Chat', calendar: 'Calendar', meet: 'Meet', docs: 'Docs', sheets: 'Sheets', slides: 'Slides', drive: 'Drive', tasks: 'Tasks', keep: 'Keep' }
 
 export function WorkspaceIcon({ app, size = 24 }: { app: WorkspaceApp; size?: number }) {
-  return <img src={`${base}workspace/${app}.${app === 'tasks' ? 'png' : 'svg'}`} alt="" width={size} height={size} style={{ flex: 'none', display: 'block' }} />
+  return <img src={`${base}workspace/${app}.${app === 'tasks' ? 'png' : 'svg'}`} alt="" width={size} height={size} className={app === 'notebooklm' ? 'ws-mono' : undefined} style={{ flex: 'none', display: 'block' }} />
 }

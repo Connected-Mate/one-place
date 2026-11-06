@@ -13,7 +13,7 @@ import { Avatar, AvatarStack, Button, Chip, Dialog, Icon, IconButton, Sparkle } 
 import type { Artifact, CallSummaryMessage, EmailMessage, L, Lang, MeetingMessage, Message, ProposalMessage, Visibility } from '../data/types'
 import { blockOfTodo, goBoard, sendChat, sendDraft, useChat } from './chatState'
 import { findMessage, firstName, isDraftMail, mailAddress, mailName, reactTo, snippet, updateMessage } from './helpers'
-import { appOfKind, WorkspaceIcon } from '../ui/WorkspaceIcon'
+import { appOf, WorkspaceIcon } from '../ui/WorkspaceIcon'
 import { RichText } from './rich'
 import { MentionInput } from './MentionInput'
 
@@ -32,6 +32,10 @@ export const ARTIFACT_ICON: Record<Artifact['kind'], { icon: string; className: 
   sheet: { icon: 'table_chart', className: 'k-sheet', label: { fr: 'Feuille de calcul', en: 'Sheet' } },
   slides: { icon: 'slideshow', className: 'k-slides', label: { fr: 'Présentation', en: 'Slides' } },
   pdf: { icon: 'picture_as_pdf', className: 'k-pdf', label: { fr: 'PDF', en: 'PDF' } },
+  notebook: { icon: 'auto_stories', className: 'k-notebook', label: { fr: 'Notebook', en: 'Notebook' } },
+  image: { icon: 'image', className: 'k-image', label: { fr: 'Image', en: 'Image' } },
+  video: { icon: 'movie', className: 'k-video', label: { fr: 'Vidéo', en: 'Video' } },
+  file: { icon: 'draft', className: 'k-file', label: { fr: 'Fichier', en: 'File' } },
 }
 const useArtifact = (pid: string, id: string) => useStore((s) => s.projects.find((p) => p.id === pid)?.artifacts.find((a) => a.id === id))
 
@@ -41,7 +45,7 @@ function ArtifactChip({ pid, id }: { pid: string; id: string }) {
   const setPane = useStore((s) => s.setPane)
   if (!a) return null
   const k = ARTIFACT_ICON[a.kind]
-  return <Chip icon={<span className={`file-glyph ${k.className}`}>{a.kind === 'pdf' ? <Icon name={k.icon} fill size={16} /> : <WorkspaceIcon app={appOfKind[a.kind]} size={16} />}</span>} onClick={() => setPane({ type: 'artifact', id: a.id })} className="attach-chip"><span className="ellipsis">{t(a.title)}</span></Chip>
+  return <Chip icon={<span className={`file-glyph ${k.className}`}>{appOf(a.kind) ? <WorkspaceIcon app={appOf(a.kind)!} size={16} /> : <Icon name={k.icon} fill size={16} />}</span>} onClick={() => setPane({ type: 'artifact', id: a.id })} className="attach-chip"><span className="ellipsis">{t(a.title)}</span></Chip>
 }
 
 /* ---------- text ---------- */
@@ -214,7 +218,7 @@ function FileCard({ m, pid }: { m: Extract<Message, { kind: 'file' }>; pid: stri
     <>
       {m.text && <div className="msg-text"><RichText text={t(m.text)} pid={pid} /></div>}
       <button type="button" className="ocard file-card" onClick={() => setPane({ type: 'artifact', id: a.id })}>
-        <span className={`file-icon ${k.className}`}>{a.kind === 'pdf' ? <Icon name={k.icon} fill size={22} /> : <WorkspaceIcon app={appOfKind[a.kind]} size={22} />}</span>
+        <span className={`file-icon ${k.className}`}>{appOf(a.kind) ? <WorkspaceIcon app={appOf(a.kind)!} size={22} /> : <Icon name={k.icon} fill size={22} />}</span>
         <span className="file-info">
           <span className="file-title">{t(a.title)}</span>
           <span className="file-meta">{t(k.label)} · {firstName(a.ownerId)} · {fmtDate(a.updatedAt, lang)}</span>

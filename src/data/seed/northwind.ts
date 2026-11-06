@@ -5,6 +5,7 @@
  */
 import type { Artifact, Block, L, Message, Project, ProjectScript, Todo, Visibility } from '../types'
 import { DAY, dayAt, fmtDay, rel, week, weekday } from './time'
+import { filesFor } from './files'
 
 const all: Visibility = { type: 'all' }
 const priv = (...ids: string[]): Visibility => ({ type: 'private', with: ids })
@@ -176,6 +177,6 @@ export function northwind(): Project {
     id: 'northwind', name: { fr: 'Compte Northwind', en: 'Northwind account' }, icon: 'handshake', color: '#b3261e',
     description: { fr: '400 lampes gravées pour l’hôtel de Lyon, puis Bordeaux et Lille.', en: '400 engraved lamps for the Lyon hotel, then Bordeaux and Lille.' },
     ownerId: 'alex', memberIds: ['alex', 'sofia', 'lea'], externalIds: ['priya'],
-    unread: 2, mentions: 0, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts, script, address: 'northwind@oneplace.example',
+    unread: 2, mentions: 0, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts: [...artifacts, ...filesFor('northwind')], script, address: 'northwind@oneplace.example',
   }
 }

@@ -4,7 +4,7 @@
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
 // Pieces shared by every board block and document view.
-import { appOfKind, WorkspaceIcon } from '../ui/WorkspaceIcon'
+import { appOf, WorkspaceIcon } from '../ui/WorkspaceIcon'
 import { Component, createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Artifact, Block, BlockType, L, Project } from '../data/types'
@@ -38,6 +38,10 @@ export const KINDS: Record<Artifact['kind'], { icon: string; color: string; labe
   sheet: { icon: 'table_chart', color: 'var(--green)', label: { fr: 'Feuille de calcul', en: 'Sheet' } },
   slides: { icon: 'slideshow', color: 'var(--yellow)', label: { fr: 'Présentation', en: 'Slides' } },
   pdf: { icon: 'picture_as_pdf', color: 'var(--red)', label: { fr: 'PDF', en: 'PDF' } },
+  notebook: { icon: 'auto_stories', color: 'var(--text)', label: { fr: 'Notebook', en: 'Notebook' } },
+  image: { icon: 'image', color: 'var(--blue)', label: { fr: 'Image', en: 'Image' } },
+  video: { icon: 'movie', color: 'var(--red)', label: { fr: 'Vidéo', en: 'Video' } },
+  file: { icon: 'draft', color: 'var(--text-3)', label: { fr: 'Fichier', en: 'File' } },
 }
 export const BLOCK_META: Record<BlockType, { icon: string; label: L }> = {
   summary: { icon: 'auto_awesome', label: { fr: 'Résumé', en: 'Summary' } },
@@ -54,8 +58,14 @@ export const BLOCK_META: Record<BlockType, { icon: string; label: L }> = {
 }
 
 export function KindIcon({ kind, size = 20 }: { kind: Artifact['kind']; size?: number }) {
-  if (kind !== 'pdf') return <WorkspaceIcon app={appOfKind[kind]} size={size} />
+  const app = appOf(kind)
+  if (app) return <WorkspaceIcon app={app} size={size} />
   return <Icon name={KINDS[kind].icon} fill size={size} style={{ color: KINDS[kind].color }} />
+}
+/** Same, for a particular file: an Audio or Video Overview is NotebookLM's, not a plain video. */
+export function FileIcon({ a, size = 20 }: { a: Artifact; size?: number }) {
+  if (a.kind === 'video' && a.overview) return <WorkspaceIcon app="notebooklm" size={size} />
+  return <KindIcon kind={a.kind} size={size} />
 }
 
 export function Empty({ icon, title, hint, children }: { icon: string; title: string; hint?: string; children?: ReactNode }) {

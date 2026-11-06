@@ -5,6 +5,7 @@
  */
 import type { Artifact, Block, L, Message, Project, ProjectScript, Todo, Visibility } from '../types'
 import { DAY, dayAt, fmtDay, rel, week, weekday } from './time'
+import { filesFor } from './files'
 
 const all: Visibility = { type: 'all' }
 const priv = (...ids: string[]): Visibility => ({ type: 'private', with: ids })
@@ -159,6 +160,6 @@ export function move(): Project {
     id: 'move', name: { fr: 'Déménagement Paris', en: 'Paris office move' }, icon: 'apartment', color: '#1e8e3e',
     description: { fr: `Nouveau bureau passage des Lilas. Déménagement le ${fr(moveDay)}.`, en: `New office at passage des Lilas. Move on ${en(moveDay)}.` },
     ownerId: 'alex', memberIds: ['alex', 'karim', 'lea', 'sofia'], externalIds: [],
-    unread: 3, mentions: 1, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts, script, address: 'office-move@oneplace.example',
+    unread: 3, mentions: 1, messages: [...messages].sort((a, b) => a.at - b.at), blocks, artifacts: [...artifacts, ...filesFor('move')], script, address: 'office-move@oneplace.example',
   }
 }
