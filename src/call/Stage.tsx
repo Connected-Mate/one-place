@@ -298,6 +298,7 @@ export function Stage(p: StageProps) {
   const [moreOpen, setMoreOpen] = useState(false)
   const [log, setLog] = useState<{ id: number; text: string }[]>([])
   const logId = useRef(0)
+  const root = useRef<HTMLDivElement>(null)
   const say = (text: string) => { logId.current += 1; const id = logId.current; setLog((l) => [...l.slice(-4), { id, text }]) }
 
   const ids = p.people.map((x) => x.person.id)
@@ -336,6 +337,7 @@ export function Stage(p: StageProps) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || document.querySelector('.scrim')) return
+      if (!root.current?.getClientRects().length) return // the call runs behind another tab: keys are not for it
       const el = e.target as HTMLElement | null
       if (el?.closest?.('input,textarea,select,[contenteditable="true"]')) return
       const k = e.key.toLowerCase()
@@ -382,7 +384,7 @@ export function Stage(p: StageProps) {
   })
 
   return (
-    <div className={`cv-stage${peopleOpen ? ' with-panel' : ''}`} data-mode={p.mode}>
+    <div ref={root} className={`cv-stage${peopleOpen ? ' with-panel' : ''}`} data-mode={p.mode}>
       <header className="cv-top">
         <div className="cv-title">
           <h2>{t(p.title)}</h2>
@@ -434,16 +436,21 @@ export function Stage(p: StageProps) {
         )}
       </div>
 
+      <div className="cv-bar">
+      <div className="cv-bar-left" aria-hidden="true"><span className="cv-bar-time">{elapsed}</span><span className="cv-bar-sep" /><span className="cv-bar-title">{t(p.title)}</span></div>
       <div className="cv-controls" role="toolbar" aria-label={t({ fr: 'Commandes de l’appel', en: 'Call controls' })}>
         <CtlButton icon={p.mic ? 'mic' : 'mic_off'} label={label.mic} shortcut="M" tone={p.mic ? undefined : 'off'} onClick={toggleMic} />
         <CtlButton icon={p.cam ? 'videocam' : 'videocam_off'} label={label.cam} shortcut="C" tone={p.cam ? undefined : 'off'} onClick={toggleCam} />
         <CtlButton className="wide-only" icon={p.captions ? 'closed_caption' : 'closed_caption_off'} label={label.captions} tone={p.captions ? 'active' : undefined} pressed={p.captions} onClick={p.onCaptions} />
         <CtlButton className="wide-only" icon="back_hand" label={label.hand} tone={p.hand ? 'active' : undefined} pressed={p.hand} onClick={toggleHand} />
         {p.onShare && <CtlButton className="wide-only" icon="present_to_all" label={label.share} tone={p.sharing ? 'active' : undefined} pressed={!!p.sharing} onClick={p.onShare} />}
-        <CtlButton className="wide-only" icon="group" label={label.people} tone={peopleOpen ? 'active' : undefined} expanded={peopleOpen} onClick={() => setPeopleOpen((o) => !o)} />
-        {p.onInvite && <CtlButton className="wide-only" icon="person_add" label={label.invite} onClick={p.onInvite} />}
-        <CtlButton className="narrow-only" icon="more_horiz" label={t({ fr: 'Plus d’options', en: 'More options' })} expanded={moreOpen} onClick={() => setMoreOpen(true)} />
+        <CtlButton className="narrow-only" icon="more_vert" label={t({ fr: 'Plus d’options', en: 'More options' })} expanded={moreOpen} onClick={() => setMoreOpen(true)} />
         <button type="button" className="cv-hangup" aria-label={label.hangUp} title={label.hangUp} onClick={p.onHangUp}><Icon name="call_end" fill size={24} /></button>
+      </div>
+      <div className="cv-bar-right">
+        <CtlButton className="wide-only plain" icon="group" label={label.people} tone={peopleOpen ? 'active' : undefined} expanded={peopleOpen} onClick={() => setPeopleOpen((o) => !o)} />
+        {p.onInvite && <CtlButton className="wide-only plain" icon="person_add" label={label.invite} onClick={p.onInvite} />}
+      </div>
       </div>
 
       {moreOpen && (

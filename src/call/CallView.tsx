@@ -142,10 +142,12 @@ function findGuestMeeting(projects: Project[], viewerId: string, viewerEmail: st
   }
 }
 
-const GENERIC_GUEST_LINE = (hostId: string, guestName: string): CaptionLine => ({
-  who: hostId,
-  text: { fr: `Bonjour ${guestName}, merci de nous rejoindre. On commence quand vous voulez.`, en: `Hi ${guestName}, thanks for coming. We can start whenever you like.` },
-})
+/** What a guest hears is generic on purpose: the project's script talks about things she must not see. */
+const guestLines = (hostId: string, otherId: string | undefined, guestName: string): CaptionLine[] => [
+  { who: hostId, text: { fr: `Bonjour ${guestName}, merci de nous rejoindre.`, en: `Hi ${guestName}, thanks for joining us.` } },
+  ...(otherId ? [{ who: otherId, text: { fr: 'Bonjour ! On vous entend très bien.', en: 'Hello! We can hear you really well.' } }] : []),
+  { who: hostId, text: { fr: 'On commence quand vous voulez. Vous avez une vingtaine de minutes ?', en: 'We can start whenever you like. Do you have about twenty minutes?' } },
+]
 
 function ViewAsAlex({ compact }: { compact?: boolean }) {
   const t = useT()
@@ -200,12 +202,9 @@ export function GuestScreen() {
     return ids.includes(current.hostId) ? [current.hostId, ...ids.filter((id) => id !== current.hostId)] : [current.hostId, ...ids]
   }, [current, viewer.id])
 
-  const lines = useMemo<CaptionLine[]>(() => {
-    if (!current) return []
-    const allowed = new Set([...others, viewer.id])
-    const scripted = (current.project.script?.captions ?? []).filter((l) => allowed.has(l.who))
-    return scripted.length ? scripted : [GENERIC_GUEST_LINE(current.hostId, viewer.name.split(' ')[0])]
-  }, [current, others, viewer.id, viewer.name])
+  const lines = useMemo<CaptionLine[]>(() => (
+    current ? guestLines(current.hostId, others.find((id) => id !== current.hostId), viewer.name.split(' ')[0]) : []
+  ), [current, others, viewer.name])
 
   useEffect(() => {
     if (phase !== 'joined') return

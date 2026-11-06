@@ -98,7 +98,7 @@ export function startCall(projectId: string) {
   if (!existing) {
     const message: MeetingMessage = {
       id: uid(OWN_LIVE_PREFIX), kind: 'meeting', authorId: s.viewerId, at: now, visibility: { type: 'all' },
-      title, start: now, durationMin: 0, attendeeIds: [s.viewerId, ...expected], live: true,
+      title, start: now, durationMin: 30, attendeeIds: [s.viewerId, ...expected], live: true,
     }
     s.push(projectId, message)
   }
@@ -153,13 +153,10 @@ function firstTodoBlockId(projectId: string): string {
 }
 
 /** Gemini's fresh "where things stand" reflects what the call just decided. */
-function refreshBoardSummary(projectId: string, title: Txt, summary: Txt, decisions: Txt[], todoCount: number) {
+function refreshBoardSummary(projectId: string, summary: Txt, decisions: Txt[], todoCount: number) {
   const s = useStore.getState()
   const patch = {
-    text: both(summary, (text, lang) => {
-      const name = tx(title, lang)
-      return lang === 'fr' ? `Après « ${name} » : ${text}` : `After "${name}": ${text}`
-    }),
+    text: summary,
     bullets: [
       ...decisions.slice(0, 3),
       ...(todoCount ? [{
@@ -200,7 +197,7 @@ function finishWriteup(projectId: string, meetingId: string) {
     summary, decisions, todoIds: added.map((t) => t.id), streaming: false, at: Date.now(),
   }
   s.patch(projectId, writeupId, final as Partial<Message>)
-  refreshBoardSummary(projectId, meeting.title, summary, decisions, added.length)
+  refreshBoardSummary(projectId, summary, decisions, added.length)
   s.toast({
     icon: 'task_alt',
     text: {
