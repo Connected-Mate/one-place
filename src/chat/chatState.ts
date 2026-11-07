@@ -18,6 +18,8 @@ interface ChatUI {
   mailReply: { pid: string; messageId: string } | null
   threadOpen: Record<string, boolean>
   threadCompose: string | null
+  /** thread whose composer should open already addressed to Gemini */
+  threadAsk: string | null
   typing: Typing[]
   /** on touch screens, the message whose action bar is shown */
   touched: string | null
@@ -27,17 +29,19 @@ interface ChatUI {
   setMailReply(v: ChatUI['mailReply']): void
   setThread(id: string, open: boolean): void
   setThreadCompose(id: string | null): void
+  setThreadAsk(id: string | null): void
   setTyping(fn: (t: Typing[]) => Typing[]): void
   setTouched(id: string | null): void
   focusComposer(): void
   scrollToEnd(): void
 }
 export const useChat = create<ChatUI>((set) => ({
-  drafts: {}, mailReply: null, threadOpen: {}, threadCompose: null, typing: [], touched: null, focusNonce: 0, scrollNonce: 0,
+  drafts: {}, mailReply: null, threadOpen: {}, threadCompose: null, threadAsk: null, typing: [], touched: null, focusNonce: 0, scrollNonce: 0,
   setDraft: (pid, text) => set((s) => ({ drafts: { ...s.drafts, [pid]: text } })),
   setMailReply: (mailReply) => set({ mailReply }),
   setThread: (id, open) => set((s) => ({ threadOpen: { ...s.threadOpen, [id]: open } })),
   setThreadCompose: (threadCompose) => set({ threadCompose }),
+  setThreadAsk: (threadAsk) => set({ threadAsk }),
   setTyping: (fn) => set((s) => ({ typing: fn(s.typing) })),
   setTouched: (touched) => set({ touched }),
   focusComposer: () => set((s) => ({ focusNonce: s.focusNonce + 1 })),
@@ -85,7 +89,13 @@ function scheduleReply(pid: string, personId: string, visibility: Visibility, pa
 }
 
 /* ---------- sending ---------- */
-export interface SendOptions { privateTo?: string | null; quoteId?: string | null; parentId?: string | null }
+export interface SendOptions {
+  privateTo?: string | null
+  quoteId?: string | null
+  parentId?: string | null
+  /** what Gemini should read as the subject, without showing it as a quote */
+  scopeId?: string | null
+}
 
 /** Posts what the viewer typed and wakes whoever it concerns. Returns false if there was nothing to send. */
 export function sendChat(pid: string, raw: string, opts: SendOptions = {}): boolean {
@@ -108,7 +118,7 @@ export function sendChat(pid: string, raw: string, opts: SendOptions = {}): bool
   if (privateTo) s.markTour('private')
   useChat.getState().scrollToEnd()
 
-  if (atGemini || privateTo === GEMINI_ID) void askGemini(pid, text, { privateTo: privateTo ?? undefined, quoteId: opts.quoteId ?? undefined, parentId: parent?.id })
+  if (atGemini || privateTo === GEMINI_ID) void askGemini(pid, text, { privateTo: privateTo ?? undefined, quoteId: opts.quoteId ?? opts.scopeId ?? undefined, parentId: parent?.id })
   const humans = visibility.type === 'private'
     ? visibility.with
     : mentions.filter((id) => p.memberIds.includes(id))

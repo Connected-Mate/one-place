@@ -5,12 +5,13 @@
  */
 // The top of a project under 900px, where the chat and the board take turns: phone and portrait tablet.
 // On a phone it replaces the whole top bar, with a back arrow to the list, like a space in the Google Chat app.
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { startCall } from '../call/callActions'
 import { useT } from '../i18n'
 import { canSee, GEMINI_ID, mobileView, roleIn, useProject, useStore } from '../store'
 import { Button, Icon, IconButton, Menu } from '../ui/kit'
 import { openPeople } from '../home/goTo'
+import { copyProjectAddress, InviteDialog } from '../chat/Invite'
 
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
@@ -39,14 +40,8 @@ export function ProjectBar() {
   const peopleCount = project.memberIds.filter((id) => id !== GEMINI_ID).length
   const roleLabel = `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} · ${role === 'owner' ? 'you’re the owner' : role === 'member' ? 'you’re a member' : 'you’re a guest'}`
   const live = project.messages.some((m) => m.kind === 'meeting' && m.live && !m.ended && canSee(m.visibility, viewerId))
-  const copyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(project.address)
-      s.toast({ icon: 'content_copy', text: { fr: 'Adresse copiée', en: 'Address copied' } })
-    } catch {
-      s.toast({ icon: 'mail', text: project.address })
-    }
-  }
+  const [inviting, setInviting] = useState(false)
+  const closeInvite = useCallback(() => setInviting(false), [])
   const openBoard = () => {
     // From the call, Board means the board: the call stays alive and gets its own tab here.
     if (paneType === 'call') s.setPane({ type: 'board' }); else s.setMobilePane('pane')
@@ -77,12 +72,14 @@ export function ProjectBar() {
             ? <Button variant="filled" size="s" icon="videocam" onClick={() => startCall(project.id)}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>
             : <IconButton icon="videocam" label={t({ fr: 'Lancer un appel', en: 'Start a call' })} onClick={() => startCall(project.id)} />)}
           <Menu align="right" items={[
-            { icon: 'alternate_email', label: t({ fr: 'Copier l’adresse du projet', en: 'Copy project address' }), onSelect: () => { void copyAddress() } },
+            { icon: 'person_add', label: t({ fr: 'Inviter', en: 'Invite' }), onSelect: () => setInviting(true) },
+            { icon: 'mail', label: project.address, hint: t({ fr: 'Copier', en: 'Copy' }), onSelect: () => { void copyProjectAddress(project.address) } },
             { divider: true, label: '' },
             { icon: 'group', label: t({ fr: `${peopleCount} membres`, en: `${peopleCount} ${peopleCount === 1 ? 'member' : 'members'}` }), onSelect: () => openPeople(project.id) },
           ]} trigger={(p) => <IconButton {...p} icon="more_vert" label={t({ fr: 'Plus d’options', en: 'More options' })} />} />
         </div>
       </div>
+      {inviting && <InviteDialog project={project} onClose={closeInvite} />}
     </header>
   )
 }

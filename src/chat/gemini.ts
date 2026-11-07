@@ -16,6 +16,7 @@ import { appUpdate, hasApp, makeApp, TOOLS, wantedApp } from '../artifact/apps/c
 import { people } from '../data/seed'
 import { canSee, GEMINI_ID, personById, roleIn, uid, useStore } from '../store'
 import type { AppId, Artifact, Block, EmailMessage, Message, Project, ProposalAction, ProposalMessage, TimelineItem, Todo, Txt, Visibility } from '../data/types'
+import { triageEmail } from './emailTriage'
 import { findMessage, firstName, mailAddress, mailName, MENTION_RE, snippet, stripMarkup, updateMessage } from './helpers'
 
 export interface AskOptions {
@@ -637,7 +638,7 @@ function keySentence(body: string) {
   const paras = body.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean)
   const main = paras.find((x, i) => !(i === 0 && x.length < 40)) ?? paras[0] ?? ''
   // the sentence that carries a fact, not "Bad news, I'd rather tell you straight away"; the sign-off doesn't count
-  const content = paras.length > 2 ? paras.slice(0, -1) : paras
+  const content = (paras.length > 2 ? paras.slice(0, -1) : paras).filter((x) => !(x.length < 40 && /,$/.test(x)))
   const sentences = content.join(' ').match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)?.map((x) => x.trim()).filter((x) => x.length > 24 && !/^(hi|hello|dear|bonjour)\b/i.test(x)) ?? []
   return sentences.find((x) => /\d/.test(x)) ?? firstSentence(main)
 }
@@ -917,6 +918,17 @@ function answerQuoteAbout(quote: Message): Plan {
   const who = firstName(quote.authorId)
   return { say: `${who}’s point: "${oneLine(snippet(quote, 'en'), 180)}" ${link}` }
 }
+function answerAboutEmail(ctx: Ctx, p: Project, email: EmailMessage): Plan | null {
+  const n = ctx.norm
+  const triage = triageEmail(email, p)
+  if (/\b(who|qui)\b/.test(n)) {
+    if (triage.repliedBy) return { say: `${triage.repliedBy === ctx.viewer ? 'You' : firstName(triage.repliedBy)} already replied to this one.` }
+    if (triage.whoId) return { say: `${triage.whoId === ctx.viewer ? 'You should' : `${firstName(triage.whoId)} should`} answer. ${triage.why}` }
+  }
+  if (/\b(when|deadline|by when|due|date|quand|echeance)\b/.test(n)) return { say: triage.deadline ? `${triage.deadline}.` : 'This email doesn’t set a deadline.' }
+  if (/\b(what|summar\w*|about|mean|resume\w*|quoi)\b/.test(n)) return { say: triage.summary }
+  return null
+}
 /** Looks for the topic in the project itself. Returns a sentence, or null when the project says nothing about it. */
 function groundedHit(ctx: Ctx, p: Project): string | null {
   const words = keywordsOf(ctx.norm)
@@ -965,6 +977,10 @@ function smallTalk(ctx: Ctx, p: Project): Plan | null {
 /** Questions, and anything that isn't a clear request. Never changes the project. */
 function answer(ctx: Ctx, p: Project): Plan {
   const n = ctx.norm
+  if (ctx.quote?.kind === 'email' && ctx.quote.direction === 'in') {
+    const about = answerAboutEmail(ctx, p, ctx.quote)
+    if (about) return about
+  }
   if (ctx.quote) return answerQuoteAbout(ctx.quote)
   if (isLastCallAsk(n) || /\b(what|which|quoi|quelles?)\b.*\b(decid\w*|decisions?)\b/.test(n)) return planLastCall(ctx, p)
   if (/\b(next|upcoming|prochaine?)\b.*\b(meeting|call|reunion|sync|appel|rdv)\b/.test(n) || /\b(when|quand)\b.*\b(meeting|call|reunion|sync)\b/.test(n)) return answerNextMeeting(ctx, p)

@@ -4,7 +4,7 @@
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
 // The project chat: header, message log and composer.
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { useCallback, Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { fmtDay, tx, useT } from '../i18n'
 import { canSee, GEMINI_ID, personById, roleIn, useProject, useStore } from '../store'
 import { startCall, useCallUi } from '../call/callActions'
@@ -16,6 +16,8 @@ import { healInterruptedAnswers } from './gemini'
 import { firstName, parentOf } from './helpers'
 import { openPeople } from '../home/goTo'
 import { MessageRow } from './Messages'
+import { copyProjectAddress, InviteDialog } from './Invite'
+import './inbound'
 import './chat.css'
 
 const GROUP_MS = 5 * 6e4
@@ -30,7 +32,6 @@ function Header({ project }: { project: Project }) {
   const viewerId = useStore((s) => s.viewerId)
   const inThisCall = useStore((s) => s.call?.projectId === pid)
   const setPane = useStore((s) => s.setPane)
-  const toast = useStore((s) => s.toast)
   const role = roleIn(project, viewerId)
   const live = inThisCall || project.messages.some((m) => m.kind === 'meeting' && m.live && !m.ended && canSee(m.visibility, viewerId))
   const peopleCount = project.memberIds.filter((id) => id !== GEMINI_ID).length
@@ -38,14 +39,9 @@ function Header({ project }: { project: Project }) {
   const roleHelp = role === 'owner'
     ? { fr: 'Tu décides de ce qui arrive sur le board', en: 'You decide what goes on the board' }
     : { fr: `Tu proposes, ${firstName(project.ownerId)} approuve`, en: `You propose, ${firstName(project.ownerId)} approves` }
-  const copyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(project.address)
-      toast({ icon: 'content_copy', text: { fr: 'Adresse copiée', en: 'Address copied' } })
-    } catch {
-      toast({ icon: 'mail', text: project.address })
-    }
-  }
+  const [inviting, setInviting] = useState(false)
+  const closeInvite = useCallback(() => setInviting(false), [])
+  const copyAddress = () => copyProjectAddress(project.address)
   return (
     <header className={`chat-head${inThisCall ? ' in-call' : ''}`}>
       <div className="chat-title">
@@ -60,10 +56,16 @@ function Header({ project }: { project: Project }) {
         : <IconButton icon="videocam" label={t({ fr: 'Lancer un appel', en: 'Start a call' })} onClick={() => startCall(pid)} />}
       <Menu align="right" items={[
         { icon: 'dashboard', label: t({ fr: 'Voir le board', en: 'Open the board' }), onSelect: () => setPane({ type: 'board' }) },
+        { icon: 'person_add', label: t({ fr: 'Inviter', en: 'Invite' }), onSelect: () => setInviting(true) },
         { icon: 'alternate_email', label: t({ fr: 'Copier l’adresse du projet', en: 'Copy project address' }), hint: undefined, onSelect: () => { void copyAddress() } },
         { divider: true, label: '' },
         { icon: 'group', label: t({ fr: `${peopleCount} membres`, en: `${peopleCount} ${peopleCount === 1 ? 'member' : 'members'}` }), onSelect: () => openPeople(pid) },
       ]} trigger={(p) => <IconButton {...p} icon="more_vert" label={t({ fr: 'Plus d’options', en: 'More options' })} />} />
+      <span className="head-break" aria-hidden="true" />
+      <button type="button" className="addr-chip" title={t({ fr: 'Copier l’adresse du projet', en: 'Copy the project address' })} aria-label={t({ fr: `Copier l’adresse du projet, ${project.address}`, en: `Copy the project address, ${project.address}` })} onClick={() => { void copyAddress() }}>
+        <Icon name="mail" size={14} /><span className="ellipsis">{project.address}</span>
+      </button>
+      {inviting && <InviteDialog project={project} onClose={closeInvite} />}
     </header>
   )
 }

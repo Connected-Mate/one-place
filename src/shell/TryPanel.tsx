@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Icon } from '../ui/kit'
 import { ME_ID, useProject, useStore } from '../store'
 import { startCall } from '../call/callActions'
+import { simulateInboundEmail } from '../chat/inbound'
 import { useT } from '../i18n'
 
 /** The five things that make the concept click. Each row takes you straight there. */
@@ -23,6 +24,13 @@ function useSteps() {
       const m = [...project.messages].reverse().find((x) => x.kind === 'proposal' && x.status === 'pending')
       s.setMobilePane('chat')
       if (m) s.focusMessage(m.id); else s.toast({ text: { fr: 'Aucune proposition en attente.', en: 'No proposal waiting' } })
+    } },
+    { id: 'email', icon: 'mail', l: { fr: 'Envoie un e-mail à ce projet', en: 'Send an email to this project' }, run: () => {
+      if (useStore.getState().home) s.selectProject(project.id)
+      s.setMobilePane('chat')
+      const sent = simulateInboundEmail(project.id)
+      s.markTour('email')
+      if (sent) s.focusMessage(sent)
     } },
     { id: 'call', icon: 'call', l: { fr: 'Lance un appel et raccroche', en: 'Start a call, then hang up' }, run: () => startCall(project.id) },
     { id: 'viewas', icon: 'visibility', l: s.viewerId === ME_ID ? { fr: 'Regarde avec les yeux de Tom', en: 'See it through Tom’s eyes' } : { fr: 'Reviens à Alex', en: 'Back to Alex’s view' }, run: () => s.setViewer(s.viewerId === ME_ID ? 'tom' : ME_ID) },

@@ -219,6 +219,46 @@ button.file-card:hover{background:var(--surface-2)}
 .mention-name{font-weight:500;flex:none;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mention-hint{font-size:12px;color:var(--text-3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* the project's group address, in the header */
+.chat-head{flex-wrap:wrap;row-gap:0}
+.addr-chip{flex:0 0 auto;max-width:100%;display:inline-flex;align-items:center;gap:6px;min-height:22px;margin:0 0 -4px -6px;padding:0 8px 0 6px;border-radius:var(--r-pill);font-size:12px;line-height:16px;color:var(--text-3);transition:background var(--t-fast) var(--ease)}
+.addr-chip:hover{background:var(--hover);color:var(--text-2)}
+.addr-chip:active{background:var(--press)}
+.chat-head .chat-title{flex:1 1 0}
+.head-break{flex:0 0 100%;height:0}
+
+/* Gemini's note under an email */
+.esc{margin-top:4px;max-width:440px;width:100%;border-radius:var(--r-m);min-width:0}
+.esc-reading{display:flex;align-items:center;gap:8px;min-height:32px;padding:0 10px;font-size:13px;animation:msg-in var(--t) var(--ease-out)}
+.esc-line{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:4px 6px 4px 10px;border-radius:var(--r-m);font-size:13px;line-height:18px;color:var(--text-2);text-align:left;animation:msg-in var(--t) var(--ease-out);transition:background var(--t-fast) var(--ease)}
+.esc-line:hover{background:var(--hover)}
+.esc-line:active{background:var(--press)}
+.esc-line svg,.esc-line .ms{flex:none}
+.esc-summary{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.esc.open .esc-summary{white-space:normal;overflow-wrap:anywhere;color:var(--text)}
+.esc.open .esc-line{align-items:flex-start}
+.esc-body{display:flex;flex-direction:column;gap:6px;padding:2px 10px 8px 34px;font-size:13px;line-height:18px;color:var(--text-2);animation:rise var(--t) var(--ease-out)}
+.esc-row{display:flex;align-items:flex-start;gap:8px;min-width:0;overflow-wrap:anywhere}
+.esc-row strong{font-weight:500;color:var(--text)}
+.esc-row .ms{margin-top:1px}
+.esc-done{color:var(--green-strong)}
+.esc-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+
+/* a focused field must stay visible, however the dialog was opened */
+.dialog .input:focus{outline:2px solid var(--primary);outline-offset:-1px}
+
+/* inviting someone */
+.inv-kinds{border:0;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;min-width:0}
+.inv-kinds legend{padding:0;margin-bottom:4px}
+.inv-kind{display:flex;align-items:flex-start;gap:12px;padding:8px;border-radius:var(--r-s);cursor:pointer;transition:background var(--t-fast) var(--ease)}
+.inv-kind:hover{background:var(--hover)}
+.inv-kind.on{background:var(--surface-1)}
+.inv-kind.off{opacity:.6;cursor:default}
+.inv-kind input{margin:3px 0 0;flex:none;width:16px;height:16px;accent-color:var(--primary)}
+.inv-text{display:flex;flex-direction:column;min-width:0}
+.inv-title{font-weight:500;color:var(--text)}
+.inv-line{font-size:13px;line-height:18px;color:var(--text-3);overflow-wrap:anywhere}
+
 /* Gemini writing tools */
 .wt-spark{flex:none;width:32px;height:32px;margin-bottom:4px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background var(--t-fast) var(--ease)}
 .wt-spark:hover,.wt-spark.on{background:var(--hover)}
@@ -272,6 +312,8 @@ button.file-card:active{background:var(--surface-3)}
   .msg-actions .icon-btn,.msg-actions .emoji-btn,.ask-btn{width:40px!important;height:40px!important}
   .msg-actions{top:-38px}
   .reaction{height:40px;min-width:40px;justify-content:center}
+  .esc-line{min-height:40px}
+  .addr-chip{min-height:32px}
   .mail-more{display:inline-flex;align-items:center;min-height:40px}
   .in-call-note{min-height:40px}
   .thread-toggle{min-height:40px}

@@ -5,7 +5,7 @@
  */
 // One renderer per message kind, the action bar, threads and the private treatment.
 import { inviteGuest } from '../call/callActions'
-import { memo, useCallback, useState } from 'react'
+import { useEffect, memo, useCallback, useState } from 'react'
 import { fmtDate, fmtTime, useT } from '../i18n'
 import { canSee, GEMINI_ID, personById, useStore } from '../store'
 import { startCall } from '../call/callActions'
@@ -16,6 +16,7 @@ import { findMessage, firstName, isDraftMail, mailAddress, mailName, reactTo, sn
 import { appOf, WorkspaceIcon } from '../ui/WorkspaceIcon'
 import { RichText } from './rich'
 import { MentionInput } from './MentionInput'
+import { EmailSubChat } from './EmailSubChat'
 
 const EMOJIS = ['👍', '❤️', '🎉', '😄', '👀', '🙏']
 
@@ -374,10 +375,16 @@ function Thread({ m, pid, viewerId, ownerId, address }: { m: Message; pid: strin
   const setThread = useChat((s) => s.setThread)
   const setThreadCompose = useChat((s) => s.setThreadCompose)
   const [text, setText] = useState('')
+  const threadAsk = useChat((s) => s.threadAsk === m.id)
+  useEffect(() => {
+    if (!threadAsk) return
+    setText((cur) => (cur ? cur : '@Gemini '))
+    useChat.getState().setThreadAsk(null)
+  }, [threadAsk])
   const replies = (m.replies ?? []).filter((r) => canSee(r.visibility, viewerId))
   if (!replies.length && !composing) return null
   const n = replies.length
-  const send = () => { if (sendChat(pid, text, { parentId: m.id })) { setText(''); setThreadCompose(m.id) } }
+  const send = () => { if (sendChat(pid, text, { parentId: m.id, scopeId: m.kind === 'email' ? m.id : undefined })) { setText(''); setThreadCompose(m.id) } }
   return (
     <div className="thread">
       {n > 0 && (
@@ -465,6 +472,7 @@ export const MessageRow = memo(function MessageRow({ m, pid, viewerId, ownerId, 
           {!m.streaming && <ActionBar m={m} pid={pid} viewerId={viewerId} parentId={parentId} />}
         </div>
         <Reactions m={m} pid={pid} viewerId={viewerId} />
+        {!parentId && m.kind === 'email' && m.direction === 'in' && <EmailSubChat m={m} pid={pid} viewerId={viewerId} />}
         {!parentId && <Thread m={m} pid={pid} viewerId={viewerId} ownerId={ownerId} address={address} />}
       </div>
     </div>
