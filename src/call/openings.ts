@@ -24,7 +24,7 @@ export interface ChorusPart { who: string; text: string; key?: string; at?: numb
 type Raw =
   | { kind: 'wait'; ms: number }
   | { kind: 'join'; ids: string[]; ms?: number }
-  | { kind: 'say'; who: string; text: string; gap?: number }
+  | { kind: 'say'; who: string; text: string; gap?: number; key?: string }
   | { kind: 'chorus'; parts: { who: string; text: string; at?: number; key?: string }[]; caption: string; gap?: number }
   | { kind: 'note'; text: string; ms?: number }
   | { kind: 'cam'; ids: string[]; ms?: number }
@@ -32,40 +32,41 @@ type Raw =
 
 const wait = (ms: number): Raw => ({ kind: 'wait', ms })
 const join = (ids: string | string[], ms = 120): Raw => ({ kind: 'join', ids: typeof ids === 'string' ? [ids] : ids, ms })
-const say = (who: string, text: string, gap = 150): Raw => ({ kind: 'say', who, text, gap })
+const say = (who: string, text: string, gap = 150, key?: string): Raw => ({ kind: 'say', who, text, gap, key })
 const cam = (id: string, ms = 500): Raw => ({ kind: 'cam', ids: [id], ms })
 const mimic = (who: string, ms = 1900): Raw => ({ kind: 'mimic', who, ms })
 const note = (text: string): Raw => ({ kind: 'note', text, ms: 500 })
-const chorus = (caption: string, parts: [string, string, number?][], gap = 300): Raw => ({ kind: 'chorus', caption, gap, parts: parts.map(([who, text, at]) => ({ who, text, at })) })
+const chorus = (caption: string, parts: [string, string, number?, string?][], gap = 300): Raw => ({ kind: 'chorus', caption, gap, parts: parts.map(([who, text, at, key]) => ({ who, text, at, key })) })
 
 /**
  * Two of each style: people trickling in with someone late, and everyone landing at once.
  * People arrive with their camera off and turn it on one at a time. One stays off and says why.
  */
 const OPENINGS: Record<string, Raw[]> = {
+  // Clip names here are fixed by hand: the film's capture waits on them, so a line keeps its name when others are cut.
   aurora: [ // trickle, Karim late, Tom on mute, Léa stays off
-    wait(2200),
+    wait(1300),
     join('maya'),
-    say('maya', 'Oh, hey. Wait, I just clicked the card in the chat and I’m in? No link, no waiting room?'),
-    say('maya', 'Hold on, let me turn my camera on.', 100),
-    cam('maya', 900),
-    join('tom', 500),
-    mimic('tom'),
-    say('maya', 'Tom, you’re on mute!', 200),
-    say('tom', 'Sorry, sorry. I said, same. I didn’t have to dig an invite out of my inbox. I don’t even know where my inbox is anymore.', 200),
-    cam('tom', 300),
-    say('tom', 'Why does it look like that? Oh, it’s the wrong camera.', 200),
-    join(['sofia', 'lea'], 200),
-    say('sofia', 'Hi! Are we waiting for Karim?', 100),
-    cam('sofia', 200),
-    say('lea', 'Yeah, he’s coming. I’m staying off camera, by the way. I’m eating a sandwich.', 1300),
-    join('karim', 150),
-    say('karim', 'Sorry, sorry. I was reading what Gemini wrote on the board. I actually know what this call is about, for once.', 150),
+    say('maya', 'Oh, hey. I just clicked the card and I’m in? No link?', 150, 'open-aurora-0'),
+    cam('maya', 300),
+    join('tom', 200),
+    mimic('tom', 1100),
+    say('maya', 'Tom, you’re on mute!', 100, 'open-aurora-1'),
+    say('tom', 'Sorry, sorry. I said, same. I don’t even know where my inbox is anymore.', 100, 'open-aurora-3'),
+    cam('tom', 200),
+    say('tom', 'Why does it look like that? Oh, it’s the wrong camera.', 150, 'open-aurora-4'),
+    join(['sofia', 'lea'], 100),
+    say('sofia', 'Hi! Are we waiting for Karim?', 100, 'open-aurora-5'),
+    cam('sofia', 100),
+    say('lea', 'He’s coming. I’m off camera, I’m eating.', 300, 'open-aurora-6'),
+    join('karim', 100),
+    say('karim', 'Sorry, sorry. I was reading Gemini’s summary.', 100, 'open-aurora-7'),
     cam('karim', 300),
     note('Everyone’s in. Today: the launch date, hold or move.'),
-    chorus('Wow!', [['maya', 'Wow.', 0], ['tom', 'Whoa.', 90], ['sofia', 'Oh, that’s so good.', 180]]),
-    say('lea', 'Okay, it’s the first time I’ve wanted to come to a meeting.', 150),
-    say('maya', 'Okay, okay, let’s start.', 500),
+    chorus('Wow!', [['maya', 'Wow.', 0, 'open-aurora-8'], ['tom', 'Whoa.', 90, 'open-aurora-9'], ['sofia', 'Oh, that’s so good.', 180, 'open-aurora-10']], 200),
+    say('maya', 'Wow, that’s so cool. Everything’s in the same place.', 100, 'open-aurora-11'),
+    say('tom', 'So easy to find my docs!', 100, 'open-aurora-13'),
+    say('maya', 'Okay, okay, let’s start.', 300, 'open-aurora-12'),
   ],
   move: [ // everyone at once, Léa on mute, Sofia stays off
     wait(2200),
@@ -134,8 +135,8 @@ const genericKey = (who: string, line: keyof typeof GENERIC_TEXT) => (GENERIC_VO
 function keyed(projectId: string, raw: Raw[]): Beat[] {
   let n = 0
   return raw.map((b): Beat => {
-    if (b.kind === 'say') return { ...b, key: `open-${projectId}-${n++}` }
-    if (b.kind === 'chorus') return { ...b, parts: b.parts.map((p) => ({ ...p, key: `open-${projectId}-${n++}` })) }
+    if (b.kind === 'say') return { ...b, key: b.key ?? `open-${projectId}-${n++}` }
+    if (b.kind === 'chorus') return { ...b, parts: b.parts.map((p) => ({ ...p, key: p.key ?? `open-${projectId}-${n++}` })) }
     return b
   })
 }
