@@ -40,24 +40,17 @@ if [ -z "${FILM_SKIP_CAPTURE:-}" ]; then
   kill "$SERVER" 2>/dev/null || true; SERVER=""
 fi
 
-SAMPLES="${FILM_SAMPLES:-4}"; MAIN="${FILM_MUSIC:-custom}"
+SAMPLES="${FILM_SAMPLES:-8}"; MAIN="${FILM_MUSIC:-custom}"; V="${FILM_VERSION:-v4}"
 echo "== sound"
-(cd "$HERE" && node audio/make-audio.mjs --music "$MAIN" ${FILM_DROP:+--drop "$FILM_DROP"} --out "$FILM_SCRATCH/mix-$MAIN.wav" | grep -E "^music|I:|Peak")
+(cd "$HERE" && node audio/make-audio.mjs --music "$MAIN" --out "$FILM_SCRATCH/mix-$MAIN.wav" | grep -E "^music|I:|Peak")
 echo "== films"
 for f in 16x9 1x1; do
-  (cd "$HERE" && node render.mjs --format "$f" --audit 0.1 | tail -1)
-  M="$OUT/one-place-film-v2-$f-4k.mp4"; L="$OUT/one-place-film-v2-$f-1080-for-X-upload.mp4"
-  (cd "$HERE" && node render.mjs --format "$f" --scale 2 --fps 60 --samples "$SAMPLES" --workers 7 --audio "$FILM_SCRATCH/mix-$MAIN.wav" --out "$M" | grep -E "rendered|failed")
+  (cd "$HERE" && node render.mjs --format "$f" --scale 1 --audit 0.1 | tail -1)
+  # x264 undershoots on so much flat white: these targets measure about 50 Mbps over the whole film.
+  M="$FILM_SCRATCH/out-$V-$f-4k.mp4"; L="$FILM_SCRATCH/out-$V-$f-1080-for-X-upload.mp4"
+  (cd "$HERE" && node render.mjs --format "$f" --scale 2 --fps 60 --samples "$SAMPLES" --bitrate "$( [ "$f" = 16x9 ] && echo 72M || echo 125M )" --workers 7 --audio "$FILM_SCRATCH/mix-$MAIN.wav" --out "$M" | grep -E "rendered|failed")
   S="1920:1080"; [ "$f" = 1x1 ] && S="1080:1080"
-  "$FF" -hide_banner -loglevel error -y -i "$M" -vf "scale=$S:flags=lanczos,format=yuv420p" -c:v libx264 -preset slow -crf 16 -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart "$L"
+  "$FF" -hide_banner -loglevel error -y -i "$M" -vf "scale=$S:flags=lanczos,format=yuv420p" -c:v libx264 -preset slow -crf 15 -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart "$L"
 done
-echo "== posters and proof"
-TL() { (cd "$HERE" && node -e "import('./film/timeline.mjs').then(m=>console.log(m.timeline(process.env.FILM_SCRATCH).$1[0]+$2))"); }
-for f in 16x9 1x1; do
-  M="$OUT/one-place-film-v2-$f-4k.mp4"
-  for p in "mark merge 1.1" "project project 6.8" "wow bcall 1.8" "end-card end 2.6"; do set -- $p; "$FF" -hide_banner -loglevel error -y -ss "$(TL "$2" "$3")" -i "$M" -frames:v 1 -q:v 1 -update 1 "$OUT/poster-v2-$f-$1.jpg"; done
-  (cd "$HERE" && SC=480 ./sheet-video.sh "$M" "$OUT/proof/contact-sheet-v2-$f-2s.jpg" 2 6 0 76)
-  "$FF" -hide_banner -nostats -i "$M" -af ebur128=peak=true -f null - 2>&1 | awk '/Summary/{p=1} p' | grep -E "I:|Peak:" || true
-done
-(cd "$HERE" && node audio/inspect.mjs "$FILM_SCRATCH/mix-$MAIN.wav" "$OUT/proof/waveform-v2.png" >/dev/null) || true
-echo "== done: $OUT (app at $COMMIT)"
+(cd "$HERE" && node sync-check.mjs "$FILM_SCRATCH/out-$V-16x9-4k.mp4" > "$FILM_SCRATCH/sync-16x9.txt"; node sync-check.mjs "$FILM_SCRATCH/out-$V-1x1-4k.mp4" > "$FILM_SCRATCH/sync-1x1.txt") || echo "SYNC CHECK FAILED"
+echo "== done, in $FILM_SCRATCH: nothing is delivered until it has been read (app at $COMMIT)"

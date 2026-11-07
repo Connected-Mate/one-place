@@ -16,8 +16,7 @@ import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ffmpegPath from 'ffmpeg-static'
 import { chromium } from '../node_modules/playwright/index.mjs'
-import { callTimes } from './capture/call-cuts.mjs'
-import { timeline } from './film/timeline.mjs'
+import { timeline, STEPS, CHIPS, LENSES } from './film/timeline.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const SCRATCH = process.env.FILM_SCRATCH ?? '/private/tmp/claude-502/-Users-0104389S/a60853bb-6655-4d82-acf6-a5c639d40492/scratchpad/film'
@@ -44,7 +43,7 @@ function serve() {
 }
 const frameCounts = () => {
   const out = {}
-  for (const d of readdirSync(join(SCRATCH, 'cap'))) { const m = join(SCRATCH, 'cap', d, 'meta.json'); if (existsSync(m)) { const j = JSON.parse(readFileSync(m, 'utf8')); out[d] = { frames: j.frames, fps: j.fps ?? 30, dsf: j.dsf ?? 3 } } }
+  for (const d of readdirSync(join(SCRATCH, 'cap'))) { const m = join(SCRATCH, 'cap', d, 'meta.json'); if (existsSync(m)) { const j = JSON.parse(readFileSync(m, 'utf8')); out[d] = { frames: j.frames, fps: j.fps ?? 30, dsf: j.dsf ?? 3, marks: j.marks, subs: j.subs } } }
   return out
 }
 async function openPage(port) {
@@ -53,7 +52,7 @@ async function openPage(port) {
   const page = await ctx.newPage()
   page.on('pageerror', (e) => console.error('PAGE ERROR', e.message))
   page.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) console.error('CONSOLE', m.text()) })
-  await page.addInitScript(([c, t, l]) => { window.__SHOTS = c; window.__CALL = t; window.__TIMELINE = l }, [frameCounts(), (() => { try { return { wide: callTimes(SCRATCH, 'callwide'), square: callTimes(SCRATCH, 'callsquare') } } catch { return null } })(), timeline(SCRATCH)])
+  await page.addInitScript(([c, l, st, ch, le]) => { window.__SHOTS = c; window.__TIMELINE = l; window.__STEPS = st; window.__CHIPS = ch; window.__LENSES = le }, [frameCounts(), timeline(), STEPS, CHIPS, LENSES])
   await page.goto(`http://127.0.0.1:${port}/film/film.html?format=${FORMAT}`, { waitUntil: 'load' })
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => window.__ready())
@@ -79,7 +78,7 @@ async function chunkOnce(port, a, b, file, idx) {
   const ff = spawn(ffmpegPath, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS * SAMPLES), '-c:v', 'mjpeg', '-i', '-',
     '-vf', `tmix=frames=${SAMPLES}:weights=${Array(SAMPLES).fill(1).join(' ')},select='not(mod(n+1\\,${SAMPLES}))',setpts=N/(${FPS}*TB),scale=in_range=full:out_range=tv:out_color_matrix=bt709:flags=lanczos+accurate_rnd+full_chroma_int,format=yuv420p`,
     '-r', String(FPS),
-    '-c:v', 'libx264', '-preset', 'medium', '-threads', '3', '-crf', arg('crf', '15'), '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv', '-x264-params', 'keyint=60:bframes=2', file], { stdio: ['pipe', 'inherit', 'inherit'] })
+    '-c:v', 'libx264', '-preset', 'medium', '-threads', '3', ...(arg('bitrate') ? ['-b:v', arg('bitrate'), '-maxrate', Math.round(parseInt(arg('bitrate')) * 1.5) + 'M', '-bufsize', Math.round(parseInt(arg('bitrate')) * 2) + 'M'] : ['-crf', arg('crf', '13')]), '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv', '-x264-params', 'keyint=60:bframes=2', file], { stdio: ['pipe', 'inherit', 'inherit'] })
   let dead = null
   const closed = new Promise((r) => ff.on('close', r))
   ff.on('close', (c) => { dead = c === 0 ? null : new Error('ffmpeg exit ' + c) })
@@ -139,7 +138,7 @@ const parts = Array.from({ length: n }, (_, i) => ({ a: f0 + Math.floor((f1 - f0
 await Promise.all(parts.map((p, i) => chunk(port, p.a, p.b, p.file, i)))
 const listFile = join(tmp, 'list.txt'); writeFileSync(listFile, parts.map((p) => `file '${p.file}'`).join('\n'))
 const audio = arg('audio')
-await run(['-hide_banner', '-loglevel', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', listFile, ...(audio ? ['-i', audio] : []), '-c:v', 'copy', ...(audio ? ['-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest'] : []), '-movflags', '+faststart', '-metadata', 'title=One Place, a concept by Alexandre Cormeraie', '-metadata', 'artist=Alexandre Cormeraie', '-metadata', 'comment=A concept. Not a Google product.', out])
+await run(['-hide_banner', '-loglevel', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', listFile, ...(audio ? ['-i', audio] : []), '-c:v', 'copy', ...(audio ? ['-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-shortest'] : []), '-movflags', '+faststart', '-metadata', 'title=One Place, a concept by Alexandre Cormeraie', '-metadata', 'artist=Alexandre Cormeraie', '-metadata', 'comment=A concept. Not a Google product.', out])
 for (const p of parts) unlinkSync(p.file)
 unlinkSync(listFile)
 console.log(`rendered ${out} in ${Math.round((Date.now() - started) / 1000)}s`)

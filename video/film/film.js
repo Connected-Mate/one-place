@@ -122,12 +122,7 @@ function segment(name, start, end, build, update, opts = {}) {
   segments.push(s); return s
 }
 /** Everything travels on one vertical axis: the outgoing shot leaves upward, the next rises from below. */
-function travel(s, t) {
-  const inn = s.opts.noIn ? 1 : emph(prog(t, s.start, s.start + CONVEY))
-  const out = s.opts.noOut ? 0 : acc(prog(t, s.end - .1, s.end + .16))
-  const y = (1 - inn) * H * .86 - out * H * .92
-  return y
-}
+function travel() { return 0 } // every cut is a hard cut, on the beat
 function cutIn(s, t) { return s.opts.noIn ? 1 : prog(t, s.start, s.start + .12) }
 
 /* ---------- film footage ---------- */
@@ -169,12 +164,12 @@ function tilt(e, t, a, b, rx, ry, rz = 0, drift = 1.6) {
 const FS = WIDE ? 188 : 138
 const MAXW = WIDE ? W - 200 : W - 120
 const lines = (wide, square) => (WIDE ? wide : square)
-function statement(name, start, end, wide, square, { mode = 'words', stagger = .1, t0 = .1, size = FS, opts = {}, carets, cps = 17, extra } = {}) {
+function statement(name, start, end, wide, square, { mode = 'words', stagger = .15, t0 = 0, size = FS, opts = {}, carets, cps = 17, extra } = {}) {
   let b
   return segment(name, start, end, (s) => { b = textBlock(s.layer, lines(wide, square), { size, maxW: MAXW }); extra?.build?.(s) }, (s, t) => {
     if (!b.fitted) { b.fit(); b.fitted = true }
     const lt = t - s.start
-    if (mode === 'type') revealType(b, lt, t0, cps, carets); else revealWords(b, lt, t0, stagger)
+    if (mode === 'type') revealType(b, lt, t0, cps, carets); else revealWords(b, lt, t0, .15)
     const push = 1 + .022 * smooth(prog(t, s.start, s.end + .2))
     const y = travel(s, t)
     s.layer.style.transform = `translateY(${y}px)`
@@ -187,9 +182,9 @@ const T = window.__T = window.__TIMELINE // the edit, see film/timeline.mjs
 window.__DURATION = T.end[1]
 
 /* -- Hello -- */
-statement('hello', ...T.hello, [['Hello Google.']], [['Hello'], ['Google.']], { mode: 'type', t0: .2, cps: 19, carets: ['#4285f4'], opts: { noIn: true } })
-statement('spent', ...T.spent, [['Last quarter, you spent'], [{ t: '$51B', blue: true }, ' to build AI.']], [['Last quarter,'], ['you spent'], [{ t: '$51B', blue: true }, ' to build AI.']], { stagger: .09, size: WIDE ? 168 : 138 })
-statement('gmail', ...T.gmail, [['And we still'], ['work in ', { i: 'gmail' }, ' Gmail.']], [['And we still'], ['work in ', { i: 'gmail' }], ['Gmail.']], { stagger: .09 })
+statement('hello', ...T.hello, [['Hello Google.']], [['Hello'], ['Google.']], { mode: 'type', t0: 0, cps: 1 / .075, carets: ['#4285f4'], opts: { noIn: true } })
+statement('spent', ...T.spent, [['Last quarter, you spent'], [{ t: '$51B', blue: true }, ' to build AI.']], [['Last quarter,'], ['you spent'], [{ t: '$51B', blue: true }, ' to build AI.']], { stagger: .06, t0: .03, size: WIDE ? 168 : 138 })
+statement('gmail', ...T.gmail, [['And we still'], ['work in ', { i: 'gmail' }, ' Gmail.']], [['And we still'], ['work in ', { i: 'gmail' }], ['Gmail.']], { stagger: .06, t0: .03 })
 
 /* -- The chaos: an endless thread, tabs piling up, every app shouting -- */
 {
@@ -232,7 +227,7 @@ statement('gmail', ...T.gmail, [['And we still'], ['work in ', { i: 'gmail' }, '
       pops.push({ e, x: ring[0] * W, y: ring[1] * H, rot: (r() - .5) * 14, size, seedD: r() })
     }
   }, (s, t) => {
-    const lt = (t - s.start) * 1.18
+    const lt = (t - s.start) * 1.75
     const collapse = 0 // it never resolves by itself: hard cut at its peak
     // endless thread: rows come up faster and faster, and never stop
     const prg = 1.4 * lt + 2.2 * lt * lt + .45 * lt * lt * lt
@@ -260,7 +255,7 @@ statement('gmail', ...T.gmail, [['And we still'], ['work in ', { i: 'gmail' }, '
     tabs.forEach((b, i) => { const on = i < nt; b.e.style.display = on ? 'flex' : 'none'; if (on) { b.e.style.width = widthEach + 'px'; b.e.style.padding = widthEach < 60 ? '0 2px' : '0 12px'; b.sp.style.display = widthEach < 82 ? 'none' : 'inline'; b.e.style.justifyContent = widthEach < 82 ? 'center' : 'flex-start'; b.e.firstChild.style.marginRight = widthEach < 82 ? '0' : '10px'; b.e.firstChild.style.width = b.e.firstChild.style.height = Math.min(26, widthEach * .7) + 'px' } })
     // apps land on the beat, then on every sixteenth
     pops.forEach((p, i) => {
-      const at = i < 10 ? .95 + i * .2 : 2.95 + (i - 10) * .0058
+      const at = 1.75 * (i < 10 ? i * .15 : 1.5 + (i - 10) * .0087)
       const u = emph(prog(lt, at, at + .36))
       const vis = lt >= at
       p.e.style.display = vis ? 'flex' : 'none'
@@ -280,7 +275,7 @@ statement('gmail', ...T.gmail, [['And we still'], ['work in ', { i: 'gmail' }, '
   }, { noOut: true })
 }
 
-statement('first', ...T.first, [['Maybe there’s something'], ['to do first.']], [['Maybe there’s'], ['something'], ['to do first.']], { opts: { noIn: true }, t0: .1, stagger: .12, size: WIDE ? 160 : 132 })
+statement('first', ...T.first, [['Maybe there’s something'], ['to do first.']], [['Maybe there’s'], ['something'], ['to do first.']], { opts: { noIn: true, noOut: true }, size: WIDE ? 160 : 132 })
 
 /* -- The merge, as in the welcome dialog -- */
 {
@@ -299,268 +294,191 @@ statement('first', ...T.first, [['Maybe there’s something'], ['to do first.']]
 const BOT = (hue) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect x="8" y="14" width="32" height="26" rx="9" fill="${hue}"/><rect x="22.5" y="6" width="3" height="9" rx="1.5" fill="${hue}"/><circle cx="24" cy="6" r="3" fill="${hue}"/><rect x="3" y="22" width="4" height="10" rx="2" fill="${hue}"/><rect x="41" y="22" width="4" height="10" rx="2" fill="${hue}"/><circle cx="18" cy="26" r="3.6" fill="#fff"/><circle cx="30" cy="26" r="3.6" fill="#fff"/><rect x="17" y="33" width="14" height="2.8" rx="1.4" fill="#fff"/></svg>`)}`
 const r = (x, y, w, h) => ({ x, y, w, h })
 const SPARK = (id) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" style="display:block"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset=".28" stop-color="#4285f4"/><stop offset=".5" stop-color="#9b72cb"/><stop offset=".72" stop-color="#d96570"/></linearGradient></defs><path fill="url(#${id})" d="M12 0C12.6 6.6 17.4 11.4 24 12 17.4 12.6 12.6 17.4 12 24 11.4 17.4 6.6 12.6 0 12 6.6 11.4 11.4 6.6 12 0Z"/></svg>`
-const CAST = ['maya', 'tom', 'sofia', 'karim', 'lea', 'priya', 'jun', 'ben']
 
-/* -- THE PROJECT: one object on screen, that things enter -- */
-const PROJECT_APPS = [['chat', 'Chat'], ['gmail', 'Gmail'], ['drive', 'Drive'], ['docs', 'Docs'], ['sheets', 'Sheets'], ['slides', 'Slides'], ['meet', 'Meet'], ['calendar', 'Calendar'], ['notebooklm', 'NotebookLM']]
-{
-  const CARD = WIDE ? { w: 1320, h: 760, top: 230 } : { w: 1000, h: 780, top: 230 }
-  const P = (t) => t - T.project[0]
-  const STEPS = [
-    { at: 0, lines: [['Picture one project.']] },
-    { at: 1.3, lines: [['Now bring ', { t: 'Google', blue: true }, ' in.']] },
-    { at: 4.2, lines: [['Bring your ', { t: 'people', blue: true }, ' in.']] },
-    { at: 5.6, lines: [['Bring ', { t: 'Gemini', blue: true }, ' in.']] },
-  ]
-  let card, ring, fill, pct, tiles = [], faces = [], spark, words = []
-  segment('project', ...T.project, (s) => {
-    STEPS.forEach((st) => { const box = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: (WIDE ? 62 : 70) + 'px', height: '150px', zIndex: 6 }); const b = textBlock(box, st.lines, { size: WIDE ? 124 : 104, maxW: MAXW }); b.box.style.position = 'relative'; words.push({ box, b, st }) })
-    card = el('div', '', s.layer, { position: 'absolute', left: (W - CARD.w) / 2 + 'px', top: CARD.top + 'px', width: CARD.w + 'px', height: CARD.h + 'px', borderRadius: '48px', background: '#fff', boxShadow: '0 50px 140px rgba(66,133,244,.20),0 10px 40px rgba(66,133,244,.10)' })
-    ring = el('div', '', card, { position: 'absolute', inset: '-5px', borderRadius: '53px', padding: '5px', background: 'linear-gradient(120deg,#4285f4,#9b72cb 50%,#d96570)', WebkitMask: 'linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude', opacity: 0 })
-    const head = el('div', '', card, { position: 'absolute', left: '56px', right: '56px', top: '44px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', fontSize: '50px' })
-    const nm = el('div', '', head); nm.textContent = 'Aurora launch'
-    pct = el('div', 'mini', head, { color: '#5f6368' })
-    const track_ = el('div', '', card, { position: 'absolute', left: '56px', right: '56px', top: '122px', height: '16px', borderRadius: '8px', background: '#e9eef6', overflow: 'hidden' })
-    fill = el('div', '', track_, { height: '100%', width: '0%', borderRadius: '8px', background: 'linear-gradient(90deg,#4285f4,#9b72cb)' })
-    const cols = 5, TS = WIDE ? 132 : 128
-    const stepX = WIDE ? 232 : (CARD.w - 112) / cols, x0 = (CARD.w - stepX * cols) / 2
-    PROJECT_APPS.forEach(([a, n], i) => {
-      const col = i % cols, row = Math.floor(i / cols)
-      const x = x0 + stepX * (col + .5) + (row === 1 ? stepX / 2 : 0), y = 180 + row * 192
-      const e = el('div', '', card, { position: 'absolute', left: x + 'px', top: y + 'px', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 0, zIndex: 3 })
-      const box = el('div', '', e, { width: TS + 'px', height: TS + 'px', flex: 'none', borderRadius: TS * .24 + 'px', background: '#f6f8fc', display: 'flex', alignItems: 'center', justifyContent: 'center' })
-      imgEl(icon(a), box, { width: TS * .62 + 'px', height: TS * .62 + 'px' })
-      const lab = el('div', 'mini', e, { marginTop: '10px', fontSize: (WIDE ? 28 : 28) + 'px', color: '#3c4043', whiteSpace: 'nowrap' }); lab.textContent = n
-      const ang = (i / 9) * Math.PI * 2 + .4
-      tiles.push({ e, lab, fromX: Math.cos(ang) * 1400, fromY: Math.sin(ang) * 1000 - 200, i })
-    })
-    const faceY = WIDE ? 578 : 592, FD = WIDE ? 150 : 118, faceStep = (CARD.w - 112) / CAST.length
-    CAST.forEach((n, i) => {
-      const e = el('div', 'face', card, { width: FD + 'px', height: FD + 'px', left: 56 + faceStep * (i + .5) - FD / 2 + 'px', top: faceY + 'px', backgroundImage: `url(/call/${n}.webp)`, zIndex: 3 })
-      faces.push({ e, i })
-    })
-    spark = el('div', '', card, { position: 'absolute', right: '230px', top: '26px', width: '86px', height: '86px', zIndex: 4 }); spark.innerHTML = SPARK('pj')
-  }, (s, t) => {
-    const lt = P(t), D = T.project[1] - T.project[0]
-    words.forEach(({ box, b, st }, i) => {
-      if (!b.fitted) { b.fit(); b.fitted = true }
-      const end = STEPS[i + 1]?.at ?? D + 1
-      const on = lt >= st.at - .01 && lt < end
-      box.style.display = on ? 'block' : 'none'
-      if (on) { revealWords(b, lt - st.at, .02, .07, .34); box.style.transform = `translateY(${(1 - emph(prog(lt, st.at, st.at + .3))) * 18}px)` }
-    })
-    // the card opens, calm and empty
-    const open = emph(prog(lt, .0, .75)), collapse = acc(prog(lt, D - .42, D - .02))
-    card.style.transform = `translateY(${(1 - open) * 120}px) scale(${lerp(.9, 1, open) * (1 - collapse * .94)})`
-    card.style.opacity = prog(lt, 0, .12) * (1 - prog(lt, D - .08, D))
-    tiles.forEach(({ e, lab, fromX, fromY, i }) => {
-      const a = 1.4 + i * .3, u = emph(prog(lt, a, a + .42))
-      e.style.opacity = prog(lt, a, a + .05)
-      e.style.transform = `translate(calc(${(1 - u) * fromX}px), ${(1 - u) * fromY}px) scale(${lerp(1.5, 1, u)})`
-      lab.style.opacity = prog(lt, a + .18, a + .3)
-    })
-    faces.forEach(({ e, i }) => {
-      const a = 4.25 + i * .12, u = emph(prog(lt, a, a + .42))
-      e.style.opacity = prog(lt, a, a + .05)
-      e.style.transform = `translateY(${(1 - u) * 240}px) scale(${lerp(.5, 1, u)})`
-    })
-    const g = emph(prog(lt, 5.65, 6.15))
-    spark.style.opacity = prog(lt, 5.65, 5.72)
-    spark.style.transform = `translate(${(1 - g) * 300}px,${(1 - g) * -600}px) scale(${lerp(3, 1, g)}) rotate(${(1 - g) * 180}deg)`
-    ring.style.opacity = smooth(prog(lt, 5.9, 6.3))
-    pct.textContent = Math.round(lerp(0, 8, smooth(prog(lt, 6, 6.6)))) + '%'
-    fill.style.width = lerp(0, 8, smooth(prog(lt, 6, 6.6))) + '%'
-    s.layer.style.transform = `translateY(${(1 - emph(prog(t, s.start, s.start + CONVEY))) * H * .86}px)`
-  }, { noOut: true, noIn: true })
-}
-
-/* -- The drop: That's One Place -- */
+/* -- The reveal, the biggest hit of the track -- */
 {
   let mark, name, burst
   segment('merge', ...T.merge, (s) => {
     burst = el('div', 'glow', s.layer, { '--g1': (WIDE ? 220 : 180) + 'px', '--g2': (WIDE ? 60 : 50) + 'px', '--g3': (WIDE ? 420 : 320) + 'px', '--g4': (WIDE ? 120 : 90) + 'px' })
-    mark = window.__logo(s.layer, 280, { position: 'absolute', left: '50%', top: '50%' }).svg
-    name = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: '50%', textAlign: 'center', fontSize: (WIDE ? 160 : 112) + 'px', whiteSpace: 'nowrap' })
-    name.textContent = 'That’s One Place.'
+    mark = window.__logo(s.layer, 260, { position: 'absolute', left: '50%', top: '50%' }).svg
+    name = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: '50%', textAlign: 'center', fontSize: (WIDE ? 150 : 124) + 'px', lineHeight: 1.12 })
+    name.innerHTML = WIDE ? 'Everything in one place.' : 'Everything<br>in one place.'
   }, (s, t) => {
-    const lt = t - s.start, u = emph(prog(lt, 0, .5)), push = 1 + .03 * prog(t, s.start, s.end + .2)
-    burst.style.opacity = 1 - std(prog(lt, .02, .8))
-    mark.style.transform = `translate(-50%,-50%) translateY(-120px) scale(${lerp(.25, 1, u) * push}) rotate(${(1 - u) * -30}deg)`
-    const n = emph(prog(lt, .1, .55))
-    name.style.opacity = prog(lt, .1, .18)
-    name.style.transform = `translateY(${lerp(170, 100, n)}px) scale(${push})`
-    s.layer.style.transform = `translateY(${travel(s, t)}px)`
+    const lt = t - s.start, u = emph(prog(lt, 0, .45)), push = 1 + .025 * prog(t, s.start, s.end)
+    burst.style.opacity = 1 - std(prog(lt, 0, 1.2))
+    mark.style.transform = `translate(-50%,-50%) translateY(${WIDE ? -140 : -210}px) scale(${lerp(.25, 1, u) * push}) rotate(${(1 - u) * -30}deg)`
+    const n = emph(prog(lt, .15, .6))
+    name.style.opacity = prog(lt, .15, .23)
+    name.style.transform = `translateY(${lerp(WIDE ? 140 : 100, WIDE ? 70 : 20, n)}px) scale(${push})`
   }, { noIn: true })
 }
 
-/* -- Not agents: a robot and its cloud, crossed out. A word in neutral type and a generic icon, no logo -- */
+/* -- Not another bot. A generic robot icon and a word in neutral type, crossed out on the beat. No logo. -- */
 {
   let bots = [], x1, x2, tag
   const R = rng(77), HUES = ['#9aa0a6', '#80868b', '#bdc1c6', '#aeb4bb']
-  statement('notagents', ...T.notagents, [['Not agents.']], [['Not agents.']], { t0: .8, size: WIDE ? 190 : 150, extra: {
+  statement('notagents', ...T.notagents, [['Not another bot.'], ['Not a Cowork.']], [['Not another bot.'], ['Not a Cowork.']], { t0: 1.2, size: WIDE ? 150 : 120, extra: {
     build: (s) => {
       for (let i = 0; i < 40; i++) {
         const a = (i / 40) * Math.PI * 2 * 3 + R() * .5, k = .6 + R() * .55
         const x = Math.cos(a) * W * .48 * k, y = Math.sin(a) * H * .46 * k - 30
-        if (Math.abs(y) < 360 && Math.abs(x) < (WIDE ? 640 : 460)) continue
+        if (Math.abs(y) < 400 && Math.abs(x) < (WIDE ? 660 : 480)) continue
         const d = lerp(44, 100, R())
         const e = imgEl(BOT(HUES[i % 4]), s.layer, { position: 'absolute', left: W / 2 + 'px', top: H / 2 + 'px', width: d + 'px', height: d + 'px' })
-        bots.push({ e, x, y, d, at: R() * .28, rot: (R() - .5) * 24, off: R() })
+        bots.push({ e, x, y, d, at: Math.round(R() * 4) * .15, rot: (R() - .5) * 24, off: R() })
       }
-      tag = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: (H / 2 - 320) + 'px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '28px', fontSize: (WIDE ? 120 : 110) + 'px', color: '#3c4043', fontWeight: 400 })
+      tag = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: (H / 2 - 370) + 'px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '28px', fontSize: (WIDE ? 120 : 110) + 'px', color: '#3c4043', fontWeight: 400 })
       imgEl(BOT('#3c4043'), tag, { width: '130px', height: '130px' })
       const w = el('span', '', tag); w.textContent = 'Cowork'
-      const mk = (rot) => el('div', '', s.layer, { position: 'absolute', left: W / 2 - 340 + 'px', top: H / 2 - 262 + 'px', width: '680px', height: '11px', borderRadius: '6px', background: '#ea4335', transformOrigin: 'center', zIndex: 5, boxShadow: '0 6px 24px rgba(234,67,53,.3)', '--r': rot })
-      x1 = mk(0); x2 = mk(0)
+      const mk = () => el('div', '', s.layer, { position: 'absolute', left: W / 2 - 340 + 'px', top: H / 2 - 312 + 'px', width: '680px', height: '11px', borderRadius: '6px', background: '#ea4335', transformOrigin: 'center', zIndex: 5, boxShadow: '0 6px 24px rgba(234,67,53,.3)' })
+      x1 = mk(); x2 = mk()
     },
     update: (s, t) => {
       const lt = t - s.start
-      tag.style.opacity = prog(lt, .02, .1)
-      tag.style.transform = `translateY(${(1 - emph(prog(lt, .02, .4))) * 40}px)`
-      const a = acc(prog(lt, .42, .58)), b = acc(prog(lt, .58, .74))
-      x1.style.transform = `rotate(-11deg) scaleX(${a})`; x2.style.transform = `rotate(11deg) scaleX(${b})`
-      s.layer.querySelector('.center').style.marginTop = (WIDE ? 150 : 150) + 'px'
+      tag.style.opacity = prog(lt, 0, .08)
+      tag.style.transform = `translateY(${(1 - emph(prog(lt, 0, .4))) * 40}px)`
+      x1.style.transform = `rotate(-11deg) scaleX(${emph(prog(lt, .6, .78))})`; x2.style.transform = `rotate(11deg) scaleX(${emph(prog(lt, .9, 1.08))})`
+      s.layer.querySelector('.center').style.marginTop = '170px'
       bots.forEach((o) => {
-        const u = emph(prog(lt, o.at, o.at + .3)), v = acc(prog(lt, .85 + o.off * .25, 1.2 + o.off * .25)), k = 1 + v * 1.2
+        const u = emph(prog(lt, o.at, o.at + .3)), v = acc(prog(lt, 1.2 + o.off * .35, 1.7 + o.off * .35)), k = 1 + v * 1.2
         o.e.style.opacity = prog(lt, o.at, o.at + .06) * (1 - v)
         o.e.style.transform = `translate(${o.x * k - o.d / 2}px,${o.y * k - o.d / 2}px) rotate(${o.rot + v * 60 * (o.off - .5)}deg) scale(${lerp(.3, 1, u) * (1 - v * .6)})`
       })
     },
   } })
 }
+statement('notplace', ...T.notplace, [['Not a place to work'], ['with AI agents.']], [['Not a place'], ['to work with'], ['AI agents.']], { size: WIDE ? 150 : 128 })
 
-function shot(name, [start, end], source, spec, { glow = null, fromT = 0, rate = 1, opts = {}, after } = {}) {
-  let f, wrap, gl
-  segment(name, start, end, (s) => {
-    wrap = el('div', 'wrap3d', s.layer)
-    f = footage(wrap, source, spec)
-    if (glow) gl = el('div', 'glow', s.layer, { '--g1': (WIDE ? 150 : 120) + 'px', '--g2': (WIDE ? 34 : 26) + 'px', '--g3': (WIDE ? 280 : 220) + 'px', '--g4': (WIDE ? 70 : 54) + 'px' })
-    after?.build?.(s)
-  }, (s, t) => {
-    const lt = t - s.start
-    s.layer.style.transform = `translateY(${travel(s, t)}px)`
-    setFootage(f, fromT + lt * rate, spec.cam(lt))
-    if (spec.tilt) tilt(f.sh, t, s.start, s.end, ...spec.tilt)
-    if (gl) gl.style.opacity = track(lt, glow)
-    after?.update?.(s, t, f)
-  }, opts)
-}
-function beat(name, seg, lines, source, spec, { fromT = 0, rate = 1, size = WIDE ? 104 : 86, top = WIDE ? 48 : 50, opts } = {}) {
-  let b
-  shot(name, seg, source, spec, { fromT, rate, opts, after: {
-    build: (s) => {
-      const box = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: top + 'px', zIndex: 6 })
-      b = textBlock(box, lines, { size, maxW: MAXW })
-      b.box.style.position = 'relative'
-    },
-    update: (s, t) => { if (!b.fitted) { b.fit(); b.fitted = true } revealWords(b, t - s.start, .02, .07, .34) },
-  } })
-}
-// All your tools. All your people. One project.
-beat('all', T.all, WIDE ? [['All your tools. All your people. ', { t: 'One project.', blue: true }]] : [['All your tools.'], ['All your people.'], [{ t: 'One project.', blue: true }]], 'all', WIDE
-  ? { rect: r(90, 160, 1740, 900), radius: 36, tilt: [1.2, -1.2, 0, .6], cam: (t) => ({ x: 756, y: track(t, [[0, 400], [2.8, 406]]), zoom: track(t, [[0, 1.15], [2.8, 1.16]]) }) }
-  : { rect: r(30, 375, 1020, 680), radius: 36, tilt: [1, -1, 0, .5], cam: (t) => ({ x: 445, y: 340, zoom: 1.15 }) },
-{ fromT: .2, rate: 1.2, size: WIDE ? 84 : 88 })
-
-statement('fast', ...T.fast, [[{ t: 'Moving fast.', blue: true }]], [[{ t: 'Moving', blue: true }], [{ t: 'fast.', blue: true }]], { t0: .03, stagger: .1, size: WIDE ? 210 : 200 })
-
-/* The bar is the thread: it jumps on every beat. It stays still while the shots run under it. */
-const BAR_Y = WIDE ? 40 : 44
-const beatRect = WIDE ? r(170, 150, 1580, 900) : r(40, 150, 1000, 900)
-shot('btodo', T.btodo, 'todo', { rect: beatRect, radius: 40, cam: (t) => (WIDE ? { x: 400, y: 200, zoom: track(t, [[0, 1.98], [1.4, 2.04]]) } : { x: 290, y: 245, zoom: track(t, [[0, 1.72], [1.4, 1.8]]) }) }, { fromT: .25, rate: 1.75 })
-shot('broad', T.broad, 'roadmap', { rect: beatRect, radius: 40, cam: (t) => (WIDE ? { x: 400, y: 330, zoom: 1.98 } : { x: 400, y: 320, zoom: 1.25 }) }, { fromT: .3, rate: 1 })
-shot('bdoc', T.bdoc, 'doc', { rect: beatRect, radius: 40, cam: (t) => (WIDE ? { x: 400, y: 230, zoom: 1.98 } : { x: 400, y: 300, zoom: 1.25 }) }, { fromT: .9, rate: 1.4 })
-if (T.bmini) shot('bmini', T.bmini, 'mini', { rect: beatRect, radius: 40, cam: () => (WIDE ? { x: 400, y: 250, zoom: 1.98 } : { x: 400, y: 330, zoom: 1.25 }) }, { fromT: .25, rate: .95 })
-
-// The call, 3 s, chat beside it. One wow. Then it is over and the summary is there.
-const CALLT = window.__CALL ? window.__CALL[WIDE ? 'wide' : 'square'] : { chorus: 45.6, hang: 49.8, clip: { width: 1442, height: 808 } }
-window.__CALLCUTS = { wowFrom: CALLT.chorus - 1, hangFrom: CALLT.hang - .3 }
-{
-  const SRC = WIDE ? 'callwide' : 'callsquare'
-  const SIZE = { w: CALLT.clip.width, h: CALLT.clip.height }
-  const RECT = WIDE ? r(92, 140, 1736, 920) : r(30, 180, 1020, 730)
-  const FIT = Math.min(RECT.w / SIZE.w, RECT.h / SIZE.h)
-  let f, subs, subIn
-  segment('bcall', ...T.bcall, (s) => {
-    const wrap = el('div', 'wrap3d', s.layer)
-    f = footage(wrap, SRC, { rect: RECT, radius: 32, shadow: true })
-    subs = el('div', 'subs', s.layer, { fontSize: (WIDE ? 56 : 44) + 'px', zIndex: 5, bottom: (WIDE ? 90 : 130) + 'px' })
-    subIn = el('span', '', subs); subIn.style.fontWeight = 500; subIn.textContent = 'Wow.   Whoa.   Oh, that’s so good.'; subIn.style.whiteSpace = 'pre-wrap'
-  }, (s, t) => {
-    const lt = t - s.start
-    s.layer.style.transform = `translateY(${travel(s, t)}px)`
-    setFootage(f, window.__CALLCUTS.wowFrom + lt, { x: SIZE.w / 2, y: SIZE.h / 2, zoom: FIT })
-    const on = lt >= 1.02 && lt < 3.1
-    subs.style.display = on ? 'flex' : 'none'
-    subIn.style.transform = `scale(${lerp(.86, 1, emph(prog(lt, 1.02, 1.35)))})`
-  })
-  let f2
-  segment('bsum', ...T.bsum, (s) => {
-    const wrap = el('div', 'wrap3d', s.layer)
-    f2 = footage(wrap, SRC, { rect: RECT, radius: 32, shadow: true })
-  }, (s, t) => {
-    const lt = t - s.start
-    s.layer.style.transform = `translateY(${travel(s, t)}px)`
-    setFootage(f2, window.__CALLCUTS.hangFrom + lt * 2.4, { x: SIZE.w / 2, y: SIZE.h / 2, zoom: FIT })
-  })
-}
-{
-  const beats = [T.btodo, T.broad, T.bdoc, ...(T.bmini ? [T.bmini] : []), T.bcall, T.bsum]
-  const steps = T.bmini ? [22, 38, 52, 66, 86, 100] : [24, 42, 58, 84, 100]
-  let wrap, bar, fill, pct
-  segment('bar', T.btodo[0], T.bsum[1], (s) => {
-    s.layer.style.zIndex = 20
-    bar = el('div', '', s.layer, { position: 'absolute', left: (WIDE ? 460 : 90) + 'px', right: (WIDE ? 460 : 90) + 'px', top: BAR_Y + 'px', height: '84px', borderRadius: '42px', background: '#fff', boxShadow: '0 16px 50px rgba(66,133,244,.26),0 3px 12px rgba(60,64,67,.12)', display: 'flex', alignItems: 'center', gap: '24px', padding: '0 34px', fontSize: '34px' })
-    const nm = el('div', '', bar, { whiteSpace: 'nowrap' }); nm.textContent = 'Aurora launch'
-    const trk = el('div', '', bar, { flex: 1, height: '14px', borderRadius: '7px', background: '#e9eef6', overflow: 'hidden' })
-    fill = el('div', '', trk, { height: '100%', borderRadius: '7px', background: 'linear-gradient(90deg,#4285f4,#9b72cb)' })
-    pct = el('div', 'mini', bar, { width: '86px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' })
-  }, (s, t) => {
-    let v = 8
-    beats.forEach(([a], i) => { const u = emph(prog(t, a + .05, a + .5)); v = lerp(i ? steps[i - 1] : 8, steps[i], u) > v && t >= a ? lerp(i ? steps[i - 1] : 8, steps[i], u) : v })
-    fill.style.width = v + '%'; pct.textContent = Math.round(v) + '%'
-    s.layer.style.transform = `translateY(${(1 - emph(prog(t, s.start, s.start + .4))) * -160}px)`
-    const pop = beats.reduce((m, [a]) => Math.max(m, 1 - prog(t, a, a + .3)), 0) * (t >= beats[0][0] ? 1 : 0)
-    bar.style.transform = `scale(${1 + .03 * (t >= s.start ? Math.sin(Math.PI * clamp(1 - pop)) : 0)})`
-  }, { noIn: true, noOut: true })
-}
-
-/* -- Gemini does the boring stuff -- */
-const BOR = WIDE ? r(440, 170, 1040, 910) : r(60, 235, 960, 845)
-const Bz = WIDE ? 2.42 : 2.23
-shot('bdraft', T.bdraft, 'draft', { rect: BOR, shadow: false, feather: { t: 70, b: 50 }, cam: () => ({ x: 215, y: 500, zoom: Bz }) }, { fromT: .9, rate: 1.4, glow: [[0, 0], [.25, .6], [1.6, .6]] })
-shot('bsumm', T.bsumm, 'answer', { rect: BOR, shadow: false, feather: { t: 70, b: 50 }, cam: () => ({ x: 215, y: 600, zoom: Bz }) }, { fromT: 1.1, rate: 2.2, glow: [[0, .6], [1.3, .6]] })
-shot('badd', T.badd, 'todoai', { rect: BOR, shadow: false, feather: { t: 70, b: 50 }, cam: () => ({ x: 215, y: 210, zoom: Bz }) }, { fromT: .55, rate: 1.1, glow: [[0, .6], [1.3, 0]] })
-{
-  let b
-  segment('borline', T.bdraft[0], T.badd[1], (s) => {
-    s.layer.style.zIndex = 20
-    const box = el('div', '', s.layer, { position: 'absolute', left: 0, right: 0, top: (WIDE ? 52 : 50) + 'px' })
-    b = textBlock(box, WIDE ? [['Gemini does the boring stuff.']] : [['Gemini does'], ['the boring stuff.']], { size: WIDE ? 104 : 72, maxW: MAXW })
-    b.box.style.position = 'relative'
-    box.style.background = 'rgba(255,255,255,.0)'
-  }, (s, t) => { if (!b.fitted) { b.fit(); b.fitted = true } revealWords(b, t - s.start, .03, .08, .36) }, { noIn: true, noOut: true })
-}
-
-/* -- So people do what matters: the faces, close -- */
-{
-  const F = WIDE
-    ? [['maya', -700, -170, 320], ['tom', 700, -170, 320], ['sofia', -310, 345, 230], ['karim', 310, 345, 230], ['lea', -750, 290, 200], ['priya', 750, 290, 200]]
-    : [['maya', -300, -340, 280], ['tom', 300, -340, 280], ['sofia', -300, 370, 280], ['karim', 300, 370, 280]]
-  let items = []
-  statement('people', ...T.people, [['So people do'], [{ t: 'what matters.', blue: true }]], [['So people do'], [{ t: 'what matters.', blue: true }]], { t0: .06, stagger: .1, size: WIDE ? 130 : 120, extra: {
-    build: (s) => { F.forEach(([n, x, y, d], i) => { const e = el('div', 'face', s.layer, { width: d + 'px', height: d + 'px', left: W / 2 + 'px', top: H / 2 + 'px', backgroundImage: `url(/call/${n}.webp)` }); items.push({ e, x, y, d, i }) }) },
+const FACES = WIDE
+  ? [['maya', -790, -240, 250], ['tom', 790, -240, 250], ['sofia', -330, 340, 230], ['karim', 330, 340, 230], ['lea', -780, 270, 200], ['priya', 780, 270, 200]]
+  : [['maya', -300, -350, 270], ['tom', 300, -350, 270], ['sofia', -300, 370, 270], ['karim', 300, 370, 270]]
+function facesStatement(name, seg, wide, square, size) {
+  const items = []
+  statement(name, ...seg, wide, square, { size, extra: {
+    build: (s) => { FACES.forEach(([n, x, y, d], i) => { const e = el('div', 'face', s.layer, { width: d + 'px', height: d + 'px', left: W / 2 + 'px', top: H / 2 + 'px', backgroundImage: `url(/call/${n}.webp)` }); items.push({ e, x, y, d, i }) }) },
     update: (s, t) => {
       const lt = t - s.start
-      items.forEach(({ e, x, y, d, i }) => {
-        const a = .12 + i * .08, u = emph(prog(lt, a, a + .5))
-        e.style.opacity = prog(lt, a, a + .08)
-        e.style.transform = `translate(${x - d / 2}px,${y - d / 2 + Math.sin((t + i) * 1.1) * 6 + (1 - u) * 90}px) scale(${lerp(.6, 1, u)})`
-      })
+      items.forEach(({ e, x, y, d, i }) => { const a = i * .15, u = emph(prog(lt, a, a + .5)); e.style.opacity = prog(lt, a, a + .08); e.style.transform = `translate(${x - d / 2}px,${y - d / 2 + Math.sin((t + i) * 1.1) * 6 + (1 - u) * 90}px) scale(${lerp(.6, 1, u)})` })
     },
   } })
 }
-statement('only', ...T.only, [['Only ', { t: 'you', blue: true }, ' can do this.']], [['Only ', { t: 'you', blue: true }], ['can do this.']], { t0: .05, stagger: .13, size: WIDE ? 170 : 146 })
+facesStatement('ppl', T.ppl, [['A place where people'], [{ t: 'work together.', blue: true }]], [['A place where'], ['people'], [{ t: 'work together.', blue: true }]], WIDE ? 120 : 108)
+
+/* -- THE LAPTOP. The whole app, one take, never cropped. Spotlight by dimming, camera moves the whole laptop, always comes back. -- */
+{
+  const STEPS = window.__STEPS, CHIPS = window.__CHIPS, BEATS = .6, APP = { w: 1280, h: 800 }
+  const DECK = WIDE ? 92 : 30, SW = WIDE ? 1240 : 984, SH = SW * APP.h / APP.w, X0 = (W - SW) / 2, Y0 = WIDE ? 176 : 330, S0 = SW / APP.w
+  const AREA = WIDE ? r(60, 150, 1800, 925) : r(24, 225, 1032, 835)
+  const ZONES = { rail: r(0, 52, 256, 748), chat: r(256, 52, 440, 740), pane: r(704, 52, 568, 740), needs: r(270, 118, 790, 420), railRows: r(0, 80, 256, 220), chatLow: r(256, 400, 440, 392) }
+  const zoneOf = (n) => window.__SHOTS?.tour?.marks?.[n] ? (({ x, y, w, h }) => r(x, y, w, h))(window.__SHOTS.tour.marks[n]) : ZONES[n]
+  const camFor = (name) => {
+    if (!name) return { c: 1, tx: 0, ty: 0 }
+    const z = zoneOf(name)
+    const c = Math.min(WIDE ? 1.09 : 1, AREA.w / (z.w * S0), AREA.h / (z.h * S0))
+    const px = X0 + (z.x + z.w / 2) * S0
+    // The whole laptop stays in the frame and never goes under the caption: it grows downward and slides sideways.
+    const lL = X0 - DECK, lR = X0 + SW + DECK, lT = Y0 - 14
+    if (c <= 1) return { c: 1, tx: 0, ty: 0 }
+    return { c, tx: clamp(W / 2 - px * c, 8 - lL * c, W - 8 - lR * c), ty: lT - lT * c }
+  }
+  // Camera keys, in film seconds from the start of the tour. Each move is centred on its beat: fastest on the beat.
+  const camKeys = []
+  const addCam = (h, name) => camKeys.push({ t: h * BEATS, ...camFor(name) })
+  addCam(0, null); addCam(2, 'rail'); addCam(6, null)
+  STEPS.slice(2).forEach((st) => addCam(st.h, st.cam ?? null))
+  const camAt = (lt) => {
+    let cur = camKeys[0]
+    for (const k of camKeys) {
+      if (lt >= k.t + .36) { cur = k; continue }
+      if (lt > k.t - .36) { const u = smooth(prog(lt, k.t - .36, k.t + .36)); return { c: lerp(cur.c, k.c, u), tx: lerp(cur.tx, k.tx, u), ty: lerp(cur.ty, k.ty, u) } }
+      break
+    }
+    return cur
+  }
+  const dimKeys = STEPS.map((st) => ({ t: st.h * BEATS, z: st.zone ? zoneOf(st.zone) : null, a: st.zone ? .62 : st.dimAll ? .5 : 0, all: !!st.dimAll }))
+  let cam, img, hole, wash, last = -1, chips = [], subs, subIn, lenses = []
+  segment('tour', ...T.tour, (s) => {
+    cam = el('div', '', s.layer, { position: 'absolute', left: 0, top: 0, width: W + 'px', height: H + 'px', transformOrigin: '0 0' })
+    const lid = el('div', '', cam, { position: 'absolute', left: X0 - 14 + 'px', top: Y0 - 14 + 'px', width: SW + 28 + 'px', height: SH + 28 + 'px', borderRadius: '26px 26px 8px 8px', background: '#1d1f22', boxShadow: '0 60px 130px rgba(32,48,80,.22),0 16px 40px rgba(32,48,80,.14)' })
+    const screen = el('div', '', cam, { position: 'absolute', left: X0 + 'px', top: Y0 + 'px', width: SW + 'px', height: SH + 'px', overflow: 'hidden', borderRadius: '10px', background: '#fff' })
+    img = el('img', '', screen, { position: 'absolute', left: 0, top: 0, maxWidth: 'none', transformOrigin: '0 0' }); img.decoding = 'sync'
+    hole = el('div', '', screen, { position: 'absolute', borderRadius: '18px', pointerEvents: 'none' })
+    wash = el('div', '', screen, { position: 'absolute', inset: 0, background: '#fff', pointerEvents: 'none', opacity: 0 })
+    const deck = el('div', '', cam, { position: 'absolute', left: X0 - DECK + 'px', top: Y0 + SH + 14 + 'px', width: SW + 2 * DECK + 'px', height: '26px', borderRadius: '2px 2px 22px 22px', background: 'linear-gradient(#e9ebef,#c4c8ce)', boxShadow: '0 22px 40px rgba(32,48,80,.20)' })
+    el('div', '', deck, { position: 'absolute', left: '50%', top: 0, width: '190px', height: '11px', marginLeft: '-95px', borderRadius: '0 0 12px 12px', background: '#b4b8bf' })
+    window.__LENSES.forEach((l) => {
+      const m0 = window.__SHOTS?.tour?.marks?.[l.mark]; if (!m0) return
+      const PAD = l.mark === 'projects' ? 0 : l.mark === 'summary' ? 0 : 8, m = { x: m0.x - PAD, y: m0.y - PAD, w: m0.w + 2 * PAD, h: m0.h + 2 * PAD }
+      const k = (WIDE ? 1500 : 1000) / m.w, z = Math.min(k, (WIDE ? 800 : 720) / m.h, WIDE ? 2.2 : 2.3)
+      const box = el('div', '', s.layer, { position: 'absolute', zIndex: 7, left: (W - m.w * z) / 2 + 'px', top: (WIDE ? 170 + (860 - m.h * z) / 2 : 250 + (780 - m.h * z) / 2) + 'px', width: m.w * z + 'px', height: m.h * z + 'px', borderRadius: '22px', overflow: 'hidden', background: '#fff', boxShadow: '0 40px 120px rgba(32,48,80,.34),0 8px 26px rgba(32,48,80,.16)' })
+      const im = el('img', '', box, { position: 'absolute', left: 0, top: 0, maxWidth: 'none', transformOrigin: '0 0' }); im.decoding = 'sync'
+      lenses.push({ ...l, m, z, box, im, last: -1 })
+    })
+    CHIPS.forEach((c, i) => {
+      const e = el('div', '', s.layer, { position: 'absolute', zIndex: 8, display: 'flex', alignItems: 'center', gap: '16px', background: '#fff', borderRadius: '999px', padding: (WIDE ? '22px 40px' : '20px 34px'), fontSize: (WIDE ? 56 : 52) + 'px', whiteSpace: 'nowrap', boxShadow: '0 22px 70px rgba(66,133,244,.30),0 4px 14px rgba(60,64,67,.12)' })
+      const sp = el('div', '', e, { width: '46px', height: '46px', flex: 'none' }); sp.innerHTML = SPARK('ch' + i)
+      el('span', '', e).textContent = c.t
+      const pos = WIDE ? [[.27, .46], [.73, .46], [.27, .68], [.73, .68]][i] : [[.5, .36], [.5, .52], [.5, .68], [.5, .84]][i]
+      chips.push({ e, h: c.h, x: pos[0] * W, y: pos[1] * H })
+    })
+    subs = el('div', 'subs', s.layer, { fontSize: (WIDE ? 50 : 44) + 'px', zIndex: 8, bottom: (WIDE ? 96 : 150) + 'px' })
+    subIn = el('span', '', subs); subIn.style.fontWeight = 500; subIn.style.whiteSpace = 'pre-wrap'
+  }, (s, t) => {
+    const lt = t - s.start, meta = window.__SHOTS?.tour ?? {}
+    const idx = Math.max(0, Math.min((meta.frames ?? 1) - 1, Math.floor(lt * (meta.fps ?? 60) + 1e-6)))
+    if (idx !== last) { last = idx; img.src = `/cap/tour/${String(idx).padStart(5, '0')}.jpg`; frameJobs.push(img.decode().catch(() => {})) }
+    img.style.transform = `scale(${SW / (APP.w * (meta.dsf ?? 1))})`
+    // the laptop arrives on the downbeat, from a little below; never cut
+    const arrive = emph(prog(lt, 0, .6))
+    const q = camAt(lt)
+    cam.style.transform = `translate(${q.tx}px,${q.ty + (1 - arrive) * 70}px) scale(${q.c})`
+    let cur = dimKeys[0], i = 0
+    for (let n = 0; n < dimKeys.length; n++) if (lt >= dimKeys[n].t - .09) { cur = dimKeys[n]; i = n }
+    const prev = dimKeys[Math.max(0, i - 1)], u = smooth(prog(lt, cur.t - .09, cur.t + .09))
+    const a = lerp(prev.z ? prev.a : 0, cur.z ? cur.a : 0, u)
+    const zc = cur.z ?? prev.z ?? ZONES.chat, zp = prev.z ?? zc
+    const zx = lerp(zp.x, zc.x, u), zy = lerp(zp.y, zc.y, u), zw = lerp(zp.w, zc.w, u), zh = lerp(zp.h, zc.h, u)
+    hole.style.left = zx * S0 + 'px'; hole.style.top = zy * S0 + 'px'; hole.style.width = zw * S0 + 'px'; hole.style.height = zh * S0 + 'px'
+    hole.style.boxShadow = `0 0 0 3000px rgba(255,255,255,${i === 0 ? a * prog(lt, .6, .78) : a})`
+    wash.style.opacity = cur.all ? .5 * u : 0
+    for (const q of lenses) {
+      const a0 = q.from * BEATS, b0 = q.to * BEATS, on = lt >= a0 && lt < b0
+      q.box.style.display = on ? 'block' : 'none'
+      if (!on) continue
+      if (idx !== q.last) { q.last = idx; q.im.src = img.src; frameJobs.push(q.im.decode().catch(() => {})) }
+      const ds = meta.dsf ?? 1, u3 = emph(prog(lt, a0, a0 + .36))
+      q.im.style.transform = `scale(${q.z / ds}) translate(${-q.m.x * ds}px,${-q.m.y * ds}px)`
+      q.box.style.transform = `scale(${lerp(.95, 1, u3)})` // on the beat, at once, with almost no travel: no ghosting
+    }
+    chips.forEach(({ e, h, x, y }) => {
+      const a0 = h * BEATS, u2 = emph(prog(lt, a0, a0 + .36))
+      e.style.opacity = prog(lt, a0, a0 + .06)
+      e.style.left = x + 'px'; e.style.top = y + 'px'
+      e.style.transform = `translate(-50%,-50%) scale(${lerp(.6, 1, u2)})`
+    })
+    const sub = (window.__SHOTS?.tour?.subs ?? []).find((c) => lt >= c.from && lt < c.to)
+    subs.style.display = sub ? 'flex' : 'none'
+    if (sub) { subIn.textContent = sub.text; subIn.style.transform = `scale(${lerp(.86, 1, emph(prog(lt, sub.from, sub.from + .3)))})` }
+  }, { noIn: true, noOut: true })
+  // Captions: large, outside the laptop. If the camera has brought the laptop under one, it floats on its own white pill.
+  STEPS.forEach((st, i) => {
+    const a = T.tour[0] + st.h * BEATS, b = i + 1 < STEPS.length ? T.tour[0] + STEPS[i + 1].h * BEATS : T.tour[1]
+    let bk, pill
+    segment('cap' + i, a, b, (s) => {
+      s.layer.style.zIndex = 30
+      pill = el('div', '', s.layer, { position: 'absolute', left: '50%', top: '44px', transform: 'translateX(-50%)', maxWidth: W - 40 + 'px', width: 'max-content' })
+      bk = textBlock(pill, WIDE ? [st.cap] : st.capS.map((l) => [l]), { size: WIDE ? 78 : 68, maxW: W - 130 })
+      bk.box.style.position = 'relative'
+    }, (s, t) => {
+      if (!bk.fitted) { bk.fit(); bk.fitted = true }
+      revealWords(bk, t - s.start, 0, .15, .36)
+    }, { noIn: true, noOut: true })
+  })
+}
+
+facesStatement('matter', T.matter, [['So people do'], [{ t: 'what matters.', blue: true }]], [['So people do'], [{ t: 'what matters.', blue: true }]], WIDE ? 136 : 120)
+statement('noone', ...T.noone, [['No one else has'], [{ i: 'gmail' }, ' Gmail, ', { i: 'docs' }, ' Docs,'], [{ i: 'meet' }, ' Meet and ', { i: 'gemini' }, ' Gemini.']], [['No one else has'], [{ i: 'gmail' }, ' Gmail, ', { i: 'docs' }, ' Docs,'], [{ i: 'meet' }, ' Meet and'], [{ i: 'gemini' }, ' Gemini.']], { size: WIDE ? 128 : 104 })
+statement('only', ...T.only, [['Only ', { t: 'you', blue: true }, ' can do this.']], [['Only ', { t: 'you', blue: true }], ['can do this.']], { size: WIDE ? 170 : 146 })
 
 /* -- The ask -- */
 statement('hey', ...T.hey, [['Hey Google,'], ['look what I did.']], [['Hey Google,'], ['look what'], ['I did.']], { t0: .1, stagger: .15 })
@@ -575,12 +493,12 @@ statement('hire', ...T.hire, [['Maybe it’s time'], [{ t: 'to hire me.', blue: 
     const nm = el('div', 'end-name', col, { fontSize: (WIDE ? 100 : 86) + 'px', lineHeight: 1.1 }); nm.textContent = 'Alexandre Cormeraie'
     const li = el('div', 'mini', col, { fontSize: (WIDE ? 42 : 42) + 'px', marginTop: '32px', color: '#444746' }); li.textContent = 'linkedin.com/in/alex-cormeraie'
     const url = el('div', 'mini', col, { fontSize: (WIDE ? 42 : 42) + 'px', marginTop: '12px', color: '#1a73e8' }); url.textContent = 'connected-mate.github.io/one-place'
-    const legal = el('div', 'mini', s.layer, { position: 'absolute', left: 0, right: 0, bottom: (WIDE ? 64 : 64) + 'px', textAlign: 'center', fontSize: '30px', color: '#5f6368' }); legal.textContent = 'A concept. Not a Google product.'
+    const legal = el('div', 'mini', s.layer, { position: 'absolute', left: 0, right: 0, bottom: (WIDE ? 64 : 64) + 'px', textAlign: 'center', fontSize: (WIDE ? 44 : 42) + 'px', color: '#3c4043' }); legal.textContent = 'A concept. Not a Google product.'
     els = [m, nm, li, url, legal]
   }, (s, t) => {
     const lt = t - s.start
     els.forEach((e, i) => {
-      const a = [.0, .22, .55, .67, .95][i]
+      const a = [0, .3, .6, .75, 1.2][i]
       const u = emph(prog(lt, a, a + .6))
       e.style.opacity = prog(lt, a, a + .12)
       e.style.transform = i === 0 ? `scale(${lerp(.6, 1, u)}) rotate(${(1 - u) * -16}deg)` : `translateY(${(1 - u) * 34}px)`
@@ -598,7 +516,7 @@ window.__ready = async () => {
 }
 window.__render = async (t) => {
   for (const s of segments) {
-    const on = t >= s.start && t < s.end + (s.opts.noOut ? 0 : .2)
+    const on = t >= s.start && t < s.end
     s.layer.style.display = on ? 'block' : 'none'
     if (on) s.update(s, t)
   }
@@ -609,7 +527,7 @@ window.__auditText = (x) => {
   window.__auditT = x
   const out = []
   const walk = document.createTreeWalker(stage, NodeFilter.SHOW_TEXT)
-  const margin = 40
+  const margin = 36
   while (walk.nextNode()) {
     const n = walk.currentNode, txt = n.textContent.trim(); if (!txt) continue
     const e = n.parentElement
@@ -622,8 +540,8 @@ window.__auditText = (x) => {
     if (q.width === 0) continue
     if (+getComputedStyle(e).opacity < .05) continue
         const lt = window.__auditT ?? 0
-    if (lt < seg.start + .55 || lt > seg.end - .12) continue
-    if (seg.name === 'project' && e.closest('.face')) continue
+    if (lt < seg.start + 1.2 || lt > seg.end - .05) continue
+    if (seg.name === 'tour') continue
     if (q.left < margin || q.right > W - margin || q.top < margin || q.bottom > H - margin) out.push(`${seg.name}: "${txt.slice(0, 30)}" at ${Math.round(q.left)},${Math.round(q.top)} to ${Math.round(q.right)},${Math.round(q.bottom)}`)
   }
   return out
