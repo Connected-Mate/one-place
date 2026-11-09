@@ -116,7 +116,7 @@ function SpaceIntro({ project, space }: { project: Project; space: Space }) {
       <div className="space-intro-head">
         <span className="space-intro-icon" aria-hidden="true"><Icon name={space.icon} size={20} /></span>
         <div className="space-intro-text">
-          <strong>{t(space.name)}{space.kind === 'confidential' ? ' · confidential' : ` · shared with ${space.org}`}</strong>
+          <strong>{t(space.name)}{space.kind === 'confidential' ? ' · confidential' : t(space.name) === space.org ? ' · shared space' : ` · shared with ${space.org}`}</strong>
           <span>{t(space.description)}</span>
         </div>
       </div>
