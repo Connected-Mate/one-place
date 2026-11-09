@@ -35,7 +35,11 @@ function Header({ project }: { project: Project }) {
   const role = roleIn(project, viewerId)
   const live = inThisCall || project.messages.some((m) => m.kind === 'meeting' && m.live && !m.ended && canSee(m.visibility, viewerId))
   const peopleCount = project.memberIds.filter((id) => id !== GEMINI_ID).length
-  const roleLabel = role === 'partner'
+  const space = useOpenSpace(project)
+  const spacePeople = space ? space.memberIds.filter((id) => id !== GEMINI_ID).length : 0
+  const roleLabel = space
+    ? `${tx(space.name, 'en')} · ${spacePeople} people · ${space.kind === 'confidential' ? 'confidential' : role === 'partner' ? 'you see this space only' : tx(space.name, 'en') === space.org ? 'shared space' : `shared with ${space.org}`}`
+    : role === 'partner'
     ? `Shared with ${spacesOf(project, viewerId).map((x) => x.org ?? tx(x.name, 'en')).join(', ')} · you see this space only`
     : `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} · ${role === 'owner' ? 'you’re the owner' : role === 'member' ? 'you’re a member' : 'you’re a guest'}`
   const roleHelp = role === 'owner'
@@ -69,36 +73,6 @@ function Header({ project }: { project: Project }) {
       </button></>}
       {inviting && <InviteDialog project={project} onClose={closeInvite} />}
     </header>
-  )
-}
-
-/** The project's threads: the whole team, then each sub-team the viewer belongs to. A partner only has theirs. */
-function SpaceBar({ project, open }: { project: Project; open: Space | null }) {
-  const t = useT()
-  const viewerId = useStore((s) => s.viewerId)
-  const setSpace = useStore((s) => s.setSpace)
-  const mine = spacesOf(project, viewerId)
-  const member = project.memberIds.includes(viewerId)
-  if (!mine.length) return null
-  const unseen = (sp: Space | null) => project.messages.filter((m) => (sp ? m.visibility.type === 'space' && m.visibility.space === sp.id : m.visibility.type !== 'space') && canSee(m.visibility, viewerId)).length
-  const chip = (sp: Space | null) => {
-    const on = (open?.id ?? null) === (sp?.id ?? null)
-    const label = sp ? t(sp.name) : t({ fr: 'Toute l’équipe', en: 'Whole team' })
-    return (
-      <button key={sp?.id ?? 'team'} type="button" role="tab" aria-selected={on} className={`space-chip${on ? ' on' : ''}${sp ? ` ${sp.kind}` : ''}`}
-        title={sp ? t(sp.description) : t({ fr: 'Le fil de toute l’équipe', en: 'The whole team’s thread' })}
-        aria-label={`${label}, ${unseen(sp)} messages`} onClick={() => setSpace(sp?.id ?? null)}>
-        <Icon name={sp ? sp.icon : 'groups'} size={16} fill={on} />
-        <span className="ellipsis">{label}</span>
-        {sp?.kind === 'partner' && <span className="space-tag">{t({ fr: 'Partagé', en: 'Shared' })}</span>}
-      </button>
-    )
-  }
-  return (
-    <div className="space-bar" role="tablist" aria-label={t({ fr: 'Fils du projet', en: 'Threads in this project' })}>
-      {member && chip(null)}
-      {mine.map(chip)}
-    </div>
   )
 }
 
@@ -260,7 +234,6 @@ export function ChatPane() {
     <section className="pane chat-pane" aria-label={t({ fr: `Discussion ${tx(project.name, 'fr')}`, en: `${tx(project.name, 'en')} chat` })}
       onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDragOver={onDragOver} onDrop={onDrop}>
       <Header project={project} />
-      <SpaceBar project={project} open={space} />
       <div className="log-wrap">
         <div ref={scroller} className="chat-log" role="log" aria-live="polite" aria-label={t({ fr: 'Messages', en: 'Messages' })} tabIndex={0}
           onScroll={(e) => {

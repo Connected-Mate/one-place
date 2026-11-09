@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Dialog, Icon, IconButton } from '../ui/kit'
 import { Logo } from '../ui/Logo'
-import { inProject, useStore } from '../store'
+import { inProject, openSpaceOf, spacesOf, useStore } from '../store'
 import { useT } from '../i18n'
 import { TryPanel } from './TryPanel'
 import { projectStatus, useNeeds } from '../home/needs'
@@ -22,6 +22,8 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
   const goHome = useStore((s) => s.goHome)
   const needs = useNeeds().count
   const live = useStore((s) => s.call?.projectId)
+  const spaceOpen = useStore((s) => s.spaceOpen)
+  const setSpace = useStore((s) => s.setSpace)
   const [create, setCreate] = useState(false)
   const mine = projects.filter((p) => inProject(p, viewerId))
   const head = useRef<HTMLDivElement>(null)
@@ -66,6 +68,29 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
                 {live === p.id && <Icon name="call" size={16} className="rail-live" />}
                 {p.unread > 0 && <span className="rail-count rail-label">{p.unread}<span className="sr-only"> {t({ fr: 'non lus', en: 'unread' })}{p.mentions > 0 ? t({ fr: `, ${p.mentions} mentions`, en: `, ${p.mentions} ${p.mentions === 1 ? 'mention' : 'mentions'}` }) : ''}</span></span>}
               </button>
+              {on && spacesOf(p, viewerId).length > 0 && (() => {
+                // The project's threads, under it like folders: the whole team, then each sub-team the viewer is in.
+                const open = openSpaceOf(p, viewerId, spaceOpen[p.id])
+                const rows = [...(p.memberIds.includes(viewerId) ? [null] : []), ...spacesOf(p, viewerId)]
+                return (
+                  <ul className="rail-spaces" aria-label={t({ fr: `Fils de ${name}`, en: `Threads in ${name}` })}>
+                    {rows.map((sp) => {
+                      const here = (open?.id ?? null) === (sp?.id ?? null)
+                      const label = sp ? t(sp.name) : t({ fr: 'Toute l’équipe', en: 'Whole team' })
+                      return (
+                        <li key={sp?.id ?? 'team'}>
+                          <button type="button" className={`rail-item rail-space${here ? ' here' : ''}${sp ? ` ${sp.kind}` : ''}`} aria-current={here ? 'true' : undefined}
+                            title={sp ? t(sp.description) : t({ fr: 'Le fil de toute l’équipe', en: 'The whole team’s thread' })} onClick={() => setSpace(sp?.id ?? null)}>
+                            <span className="rail-icon"><Icon name={sp ? sp.icon : 'tag'} size={18} fill={here} /></span>
+                            <span className="rail-label rail-name">{label}</span>
+                            {sp?.kind === 'partner' && <span className="rail-label rail-space-tag">{t({ fr: 'Partagé', en: 'Shared' })}</span>}
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )
+              })()}
             </li>
           )
         })}

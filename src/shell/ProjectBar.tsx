@@ -7,8 +7,8 @@
 // On a phone it replaces the whole top bar, with a back arrow to the list, like a space in the Google Chat app.
 import { useCallback, useEffect, useState } from 'react'
 import { startCall } from '../call/callActions'
-import { useT } from '../i18n'
-import { canSee, GEMINI_ID, mobileView, roleIn, useProject, useStore } from '../store'
+import { tx, useT } from '../i18n'
+import { canSee, GEMINI_ID, mobileView, openSpaceOf, roleIn, useProject, useStore } from '../store'
 import { Button, Icon, IconButton, Menu } from '../ui/kit'
 import { openPeople } from '../home/goTo'
 import { copyProjectAddress, InviteDialog } from '../chat/Invite'
@@ -31,6 +31,7 @@ export function ProjectBar() {
   const viewerId = useStore((s) => s.viewerId)
   const paneType = useStore((s) => s.panes[s.activeProjectId]?.type)
   const call = useStore((s) => s.call)
+  const chosenSpace = useStore((st) => st.spaceOpen[st.activeProjectId])
   const s = useStore.getState()
   if (!project) return null
   const callHere = !!call && call.projectId === project.id
@@ -38,7 +39,10 @@ export function ProjectBar() {
   const tab = onCallTab ? 'call' : view === 'pane' ? 'board' : 'chat'
   const role = roleIn(project, viewerId)
   const peopleCount = project.memberIds.filter((id) => id !== GEMINI_ID).length
-  const roleLabel = role === 'partner' ? 'Shared space · you see this space only'
+  const space = openSpaceOf(project, viewerId, chosenSpace)
+  const roleLabel = space
+    ? `${tx(space.name, 'en')} · ${space.kind === 'confidential' ? 'confidential' : role === 'partner' ? 'you see this space only' : tx(space.name, 'en') === space.org ? 'shared space' : `shared with ${space.org}`}`
+    : role === 'partner' ? 'Shared space · you see this space only'
     : `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} · ${role === 'owner' ? 'you’re the owner' : role === 'member' ? 'you’re a member' : 'you’re a guest'}`
   const live = project.messages.some((m) => m.kind === 'meeting' && m.live && !m.ended && canSee(m.visibility, viewerId))
   const [inviting, setInviting] = useState(false)
