@@ -6,7 +6,7 @@
 // What the chat does: transient UI state (never persisted) and the actions behind the composer and the cards.
 import { create } from 'zustand'
 import { tx } from '../i18n'
-import { GEMINI_ID, uid, useStore } from '../store'
+import { GEMINI_ID, openSpaceOf, spaceVisibility, uid, useStore } from '../store'
 import type { Artifact, L, Message, Project, Txt, Visibility } from '../data/types'
 import { askGemini } from './gemini'
 import { encodeMentions, findMessage, firstName, isDraftMail, mailName, mentionIds, MENTION_RE, updateMessage } from './helpers'
@@ -76,7 +76,7 @@ function scheduleReply(pid: string, personId: string, visibility: Visibility, pa
     setTyping((t) => t.filter((x) => !(x.pid === pid && x.personId === personId)))
     const p = projectOf(pid)
     if (!p) return
-    const isPrivate = visibility.type === 'private'
+    const isPrivate = visibility.type !== 'all' // a space reply is a small-group reply too
     const lines: Txt[] = isPrivate ? (p.script?.privateReplies?.[personId] ?? PRIVATE_FALLBACK) : GENERIC
     const list = lines.length ? lines : PRIVATE_FALLBACK
     const cursorKey = `${pid}:${personId}:${isPrivate}`
@@ -110,7 +110,9 @@ export function sendChat(pid: string, raw: string, opts: SendOptions = {}): bool
   const atGemini = mentions.includes(GEMINI_ID)
   const parent = opts.parentId ? findMessage(p, opts.parentId) : undefined
   const privateTo = parent ? null : opts.privateTo ?? null
+  const space = openSpaceOf(p, viewer, s.spaceOpen[pid])
   const visibility: Visibility = parent ? parent.visibility
+    : space ? spaceVisibility(space)
     : privateTo ? { type: 'private', with: [...new Set([viewer, privateTo, ...(atGemini ? [GEMINI_ID] : [])])] }
     : { type: 'all' }
   const message: Message = { id: uid('m'), kind: 'text', authorId: viewer, at: Date.now(), visibility, text, quoteId: opts.quoteId ?? undefined }
@@ -121,7 +123,7 @@ export function sendChat(pid: string, raw: string, opts: SendOptions = {}): bool
   if (atGemini || privateTo === GEMINI_ID) void askGemini(pid, text, { privateTo: privateTo ?? undefined, quoteId: opts.quoteId ?? opts.scopeId ?? undefined, parentId: parent?.id })
   const humans = visibility.type === 'private'
     ? visibility.with
-    : mentions.filter((id) => p.memberIds.includes(id))
+    : mentions.filter((id) => (visibility.type === 'space' ? visibility.with : p.memberIds).includes(id))
   for (const id of new Set(humans)) if (id !== viewer && id !== GEMINI_ID) scheduleReply(pid, id, visibility, parent?.id)
   return true
 }
@@ -150,12 +152,17 @@ export function sendDraft(pid: string, messageId: string) {
 }
 
 /* ---------- files ---------- */
-function currentVisibility(): Visibility {
+function currentVisibility(pid?: string): Visibility {
   const s = st()
+  const p = projectOf(pid ?? s.activeProjectId)
+  const space = p && openSpaceOf(p, s.viewerId, s.spaceOpen[p.id])
+  if (space) return spaceVisibility(space)
   return s.privateTo ? { type: 'private', with: [s.viewerId, s.privateTo] } : { type: 'all' }
 }
+/** a file made inside a space belongs to it: only who can read that space opens it */
+const spaceOfVisibility = (v: Visibility) => (v.type === 'space' ? { space: v.space } : {})
 function addToFilesBlock(p: Project, id: string, visibility: Visibility) {
-  if (visibility.type !== 'all') return
+  if (visibility.type === 'private') return
   const files = p.blocks.find((b) => b.type === 'files')
   if (files?.type === 'files' && !files.artifactIds.includes(id)) st().patchBlock(p.id, files.id, { artifactIds: [id, ...files.artifactIds] })
 }
@@ -165,8 +172,8 @@ export function attachFake(pid: string, file: { name: string; size: number }) {
   const p = projectOf(pid)
   if (!p) return
   const title = file.name.replace(/\.[^.]+$/, '') || file.name || 'Document'
-  const art: Artifact = { id: uid('a'), kind: 'pdf', title, ownerId: s.viewerId, updatedAt: Date.now(), pages: Math.max(1, Math.min(48, Math.round(file.size / 90000))), excerpt: { fr: `Fichier déposé dans ${tx(p.name, 'fr')} par ${firstName(s.viewerId)}.`, en: `File dropped into ${tx(p.name, 'en')} by ${firstName(s.viewerId)}.` } }
-  const visibility = currentVisibility()
+  const visibility = currentVisibility(pid)
+  const art: Artifact = { id: uid('a'), kind: 'pdf', title, ownerId: s.viewerId, updatedAt: Date.now(), pages: Math.max(1, Math.min(48, Math.round(file.size / 90000))), excerpt: { fr: `Fichier déposé dans ${tx(p.name, 'fr')} par ${firstName(s.viewerId)}.`, en: `File dropped into ${tx(p.name, 'en')} by ${firstName(s.viewerId)}.` }, ...spaceOfVisibility(visibility) }
   s.addArtifact(pid, art)
   addToFilesBlock(p, art.id, visibility)
   s.push(pid, { id: uid('m'), kind: 'file', authorId: s.viewerId, at: Date.now(), visibility, artifactId: art.id })
@@ -174,15 +181,15 @@ export function attachFake(pid: string, file: { name: string; size: number }) {
 }
 export function shareArtifact(pid: string, artifactId: string) {
   const s = st()
-  s.push(pid, { id: uid('m'), kind: 'file', authorId: s.viewerId, at: Date.now(), visibility: currentVisibility(), artifactId })
+  s.push(pid, { id: uid('m'), kind: 'file', authorId: s.viewerId, at: Date.now(), visibility: currentVisibility(pid), artifactId })
   useChat.getState().scrollToEnd()
 }
 export function newDoc(pid: string) {
   const s = st()
   const p = projectOf(pid)
   if (!p) return
-  const art: Artifact = { id: uid('a'), kind: 'doc', title: { fr: 'Document sans titre', en: 'Untitled document' }, ownerId: s.viewerId, updatedAt: Date.now(), sections: [{ body: { fr: 'Commence ici, ou demande à Gemini de rédiger un premier jet.', en: 'Start here, or ask Gemini for a first draft.' } }] }
-  const visibility = currentVisibility()
+  const visibility = currentVisibility(pid)
+  const art: Artifact = { id: uid('a'), kind: 'doc', title: { fr: 'Document sans titre', en: 'Untitled document' }, ownerId: s.viewerId, updatedAt: Date.now(), sections: [{ body: { fr: 'Commence ici, ou demande à Gemini de rédiger un premier jet.', en: 'Start here, or ask Gemini for a first draft.' } }], ...spaceOfVisibility(visibility) }
   s.addArtifact(pid, art)
   addToFilesBlock(p, art.id, visibility)
   s.push(pid, { id: uid('m'), kind: 'file', authorId: s.viewerId, at: Date.now(), visibility, artifactId: art.id })

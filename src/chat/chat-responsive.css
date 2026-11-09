@@ -82,3 +82,10 @@
 @media (max-height:300px){
   .composer-to{display:none}
 }
+
+/* Phone: the space tabs say less, so all three fit */
+@media (max-width:599px){
+  .space-bar{padding:4px 12px 8px;gap:6px}
+  .space-chip{padding:0 10px 0 8px;font-size:13px}
+  .space-tag{display:none}
+}

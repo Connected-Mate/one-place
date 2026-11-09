@@ -6,7 +6,7 @@
 // Autosizing text input with the @ mention list. People are written @Name here, and stored as @[Name](id) on send.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useT } from '../i18n'
-import { GEMINI_ID, personById, useStore } from '../store'
+import { GEMINI_ID, openSpaceOf, personById, useStore } from '../store'
 import { Avatar, Sparkle } from '../ui/kit'
 import { normalize } from './gemini'
 import { useWritingTools, WritingPanel } from './WritingTools'
@@ -53,8 +53,12 @@ export function MentionInput({ pid, value, onChange, onSubmit, onEscape, label, 
   const [dismissed, setDismissed] = useState(false)
   const [active, setActive] = useState(0)
   const pendingCaret = useRef<number | null>(null)
-  const memberIds = useStore((s) => s.projects.find((p) => p.id === pid)?.memberIds)
+  const project = useStore((s) => s.projects.find((p) => p.id === pid))
   const viewerId = useStore((s) => s.viewerId)
+  const chosenSpace = useStore((s) => s.spaceOpen[pid])
+  // in a space, only its members can be mentioned: the factory there, never someone who can't read it
+  const space = project ? openSpaceOf(project, viewerId, chosenSpace) : null
+  const memberIds = space ? space.memberIds : project?.memberIds
   const listId = useRef(`mentions-${Math.random().toString(36).slice(2, 7)}`).current
 
   const known = useMemo(() => [GEMINI_ID, ...(memberIds ?? []).filter((id) => id !== GEMINI_ID)].map(personById), [memberIds])

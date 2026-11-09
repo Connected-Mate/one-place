@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Dialog, Icon, IconButton } from '../ui/kit'
 import { Logo } from '../ui/Logo'
-import { useStore } from '../store'
+import { inProject, useStore } from '../store'
 import { useT } from '../i18n'
 import { TryPanel } from './TryPanel'
 import { projectStatus, useNeeds } from '../home/needs'
@@ -23,7 +23,7 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
   const needs = useNeeds().count
   const live = useStore((s) => s.call?.projectId)
   const [create, setCreate] = useState(false)
-  const mine = projects.filter((p) => p.memberIds.includes(viewerId))
+  const mine = projects.filter((p) => inProject(p, viewerId))
   const head = useRef<HTMLDivElement>(null)
   // Opening the drawer moves the keyboard into it; closing gives the focus back to what opened it.
   useEffect(() => {

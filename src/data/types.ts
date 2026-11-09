@@ -31,8 +31,27 @@ export interface Person {
   minimal?: boolean
 }
 
-/** Who can see a message. `private` is visible only to `with` (always includes the author). */
-export type Visibility = { type: 'all' } | { type: 'private'; with: string[] }
+/**
+ * Who can see a message. `private` is visible only to `with` (always includes the author).
+ * `space` belongs to a sub-team of the project (see Space): only its members see it, wherever it shows up.
+ */
+export type Visibility = { type: 'all' } | { type: 'private'; with: string[] } | { type: 'space'; space: string; with: string[] }
+
+/**
+ * A sub-team inside a project, with its own thread and its own files.
+ * `confidential`: part of the team only (costs, negotiation). `partner`: the team and an outside company, who sees nothing else.
+ */
+export interface Space {
+  id: string
+  name: Txt
+  icon: string
+  kind: 'confidential' | 'partner'
+  /** everyone who reads and writes here, Gemini included */
+  memberIds: string[]
+  /** the outside company, for a partner space */
+  org?: string
+  description: Txt
+}
 
 export interface Reaction { emoji: string; by: string[] }
 
@@ -118,8 +137,13 @@ export interface TranscriptLine { at: number; who?: string; text: Txt }
 export interface NotebookSource { id: string; title: Txt; type: 'pdf' | 'doc' | 'web' | 'slides' | 'audio' | 'text'; note?: Txt }
 export interface Overview { id: string; type: 'audio' | 'video'; title: Txt; durationSec: number; poster?: string; transcript: TranscriptLine[] }
 
-/** A document living inside the project. Everything opens in the right-hand pane, never another app. */
-export type Artifact =
+/**
+ * A document living inside the project. Everything opens in the right-hand pane, never another app.
+ * `space`: who can open it. None = the project team. A confidential space = its members only.
+ * A partner space = the team and that partner.
+ */
+export type Artifact = ArtifactBody & { space?: string }
+type ArtifactBody =
   | { id: string; kind: 'doc'; title: Txt; ownerId: string; updatedAt: number; sections: { heading?: Txt; body: Txt }[] }
   | { id: string; kind: 'sheet'; title: Txt; ownerId: string; updatedAt: number; columns: Txt[]; rows: (string | number)[][] }
   | { id: string; kind: 'slides'; title: Txt; ownerId: string; updatedAt: number; slides: { title: Txt; subtitle?: Txt; bullets?: Txt[]; accent?: string }[] }
@@ -150,6 +174,8 @@ export interface Project {
   /** address that turns mail into project messages */
   address: string
   createdByUser?: boolean
+  /** sub-teams with their own thread and files; the main thread is the whole team */
+  spaces?: Space[]
 }
 export interface ProjectScript {
   callTitle: Txt

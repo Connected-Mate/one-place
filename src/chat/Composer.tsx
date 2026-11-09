@@ -6,7 +6,7 @@
 // The pill at the bottom: who it goes to, what it quotes, suggestions, attachments.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
-import { canSee, GEMINI_ID, personById, useStore } from '../store'
+import { attachable, canSee, GEMINI_ID, personById, useOpenSpace, useStore } from '../store'
 import { Avatar, Button, Dialog, Icon, IconButton, Menu, Sparkle, type MenuItem } from '../ui/kit'
 import type { Project } from '../data/types'
 import { attachFake, newDoc, scheduleMeeting, sendChat, sendMailReply, shareArtifact, suggestionsFor, useChat } from './chatState'
@@ -85,13 +85,16 @@ function MeetingDialog({ pid, onClose }: { pid: string; onClose: () => void }) {
 }
 function AttachDialog({ project, onClose }: { project: Project; onClose: () => void }) {
   const t = useT()
+  const viewerId = useStore((s) => s.viewerId)
+  const space = useOpenSpace(project)
+  const docs = attachable(project, viewerId, space)
   return (
     <Dialog title={t({ fr: 'Joindre un document du projet', en: 'Attach a project document' })} onClose={onClose} footer={<Button onClick={onClose}>{t({ fr: 'Fermer', en: 'Close' })}</Button>}>
-      {project.artifacts.length === 0
+      {docs.length === 0
         ? <p className="dialog-note">{t({ fr: 'Ce projet n’a pas encore de document. Crée-en un avec le menu +, ou demande à Gemini.', en: 'This project has no documents yet. Create one from the + menu, or ask Gemini.' })}</p>
         : (
           <div className="attach-list">
-            {project.artifacts.map((a) => {
+            {docs.map((a) => {
               const k = ARTIFACT_ICON[a.kind]
               return (
                 <button key={a.id} type="button" className="attach-item" onClick={() => { shareArtifact(project.id, a.id); onClose() }}>
@@ -134,7 +137,8 @@ export function Composer({ project }: { project: Project }) {
   const mailTarget = mailSource?.kind === 'email' ? (mailSource.direction === 'in' ? mailSource.from : mailSource.to) : null
   const quote = quoteId ? findMessage(project, quoteId) : undefined
   const shownQuote = quote && canSee(quote.visibility, viewerId) ? quote : undefined
-  const isPrivate = !!privateTo && !mailReply
+  const space = useOpenSpace(project)
+  const isPrivate = !!privateTo && !mailReply && !space
   const recipient = privateTo ? personById(privateTo) : null
 
   useEffect(() => { if (focusNonce) inputRef.current?.focus() }, [focusNonce])
@@ -199,7 +203,10 @@ export function Composer({ project }: { project: Project }) {
   }
 
   const recipients = [GEMINI_ID, ...project.memberIds.filter((id) => id !== GEMINI_ID && id !== viewerId)]
-  const recipientItems: MenuItem[] = [
+  const spaceCount = space ? space.memberIds.filter((id) => id !== GEMINI_ID).length : 0
+  const recipientItems: MenuItem[] = space ? [
+    { icon: space.icon, label: t({ fr: `Tout ${t(space.name)}`, en: `Everyone in ${t(space.name)}` }), selected: true, onSelect: () => inputRef.current?.focus() },
+  ] : [
     { icon: 'groups', label: t({ fr: 'Tout le monde', en: 'Everyone' }), selected: !privateTo, onSelect: () => { setPrivateTo(null, quoteId); inputRef.current?.focus() } },
     { divider: true, label: '' },
     ...recipients.map((id) => ({ icon: <Avatar id={id} size={24} />, label: t({ fr: `En privé à ${firstName(id)}`, en: `Private to ${firstName(id)}` }), selected: privateTo === id, onSelect: () => { setPrivateTo(id, quoteId); inputRef.current?.focus() } })),
@@ -246,11 +253,12 @@ export function Composer({ project }: { project: Project }) {
         <div className={`composer-to${focused || isPrivate || draft ? '' : ' rest'}`}>
           <Menu items={recipientItems} header={t({ fr: 'Qui peut voir ce message', en: 'Who can see this message' })} trigger={(p) => (
             <button type="button" {...p} className={`to-switch${isPrivate ? ' private' : ''}`} aria-label={t({ fr: 'Choisir les destinataires', en: 'Choose recipients' })}>
-              <Icon name={isPrivate ? 'lock' : 'groups'} fill={isPrivate} size={16} />
-              <span className="ellipsis">{isPrivate && recipient ? t({ fr: `En privé à ${firstName(recipient.id)}`, en: `Private to ${firstName(recipient.id)}` }) : t({ fr: 'Tout le monde', en: 'Everyone' })}</span>
+              <Icon name={space ? space.icon : isPrivate ? 'lock' : 'groups'} fill={isPrivate} size={16} />
+              <span className="ellipsis">{space ? t(space.name) : isPrivate && recipient ? t({ fr: `En privé à ${firstName(recipient.id)}`, en: `Private to ${firstName(recipient.id)}` }) : t({ fr: 'Tout le monde', en: 'Everyone' })}</span>
               <Icon name="arrow_drop_down" size={18} />
             </button>
           )} />
+          {space && <span className="to-note">{space.kind === 'partner' ? `${spaceCount} people, ${space.org} included` : `Only these ${spaceCount} people`}</span>}
           {isPrivate && recipient && <span className="to-note">{t({ fr: 'Personne d’autre ne le verra', en: 'Nobody else will see it' })}</span>}
           {isPrivate && <IconButton icon="close" size={28} label={t({ fr: 'Revenir à tout le monde', en: 'Back to everyone' })} onClick={() => setPrivateTo(null, quoteId)} />}
         </div>

@@ -6,10 +6,10 @@
 // The project chat: header, message log and composer.
 import { useCallback, Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { fmtDay, tx, useT } from '../i18n'
-import { canSee, GEMINI_ID, personById, roleIn, useProject, useStore } from '../store'
+import { canSee, filesFor, GEMINI_ID, personById, roleIn, spacesOf, useOpenSpace, useProject, useStore } from '../store'
 import { startCall, useCallUi } from '../call/callActions'
 import { Avatar, AvatarStack, Button, Icon, IconButton, Menu, Sparkle } from '../ui/kit'
-import type { Message, Project } from '../data/types'
+import type { Message, Project, Space } from '../data/types'
 import { attachFake, sendChat, useChat } from './chatState'
 import { Composer, SuggestionChips } from './Composer'
 import { healInterruptedAnswers } from './gemini'
@@ -35,7 +35,9 @@ function Header({ project }: { project: Project }) {
   const role = roleIn(project, viewerId)
   const live = inThisCall || project.messages.some((m) => m.kind === 'meeting' && m.live && !m.ended && canSee(m.visibility, viewerId))
   const peopleCount = project.memberIds.filter((id) => id !== GEMINI_ID).length
-  const roleLabel = `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} · ${role === 'owner' ? 'you’re the owner' : role === 'member' ? 'you’re a member' : 'you’re a guest'}`
+  const roleLabel = role === 'partner'
+    ? `Shared with ${spacesOf(project, viewerId).map((x) => x.org ?? tx(x.name, 'en')).join(', ')} · you see this space only`
+    : `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} · ${role === 'owner' ? 'you’re the owner' : role === 'member' ? 'you’re a member' : 'you’re a guest'}`
   const roleHelp = role === 'owner'
     ? { fr: 'Tu décides de ce qui arrive sur le board', en: 'You decide what goes on the board' }
     : { fr: `Tu proposes, ${firstName(project.ownerId)} approuve`, en: `You propose, ${firstName(project.ownerId)} approves` }
@@ -48,13 +50,13 @@ function Header({ project }: { project: Project }) {
         <h2 className="chat-name">{t(project.name)}</h2>
         <span className="role-label" title={t(roleHelp)}>{roleLabel}</span>
       </div>
-      <button type="button" className="chat-faces" title={t({ fr: 'Voir l’équipe', en: 'See the team' })} aria-label={t({ fr: `Voir l’équipe, ${peopleCount} personnes`, en: `See the team, ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'}` })} onClick={() => openPeople(pid)}><AvatarStack ids={project.memberIds.filter((id) => id !== GEMINI_ID)} size={26} max={3} more={false} /></button>
-      {inThisCall
+      {role !== 'partner' && <button type="button" className="chat-faces" title={t({ fr: 'Voir l’équipe', en: 'See the team' })} aria-label={t({ fr: `Voir l’équipe, ${peopleCount} personnes`, en: `See the team, ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'}` })} onClick={() => openPeople(pid)}><AvatarStack ids={project.memberIds.filter((id) => id !== GEMINI_ID)} size={26} max={3} more={false} /></button>}
+      {role === 'partner' ? null : inThisCall
         ? <button type="button" className="in-call-note" onClick={() => setPane({ type: 'call' })}><Icon name={ring ? 'call' : 'check_circle'} size={16} />{ring === 'ringing' ? 'Calling…' : ring === 'noanswer' ? 'No answer' : t({ fr: 'Tu es dans cet appel', en: 'You’re in this call' })}</button>
         : live
         ? <Button variant="filled" size="s" icon="videocam" onClick={() => startCall(pid)}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>
         : <IconButton icon="videocam" label={t({ fr: 'Lancer un appel', en: 'Start a call' })} onClick={() => startCall(pid)} />}
-      <Menu align="right" items={[
+      {role !== 'partner' && <><Menu align="right" items={[
         { icon: 'dashboard', label: t({ fr: 'Voir le board', en: 'Open the board' }), onSelect: () => setPane({ type: 'board' }) },
         { icon: 'person_add', label: t({ fr: 'Inviter', en: 'Invite' }), onSelect: () => setInviting(true) },
         { icon: 'alternate_email', label: t({ fr: 'Copier l’adresse du projet', en: 'Copy project address' }), hint: undefined, onSelect: () => { void copyAddress() } },
@@ -64,9 +66,75 @@ function Header({ project }: { project: Project }) {
       <span className="head-break" aria-hidden="true" />
       <button type="button" className="addr-chip" title={t({ fr: 'Copier l’adresse du projet', en: 'Copy the project address' })} aria-label={t({ fr: `Copier l’adresse du projet, ${project.address}`, en: `Copy the project address, ${project.address}` })} onClick={() => { void copyAddress() }}>
         <Icon name="mail" size={14} /><span className="ellipsis">{project.address}</span>
-      </button>
+      </button></>}
       {inviting && <InviteDialog project={project} onClose={closeInvite} />}
     </header>
+  )
+}
+
+/** The project's threads: the whole team, then each sub-team the viewer belongs to. A partner only has theirs. */
+function SpaceBar({ project, open }: { project: Project; open: Space | null }) {
+  const t = useT()
+  const viewerId = useStore((s) => s.viewerId)
+  const setSpace = useStore((s) => s.setSpace)
+  const mine = spacesOf(project, viewerId)
+  const member = project.memberIds.includes(viewerId)
+  if (!mine.length) return null
+  const unseen = (sp: Space | null) => project.messages.filter((m) => (sp ? m.visibility.type === 'space' && m.visibility.space === sp.id : m.visibility.type !== 'space') && canSee(m.visibility, viewerId)).length
+  const chip = (sp: Space | null) => {
+    const on = (open?.id ?? null) === (sp?.id ?? null)
+    const label = sp ? t(sp.name) : t({ fr: 'Toute l’équipe', en: 'Whole team' })
+    return (
+      <button key={sp?.id ?? 'team'} type="button" role="tab" aria-selected={on} className={`space-chip${on ? ' on' : ''}${sp ? ` ${sp.kind}` : ''}`}
+        title={sp ? t(sp.description) : t({ fr: 'Le fil de toute l’équipe', en: 'The whole team’s thread' })}
+        aria-label={`${label}, ${unseen(sp)} messages`} onClick={() => setSpace(sp?.id ?? null)}>
+        <Icon name={sp ? sp.icon : 'groups'} size={16} fill={on} />
+        <span className="ellipsis">{label}</span>
+        {sp?.kind === 'partner' && <span className="space-tag">{t({ fr: 'Partagé', en: 'Shared' })}</span>}
+      </button>
+    )
+  }
+  return (
+    <div className="space-bar" role="tablist" aria-label={t({ fr: 'Fils du projet', en: 'Threads in this project' })}>
+      {member && chip(null)}
+      {mine.map(chip)}
+    </div>
+  )
+}
+
+/** First thing in a space's thread: who reads it, and what they can open. */
+function SpaceIntro({ project, space }: { project: Project; space: Space }) {
+  const t = useT()
+  const viewerId = useStore((s) => s.viewerId)
+  const setPane = useStore((s) => s.setPane)
+  const people = space.memberIds.filter((id) => id !== GEMINI_ID)
+  const files = filesFor(project, viewerId).filter((a) => a.space === space.id)
+  const names = people.map((id) => firstName(id))
+  const nameList = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0]
+  return (
+    <div className={`space-intro ${space.kind}`}>
+      <div className="space-intro-head">
+        <span className="space-intro-icon" aria-hidden="true"><Icon name={space.icon} size={20} /></span>
+        <div className="space-intro-text">
+          <strong>{t(space.name)}{space.kind === 'confidential' ? ' · confidential' : ` · shared with ${space.org}`}</strong>
+          <span>{t(space.description)}</span>
+        </div>
+      </div>
+      <div className="space-intro-meta">
+        <AvatarStack ids={people} size={22} max={5} more={false} />
+        <span className="ellipsis">{nameList}{space.memberIds.includes(GEMINI_ID) ? ', and Gemini' : ''}</span>
+      </div>
+      {files.length > 0 && (
+        <div className="space-intro-files">
+          {files.map((a) => (
+            <button key={a.id} type="button" className="space-file" onClick={() => setPane({ type: 'artifact', id: a.id })}>
+              <Icon name={a.kind === 'sheet' ? 'table' : a.kind === 'pdf' ? 'picture_as_pdf' : 'description'} size={16} />
+              <span className="ellipsis">{t(a.title)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -122,7 +190,11 @@ export function ChatPane() {
 
   useEffect(() => { healInterruptedAnswers() }, [])
 
-  const visible = useMemo(() => project.messages.filter((m) => canSee(m.visibility, viewerId)), [project.messages, viewerId])
+  const space = useOpenSpace(project)
+  const spaceId = space?.id ?? null
+  // each thread shows its own messages: the main one never shows a space's, a space only its own
+  const visible = useMemo(() => project.messages.filter((m) => canSee(m.visibility, viewerId)
+    && (spaceId ? m.visibility.type === 'space' && m.visibility.space === spaceId : m.visibility.type !== 'space')), [project.messages, viewerId, spaceId])
   const isEmpty = !visible.some((m) => m.kind !== 'system')
 
   const toEnd = (smooth = false) => {
@@ -134,7 +206,7 @@ export function ChatPane() {
   }
 
   // a new project or persona opens at the latest message
-  useLayoutEffect(() => { toEnd() }, [pid, viewerId]) // eslint-disable-line
+  useLayoutEffect(() => { toEnd() }, [pid, viewerId, spaceId]) // eslint-disable-line
   useLayoutEffect(() => { if (scrollNonce) toEnd() }, [scrollNonce]) // eslint-disable-line
 
   // follows the conversation while the reader is at the bottom, including text that grows while streaming
@@ -147,13 +219,13 @@ export function ChatPane() {
   }, [])
 
   // reader has scrolled up: count what arrives instead of pulling them down
-  const lastCount = useRef({ pid, viewerId, n: visible.length })
+  const lastCount = useRef({ pid, viewerId, spaceId, n: visible.length })
   useEffect(() => {
     const prev = lastCount.current
-    const added = prev.pid === pid && prev.viewerId === viewerId ? visible.length - prev.n : 0
-    lastCount.current = { pid, viewerId, n: visible.length }
+    const added = prev.pid === pid && prev.viewerId === viewerId && prev.spaceId === spaceId ? visible.length - prev.n : 0
+    lastCount.current = { pid, viewerId, spaceId, n: visible.length }
     if (added > 0 && !stick.current) setNewCount((c) => c + added)
-  }, [visible.length, pid, viewerId])
+  }, [visible.length, pid, viewerId, spaceId])
 
   // jump to a message from anywhere (board, search, a quote) and flash it
   useEffect(() => {
@@ -188,6 +260,7 @@ export function ChatPane() {
     <section className="pane chat-pane" aria-label={t({ fr: `Discussion ${tx(project.name, 'fr')}`, en: `${tx(project.name, 'en')} chat` })}
       onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDragOver={onDragOver} onDrop={onDrop}>
       <Header project={project} />
+      <SpaceBar project={project} open={space} />
       <div className="log-wrap">
         <div ref={scroller} className="chat-log" role="log" aria-live="polite" aria-label={t({ fr: 'Messages', en: 'Messages' })} tabIndex={0}
           onScroll={(e) => {
@@ -201,7 +274,8 @@ export function ChatPane() {
             if (atEnd && newCount) setNewCount(0)
           }}>
           <div ref={inner} className="chat-log-inner">
-            {isEmpty && <EmptyState project={project} onPick={(text) => { sendChat(pid, `@Gemini ${text}`, { privateTo, quoteId }) }} />}
+            {space && <SpaceIntro project={project} space={space} />}
+            {isEmpty && !space && <EmptyState project={project} onPick={(text) => { sendChat(pid, `@Gemini ${text}`, { privateTo, quoteId }) }} />}
             {visible.map((m, i) => {
               const prev = visible[i - 1]
               const newDay = !prev || dayKey(prev.at) !== dayKey(m.at)

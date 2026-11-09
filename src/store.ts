@@ -6,7 +6,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { GEMINI_ID, ME_ID, people, seedProjects, SEED_VERSION } from './data/seed'
-import type { Block, CallState, Lang, Message, MobilePane, PaneView, Person, Project, Todo, Txt, Visibility } from './data/types'
+import type { Artifact, Block, CallState, Lang, Message, MobilePane, PaneView, Person, Project, Space, Todo, Txt, Visibility } from './data/types'
 import { detectLang } from './lang'
 
 export const uid = (p = 'id') => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
@@ -25,6 +25,8 @@ export interface State {
   /** rows of Home set aside by hand, as `viewerId:itemId` */
   homeDone: string[]
   panes: Record<string, PaneView> // per project
+  /** the sub-team thread open in each project; absent = the main thread */
+  spaceOpen: Record<string, string>
   mobilePane: MobilePane
   railCollapsed: boolean
   chatWidth: number
@@ -52,6 +54,8 @@ export interface State {
   goHome(): void
   markHomeDone(key: string): void
   setPane(v: PaneView): void
+  /** opens a sub-team's thread in the active project, or the main thread with null */
+  setSpace(id: string | null): void
   setMobilePane(p: MobilePane): void
   toggleRail(): void
   setChatWidth(w: number): void
@@ -111,6 +115,7 @@ const initial = () => ({
   home: true,
   homeDone: [] as string[],
   panes: {} as Record<string, PaneView>,
+  spaceOpen: {} as Record<string, string>,
   mobilePane: 'chat' as MobilePane,
   railCollapsed: false,
   chatWidth: 440,
@@ -138,6 +143,11 @@ export const useStore = create<State>()(persist((set, get) => ({
   markHomeDone: (key) => set((s) => (s.homeDone.includes(key) ? s : { homeDone: [...s.homeDone, key] })),
   setPane: (v) => set((s) => ({ ...leaveHome(s), panes: { ...s.panes, [s.activeProjectId]: v }, mobilePane: 'pane' })),
   // 'projects' and 'you' are the phone's own screens, over whatever is current; the others show the project.
+  setSpace: (id) => set((s) => {
+    const spaceOpen = { ...s.spaceOpen }
+    if (id) spaceOpen[s.activeProjectId] = id; else delete spaceOpen[s.activeProjectId]
+    return { ...leaveHome(s), spaceOpen, privateTo: null, quoteId: null, mobilePane: 'chat' }
+  }),
   setMobilePane: (mobilePane) => set((s) => (mobilePane === 'projects' || mobilePane === 'you' ? { mobilePane } : { ...leaveHome(s), mobilePane })),
   toggleRail: () => set((s) => ({ railCollapsed: !s.railCollapsed })),
   setChatWidth: (chatWidth) => set({ chatWidth }),
@@ -250,7 +260,7 @@ export const useStore = create<State>()(persist((set, get) => ({
   version: SEED_VERSION,
   storage: safe,
   migrate: () => initial() as unknown as State, // new seed: start clean rather than crash
-  partialize: (s) => ({ presence: s.presence, theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, home: s.home, homeDone: s.homeDone, panes: s.panes, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, chatWidthTablet: s.chatWidthTablet, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
+  partialize: (s) => ({ presence: s.presence, theme: s.theme, viewerId: s.viewerId, projects: s.projects, activeProjectId: s.activeProjectId, home: s.home, homeDone: s.homeDone, panes: s.panes, spaceOpen: s.spaceOpen, railCollapsed: s.railCollapsed, chatWidth: s.chatWidth, chatWidthTablet: s.chatWidthTablet, welcomeSeen: s.welcomeSeen, tourDone: s.tourDone }) as State,
 }))
 
 /* ------- selectors / helpers used everywhere ------- */
@@ -262,8 +272,44 @@ export const personById = (id: string): Person => {
 export const useProject = () => useStore((s) => s.projects.find((p) => p.id === s.activeProjectId) ?? s.projects[0])
 export const useViewer = () => personById(useStore((s) => s.viewerId))
 export const canSee = (v: Visibility, viewerId: string) => v.type === 'all' || v.with.includes(viewerId)
-/** owner edits directly; members propose; guests see only their call. */
-export const roleIn = (p: Project, viewerId: string): 'owner' | 'member' | 'guest' => (p.ownerId === viewerId ? 'owner' : p.memberIds.includes(viewerId) ? 'member' : 'guest')
+export type ProjectRole = 'owner' | 'member' | 'partner' | 'guest'
+/** owner edits directly; members propose; a partner sees only the spaces they belong to; guests see only their call. */
+export const roleIn = (p: Project, viewerId: string): ProjectRole => (p.ownerId === viewerId ? 'owner' : p.memberIds.includes(viewerId) ? 'member' : spacesOf(p, viewerId).length ? 'partner' : 'guest')
+
+/* ------- sub-teams (spaces) ------- */
+/** the spaces this person belongs to, or all of them without a person */
+export const spacesOf = (p: Project, viewerId?: string): Space[] => (p.spaces ?? []).filter((x) => !viewerId || x.memberIds.includes(viewerId))
+/** in the project at all: a team member, or a partner in one of its spaces */
+export const inProject = (p: Project, viewerId: string) => p.memberIds.includes(viewerId) || spacesOf(p, viewerId).length > 0
+export const spaceVisibility = (sp: Space): Visibility => ({ type: 'space', space: sp.id, with: sp.memberIds })
+/** The thread this person reads in this project: a partner never sees the main one; a space they left falls back to it. */
+export function openSpaceOf(p: Project, viewerId: string, chosen: string | undefined): Space | null {
+  const mine = spacesOf(p, viewerId)
+  if (!p.memberIds.includes(viewerId)) return mine.find((x) => x.id === chosen) ?? mine[0] ?? null
+  return mine.find((x) => x.id === chosen) ?? null
+}
+export const useOpenSpace = (p: Project) => {
+  const viewerId = useStore((s) => s.viewerId)
+  const chosen = useStore((s) => s.spaceOpen[p.id])
+  return openSpaceOf(p, viewerId, chosen)
+}
+/** Who can open a file: the team by default; a confidential space keeps it to its members; a partner space adds the partner. */
+export function canOpen(p: Project, a: Artifact, viewerId: string): boolean {
+  const sp = a.space ? (p.spaces ?? []).find((x) => x.id === a.space) : undefined
+  if (!sp) return p.memberIds.includes(viewerId)
+  if (sp.kind === 'confidential') return sp.memberIds.includes(viewerId)
+  return p.memberIds.includes(viewerId) || sp.memberIds.includes(viewerId)
+}
+export const filesFor = (p: Project, viewerId: string) => p.artifacts.filter((a) => canOpen(p, a, viewerId))
+/** What can be shared into a thread without leaking: a partner space only takes its own files, the team thread no confidential one. */
+export function attachable(p: Project, viewerId: string, space: Space | null): Artifact[] {
+  return filesFor(p, viewerId).filter((a) => {
+    const home = a.space ? (p.spaces ?? []).find((x) => x.id === a.space) : undefined
+    if (space?.kind === 'partner') return a.space === space.id
+    if (space?.kind === 'confidential') return true
+    return home?.kind !== 'confidential'
+  })
+}
 export { GEMINI_ID, ME_ID }
 const BOARD: PaneView = { type: 'board' } // same object each read: safe as a store selector
 /** What the phone shows: Home has no tab state of its own, it sits over the chat and board tabs. */

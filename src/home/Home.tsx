@@ -9,7 +9,7 @@ import { Avatar, AvatarStack, Button, Icon, IconButton, Sparkle } from '../ui/ki
 import { startCall } from '../call/callActions'
 import { useChat } from '../chat/chatState'
 import { fmtDate, fmtTime, tx, useT } from '../i18n'
-import { GEMINI_ID, ME_ID, personById, useStore, useViewer } from '../store'
+import { GEMINI_ID, inProject, ME_ID, personById, spacesOf, useStore, useViewer } from '../store'
 import type { Project } from '../data/types'
 import { canJoin, daysFrom, geminiBrief, projectStatus, todoProgress, useActivity, useAgenda, useNeeds, type AgendaItem, type Need } from './needs'
 import { firstName, mailName, snippet } from '../chat/helpers'
@@ -299,7 +299,7 @@ function ProjectTiles() {
   const t = useT()
   const projects = useStore((s) => s.projects)
   const viewerId = useStore((s) => s.viewerId)
-  const mine = projects.filter((p) => p.memberIds.includes(viewerId))
+  const mine = projects.filter((p) => inProject(p, viewerId))
   return (
     <section className="hm-projects" aria-labelledby="hm-projects-title">
       <h2 id="hm-projects-title" className="hm-title">{t({ fr: 'Tes projets', en: 'Your projects' })}</h2>
@@ -315,6 +315,7 @@ function Tile({ p }: { p: Project }) {
   const select = useStore((s) => s.selectProject)
   const live = useStore((s) => s.call?.projectId === p.id)
   const status = projectStatus(p, viewerId, lang)
+  const partner = !p.memberIds.includes(viewerId)
   const { total, done } = todoProgress(p)
   const open = total - done
   const name = tx(p.name, lang)
@@ -327,13 +328,17 @@ function Tile({ p }: { p: Project }) {
         {p.unread > 0 && <span className="hm-tile-unread">{p.unread}<span className="sr-only"> {t({ fr: 'non lus', en: 'unread' })}</span></span>}
       </span>
       <span className="hm-tile-status">{status}</span>
-      <span className="hm-tile-foot">
+      {partner ? (
+        <span className="hm-tile-foot">
+          <AvatarStack ids={[...new Set(spacesOf(p, viewerId).flatMap((x) => x.memberIds))].filter((id) => personById(id).role !== 'ai')} size={22} max={4} />
+        </span>
+      ) : <span className="hm-tile-foot">
         <AvatarStack ids={p.memberIds.filter((id) => personById(id).role !== 'ai')} size={22} max={4} />
         <span className="hm-progress">
           <span className="hm-progress-label">{total === 0 ? t({ fr: 'Aucune tâche', en: 'No to-dos yet' }) : open === 0 ? t({ fr: 'Tout est fait', en: 'All done' }) : `${open} open`}</span>
           {total > 0 && <span className="hm-bar" aria-hidden="true"><i style={{ width: `${Math.round((done / total) * 100)}%` }} /></span>}
         </span>
-      </span>
+      </span>}
     </button>
   )
 }

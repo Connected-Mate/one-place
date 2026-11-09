@@ -6,9 +6,9 @@
 // The project's documents: a paperclip in the tab row, and a Drive-like view behind "See all files".
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import type { Artifact, Block } from '../../data/types'
+import type { Artifact, Block, Project } from '../../data/types'
 import { fmtDate, fmtTime, useT } from '../../i18n'
-import { personById, useStore } from '../../store'
+import { filesFor, personById, useStore } from '../../store'
 import { Avatar, base, Button, Icon } from '../../ui/kit'
 import { WorkspaceIcon, type WorkspaceApp } from '../../ui/WorkspaceIcon'
 import { Slide } from '../docs/SlidesView'
@@ -103,11 +103,22 @@ function Thumb({ a }: { a: Artifact }) {
   }
 }
 
+/** Who can open a file, when it is not simply the whole team: a lock for a confidential space, the partner's name for a shared one. */
+function Access({ p, a, icon }: { p: Project; a: Artifact; icon?: boolean }) {
+  const t = useT()
+  const sp = a.space ? p.spaces?.find((x) => x.id === a.space) : undefined
+  if (!sp) return null
+  const label = sp.kind === 'confidential' ? `${t(sp.name)} only` : `Shared with ${sp.org ?? t(sp.name)}`
+  return icon
+    ? <span className={`rp-access ${sp.kind}`} title={label} aria-label={label}><Icon name={sp.icon} size={14} /></span>
+    : <span className={`rp-access-txt ${sp.kind}`}><Icon name={sp.icon} size={12} />{`${label} ·`}</span>
+}
+
 /** The paperclip next to Gemini. A short list with search; everything else is one click further. */
 export function FilesButton({ onSeeAll, on }: { onSeeAll: () => void; on: boolean }) {
   const t = useT()
   const lang = useStore((s) => s.lang)
-  const { project } = useBoard()
+  const { project, viewerId } = useBoard()
   const setPane = useStore((s) => s.setPane)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -115,7 +126,7 @@ export function FilesButton({ onSeeAll, on }: { onSeeAll: () => void; on: boolea
   const chip = useRef<HTMLButtonElement>(null)
   const pop = useRef<HTMLDivElement>(null)
   const restore = useRef(true)
-  const docs = newestFirst(project.artifacts)
+  const docs = newestFirst(filesFor(project, viewerId))
   const q = query.trim().toLowerCase()
   const found = q ? docs.filter((a) => t(a.title).toLowerCase().includes(q)) : docs
 
@@ -176,7 +187,7 @@ export function FilesButton({ onSeeAll, on }: { onSeeAll: () => void; on: boolea
                         <li key={a.id}>
                           <button type="button" className="rp-files-row" onClick={() => openDoc(a)} title={title}>
                             <FileIcon a={a} size={20} />
-                            <span className="rp-row-main"><span className="rp-trunc">{title}</span><span className="rp-row-sub rp-trunc">{typeOf(a, t)}, {whenOf(a.updatedAt, lang)}</span></span>
+                            <span className="rp-row-main"><span className="rp-trunc">{title}</span><span className="rp-row-sub rp-trunc"><Access p={project} a={a} />{typeOf(a, t)}, {whenOf(a.updatedAt, lang)}</span></span>
                             <Avatar id={a.ownerId} size={24} />
                           </button>
                         </li>
@@ -208,14 +219,14 @@ type Sort = { by: 'modified' | 'name'; dir: 1 | -1 }
 export function FilesBlock({ block }: { block: Extract<Block, { type: 'files' }> }) {
   const t = useT()
   const lang = useStore((s) => s.lang)
-  const { project, role } = useBoard()
+  const { project, role, viewerId } = useBoard()
   const setPane = useStore((s) => s.setPane)
   const [only, setOnly] = useState<'all' | SectionKey>('all')
   const [layout, setLayout] = useState<'grid' | 'list'>('grid')
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<Sort>({ by: 'modified', dir: -1 })
   const [folded, setFolded] = useState<SectionKey[]>([])
-  const docs = project.artifacts
+  const docs = useMemo(() => filesFor(project, viewerId), [project, viewerId])
   const present = SECTIONS.filter((s) => docs.some((a) => sectionOf(a) === s.key))
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -282,7 +293,7 @@ export function FilesBlock({ block }: { block: Extract<Block, { type: 'files' }>
                         return (
                           <li key={a.id}>
                             <button type="button" className="rp-drive-card" onClick={() => open(a)} title={title}>
-                              <span className="rp-drive-top"><FileIcon a={a} size={20} /><span className="rp-trunc">{title}</span></span>
+                              <span className="rp-drive-top"><FileIcon a={a} size={20} /><span className="rp-trunc">{title}</span><Access p={project} a={a} icon /></span>
                               <span className="rp-drive-thumb"><Thumb a={a} /></span>
                               <span className="rp-drive-foot"><Avatar person={owner} size={24} /><span className="rp-trunc">{owner.name.split(' ')[0]}, {whenOf(a.updatedAt, lang)}</span></span>
                             </button>
@@ -306,7 +317,7 @@ export function FilesBlock({ block }: { block: Extract<Block, { type: 'files' }>
                           const title = t(a.title)
                           return (
                             <tr key={a.id}>
-                              <td><button type="button" className="rp-drive-name" title={title} onClick={() => open(a)}><FileIcon a={a} size={20} /><span className="rp-trunc">{title}</span></button></td>
+                              <td><button type="button" className="rp-drive-name" title={title} onClick={() => open(a)}><FileIcon a={a} size={20} /><span className="rp-trunc">{title}</span><Access p={project} a={a} icon /></button></td>
                               <td className="rp-drive-owner"><span className="rp-drive-person"><Avatar person={owner} size={24} /><span className="rp-trunc">{owner.name}</span></span></td>
                               <td className="rp-drive-kind rp-trunc">{typeOf(a, t)}</td>
                               <td className="rp-drive-when">{whenOf(a.updatedAt, lang)}</td>

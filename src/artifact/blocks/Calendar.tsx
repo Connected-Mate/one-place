@@ -263,19 +263,21 @@ export function CalendarBlock({ block }: { block: Extract<Block, { type: 'calend
             {layoutDay(eventsOn(d)).map(({ ev, col, cols }) => {
               const top = (minutesOf(ev.start) / 60) * hourH
               const h = Math.max(22, (ev.durationMin / 60) * hourH - 2)
+              // what fits, line by line: a title, then its time, then a second title line, then the faces
               const tall = h >= 40
+              const roomy = h >= 56
               return (
                 <button
                   key={ev.key}
                   type="button"
-                  className={`rp-cal-ev${ev.outside ? ' outside' : ''}${ev.ended || ev.start + ev.durationMin * 6e4 < now ? ' past' : ''}${ev.live ? ' live' : ''}${tall && !(cols > 1 && days.length > 1) ? ' tall' : ''}`}
+                  className={`rp-cal-ev${ev.outside ? ' outside' : ''}${ev.ended || ev.start + ev.durationMin * 6e4 < now ? ' past' : ''}${ev.live ? ' live' : ''}${tall && !(cols > 1 && days.length > 1) ? ` tall${roomy ? ' roomy' : ''}` : ''}`}
                   style={{ top, height: h, left: `calc(${(col / cols) * 100}% + 1px)`, width: `calc(${100 / cols}% - 6px)` }}
                   onClick={(e) => openEvent(e, ev)}
                   aria-label={`${t(ev.title)}, ${fmt(ev.start, { weekday: 'long', month: 'long', day: 'numeric' })}, ${fmtTime(ev.start, lang)}, ${ev.durationMin} min`}
                 >
                   <span className="rp-cal-evtitle">{t(ev.title)}</span>
                   <span className="rp-cal-evtime">{fmtTime(ev.start, lang)}</span>
-                  {h >= 60 && cols === 1 && <span className="rp-cal-evfaces"><AvatarStack ids={ev.attendeeIds} size={18} max={3} /></span>}
+                  {h >= 80 && cols === 1 && <span className="rp-cal-evfaces"><AvatarStack ids={ev.attendeeIds} size={18} max={3} /></span>}
                 </button>
               )
             })}

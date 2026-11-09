@@ -9,7 +9,7 @@ import { Component, createContext, useContext, useEffect, useRef, useState, type
 import { createPortal } from 'react-dom'
 import type { Artifact, Block, BlockType, L, Project } from '../data/types'
 import { useT } from '../i18n'
-import { canSee, useStore } from '../store'
+import { canSee, useStore, type ProjectRole } from '../store'
 import { Icon, IconButton, Menu, type MenuItem } from '../ui/kit'
 
 export const DAY = 864e5
@@ -29,7 +29,7 @@ export function revealIn(box: HTMLElement | null, el: Element | null | undefined
 }
 export const startOfDay = (at: number) => { const d = new Date(at); d.setHours(0, 0, 0, 0); return d.getTime() }
 
-export interface BoardCtx { project: Project; role: 'owner' | 'member' | 'guest'; viewerId: string }
+export interface BoardCtx { project: Project; role: ProjectRole; viewerId: string }
 export const BoardContext = createContext<BoardCtx | null>(null)
 export const useBoard = () => useContext(BoardContext)!
 

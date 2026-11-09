@@ -7,7 +7,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { Block } from '../data/types'
 import { fmtDate, fmtDay, fmtTime, useT, withUnit } from '../i18n'
-import { personById, useStore } from '../store'
+import { canOpen, personById, useStore } from '../store'
 import { Avatar, AvatarStack, Button, Icon, Sparkle } from '../ui/kit'
 import { AppTile } from './apps/AppTile'
 import { ModelTilePreview } from './blocks/Model3D'
@@ -146,10 +146,11 @@ function CalendarTile({ block }: { block: Of<'calendar'> }) {
 
 function FilesTile({ block }: { block: Of<'files'> }) {
   const t = useT()
-  const { project } = useBoard()
-  const files = block.artifactIds.map((id) => project.artifacts.find((a) => a.id === id)).filter((a) => a != null).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 4)
+  const { project, viewerId } = useBoard()
+  const files = block.artifactIds.map((id) => project.artifacts.find((a) => a.id === id)).filter((a) => a != null).filter((a) => canOpen(project, a, viewerId)).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 4)
   if (!files.length) return <span className="rp-t-none">{t({ fr: 'Aucun fichier', en: 'No files yet' })}</span>
-  return <span className="rp-t-files">{files.map((a) => <span key={a.id} className="rp-t-file"><KindIcon kind={a.kind} size={16} /><span className="rp-trunc">{t(a.title)}</span></span>)}</span>
+  const spaceIcon = (id?: string) => { const sp = id ? project.spaces?.find((x) => x.id === id) : undefined; return sp && <span className={`rp-t-access ${sp.kind}`}><Icon name={sp.icon} size={14} /><span className="sr-only">{sp.kind === 'confidential' ? `${t(sp.name)} only` : `Shared with ${sp.org}`}</span></span> }
+  return <span className="rp-t-files">{files.map((a) => <span key={a.id} className="rp-t-file"><KindIcon kind={a.kind} size={16} /><span className="rp-trunc">{t(a.title)}</span>{spaceIcon(a.space)}</span>)}</span>
 }
 
 function PeopleTile() {

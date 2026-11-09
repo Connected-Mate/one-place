@@ -38,7 +38,8 @@ export function ProjectBar() {
   const tab = onCallTab ? 'call' : view === 'pane' ? 'board' : 'chat'
   const role = roleIn(project, viewerId)
   const peopleCount = project.memberIds.filter((id) => id !== GEMINI_ID).length
-  const roleLabel = `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} · ${role === 'owner' ? 'you’re the owner' : role === 'member' ? 'you’re a member' : 'you’re a guest'}`
+  const roleLabel = role === 'partner' ? 'Shared space · you see this space only'
+    : `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} · ${role === 'owner' ? 'you’re the owner' : role === 'member' ? 'you’re a member' : 'you’re a guest'}`
   const live = project.messages.some((m) => m.kind === 'meeting' && m.live && !m.ended && canSee(m.visibility, viewerId))
   const [inviting, setInviting] = useState(false)
   const closeInvite = useCallback(() => setInviting(false), [])
@@ -59,7 +60,7 @@ export function ProjectBar() {
             <Icon name="chat_bubble" size={18} fill={tab === 'chat'} />{t({ fr: 'Chat', en: 'Chat' })}
           </button>
           <button type="button" className={tab === 'board' ? 'on' : ''} aria-current={tab === 'board' ? 'page' : undefined} onClick={openBoard}>
-            <Icon name="dashboard" size={18} fill={tab === 'board'} />{t({ fr: 'Board', en: 'Board' })}
+            <Icon name={role === 'partner' ? 'attach_file' : 'dashboard'} size={18} fill={tab === 'board'} />{role === 'partner' ? 'Files' : t({ fr: 'Board', en: 'Board' })}
           </button>
           {callHere && (
             <button type="button" className={`pb-call${tab === 'call' ? ' on' : ''}`} aria-current={tab === 'call' ? 'page' : undefined} onClick={() => s.setPane({ type: 'call' })}>
@@ -68,15 +69,15 @@ export function ProjectBar() {
           )}
         </nav>
         <div className="pb-actions">
-          {!callHere && role !== 'guest' && (live
+          {!callHere && role !== 'guest' && role !== 'partner' && (live
             ? <Button variant="filled" size="s" icon="videocam" onClick={() => startCall(project.id)}>{t({ fr: 'Rejoindre', en: 'Join' })}</Button>
             : <IconButton icon="videocam" label={t({ fr: 'Lancer un appel', en: 'Start a call' })} onClick={() => startCall(project.id)} />)}
-          <Menu align="right" items={[
+          {role !== 'partner' && <Menu align="right" items={[
             { icon: 'person_add', label: t({ fr: 'Inviter', en: 'Invite' }), onSelect: () => setInviting(true) },
             { icon: 'mail', label: project.address, hint: t({ fr: 'Copier', en: 'Copy' }), onSelect: () => { void copyProjectAddress(project.address) } },
             { divider: true, label: '' },
             { icon: 'group', label: t({ fr: `${peopleCount} membres`, en: `${peopleCount} ${peopleCount === 1 ? 'member' : 'members'}` }), onSelect: () => openPeople(project.id) },
-          ]} trigger={(p) => <IconButton {...p} icon="more_vert" label={t({ fr: 'Plus d’options', en: 'More options' })} />} />
+          ]} trigger={(p) => <IconButton {...p} icon="more_vert" label={t({ fr: 'Plus d’options', en: 'More options' })} />} />}
         </div>
       </div>
       {inviting && <InviteDialog project={project} onClose={closeInvite} />}

@@ -6,7 +6,7 @@
 // Gemini's advice is computed from the real state of the project, every time. Nothing is scripted.
 import type { Block, Message, Project, Todo, TimelineItem, Txt } from '../data/types'
 import { fmtDate, tx } from '../i18n'
-import { canSee, personById, uid } from '../store'
+import { canSee, personById, uid, type ProjectRole } from '../store'
 import { DAY, startOfDay } from './shared'
 
 export type AdviceAction =
@@ -37,7 +37,7 @@ const todoBlocks = (p: Project) => p.blocks.filter((b): b is Extract<Block, { ty
 const progressOf = (i: TimelineItem) => (i.progress == null ? null : i.progress <= 1 ? i.progress : i.progress / 100)
 
 /** All text is English: the product is English only. */
-export function computeAdvice(p: Project, viewerId: string, role: 'owner' | 'member' | 'guest', now = Date.now()): Advice[] {
+export function computeAdvice(p: Project, viewerId: string, role: ProjectRole, now = Date.now()): Advice[] {
   const out: Advice[] = []
   const today = startOfDay(now)
   const seen = (m: Message) => canSee(m.visibility, viewerId)

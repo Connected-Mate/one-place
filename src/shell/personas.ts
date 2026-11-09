@@ -9,5 +9,6 @@ import { ME_ID } from '../store'
 export const PERSONAS = [
   { id: ME_ID, role: { fr: 'Responsable du projet', en: 'Project owner' }, hint: { fr: 'Décide', en: 'Decides' } },
   { id: 'tom', role: { fr: 'Membre', en: 'Member' }, hint: { fr: 'Propose', en: 'Proposes' } },
+  { id: 'jun', role: { fr: 'Fournisseur, Lumen Works', en: 'Supplier, Lumen Works' }, hint: { fr: 'Son espace seul', en: 'Shared space only' } },
   { id: 'nora', role: { fr: 'Invitée à un appel', en: 'Guest on one call' }, hint: { fr: 'Appel seul', en: 'Call only' } },
 ]

@@ -260,6 +260,8 @@ export function useActivity(limit = 5) {
 
 /** The line on a project tile. */
 export function projectStatus(p: Project, viewerId: string, lang: Lang): string {
+  // a partner only knows their shared space: nothing of the team's summary
+  if (!p.memberIds.includes(viewerId)) return `Shared space: ${(p.spaces ?? []).filter((x) => x.memberIds.includes(viewerId)).map((x) => tx(x.name, lang)).join(', ')}`
   const talked = p.messages.some((m) => m.kind !== 'system' && canSee(m.visibility, viewerId))
   if (p.createdByUser && !talked) return tx({ fr: 'Nouveau projet', en: 'New project' }, lang)
   const sum = p.blocks.find((b) => b.type === 'summary')

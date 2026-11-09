@@ -83,7 +83,8 @@ export const isDraftMail = (m: Message): boolean => m.kind === 'email' && m.dire
 
 /** Turns the readable "@Maya Chen" of the composer into the stored @[Maya Chen](maya). */
 export function encodeMentions(text: string, p: Project): string {
-  const candidates = [{ id: 'gemini', name: 'Gemini' }, ...p.memberIds.filter((id) => id !== 'gemini').map((id) => ({ id, name: personById(id).name }))]
+  const everyone = [...new Set([...p.memberIds, ...(p.spaces ?? []).flatMap((x) => x.memberIds)])] // a partner in a space can be mentioned there
+  const candidates = [{ id: 'gemini', name: 'Gemini' }, ...everyone.filter((id) => id !== 'gemini').map((id) => ({ id, name: personById(id).name }))]
   const keys = candidates.flatMap((c) => [{ key: c.name, ...c }, { key: c.name.split(/\s+/)[0], ...c }]).sort((a, b) => b.key.length - a.key.length)
   const seen = new Set<string>(); const unique = keys.filter((k) => { const n = k.key.toLowerCase(); if (seen.has(n)) return false; seen.add(n); return true })
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

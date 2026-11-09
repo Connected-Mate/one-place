@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { CallView } from '../call/CallView'
 import type { Artifact, Block, PaneView } from '../data/types'
 import { fmtDate, fmtTime, useT } from '../i18n'
-import { roleIn, uid, useProject, useStore } from '../store'
+import { canOpen, roleIn, uid, useProject, useStore } from '../store'
 import { Button, Icon, IconButton, Menu, Sparkle, type MenuItem } from '../ui/kit'
 import { AdviceChip } from './AdviceChip'
 import './artifact.css'
@@ -19,7 +19,7 @@ import { NotebookView } from './docs/NotebookView'
 import { PdfView } from './docs/PdfView'
 import { SheetView } from './docs/SheetView'
 import { SlidesView } from './docs/SlidesView'
-import { FilesButton } from './blocks/Files'
+import { FilesBlock, FilesButton } from './blocks/Files'
 import { Overview } from './Overview'
 import { BoardContext, KindIcon, revealIn, startOfDay } from './shared'
 
@@ -116,7 +116,7 @@ export function RightPane() {
   const warned = useRef<string | null>(null)
 
   const callHere = !!call && call.projectId === project?.id
-  const openArtifact = rawPane.type === 'artifact' ? project?.artifacts.find((a) => a.id === rawPane.id) : undefined
+  const openArtifact = rawPane.type === 'artifact' ? project?.artifacts.find((a) => a.id === rawPane.id && canOpen(project, a, viewerId)) : undefined
   // What really shows: a stale call or a missing document falls back to the board.
   const view = rawPane.type === 'call' && callHere ? 'call' : openArtifact ? 'artifact' : 'board'
 
@@ -260,6 +260,29 @@ export function RightPane() {
   const tabButton = (on: boolean, onClick: () => void, children: React.ReactNode, title?: string) => (
     <button type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1} className="rp-tab-btn" title={title} onClick={onClick}>{children}</button>
   )
+
+  // A partner (the factory) sees no board: only the files shared with their space, and the call.
+  if (role === 'partner') {
+    const onDoc = view === 'artifact' && !!openArtifact
+    return (
+      <section className="pane right-pane" aria-label={t({ fr: 'Fichiers partagés avec toi', en: 'Files shared with you' })}>
+        <BoardContext.Provider value={{ project, role, viewerId }}>
+          <div ref={bar} className="rp-tabbar" onKeyDown={onTabsKey}>
+            <div className="rp-tabs rp-parts" role="tablist" aria-label={t({ fr: 'Partagé avec toi', en: 'Shared with you' })}>
+              <div className={`rp-tab${!onDoc && view !== 'call' ? ' on' : ''}`} role="presentation">{tabButton(!onDoc && view !== 'call', () => setPane({ type: 'board' }), t({ fr: 'Fichiers partagés', en: 'Shared files' }))}</div>
+              {openArtifact && <div className={`rp-tab${onDoc ? ' on' : ''}`} role="presentation" style={{ maxWidth: 220 }}>{tabButton(onDoc, () => setPane({ type: 'artifact', id: openArtifact.id }), <span className="rp-trunc">{t(openArtifact.title)}</span>, t(openArtifact.title))}</div>}
+              {call && <div className={`rp-tab rp-tab-call${view === 'call' ? ' on' : ''}`} role="presentation">{tabButton(view === 'call', openCall, <><i className="rp-live-dot" aria-hidden="true" />{t({ fr: 'Appel', en: 'Call' })}<span className="rp-tab-time">{mmss(now - call.startedAt)}</span></>)}</div>}
+            </div>
+          </div>
+          <div className="rp-body">
+            {onDoc && <div className="rp-view" role="tabpanel" key={openArtifact!.id}><ArtifactView artifact={openArtifact!} /></div>}
+            {!onDoc && view !== 'call' && filesBlock?.type === 'files' && <div className="rp-view" role="tabpanel"><FilesBlock block={filesBlock} /></div>}
+            {call && <div className="rp-view" role="tabpanel" hidden={view !== 'call'}><CallView /></div>}
+          </div>
+        </BoardContext.Provider>
+      </section>
+    )
+  }
 
   return (
     <section className="pane right-pane" aria-label={t({ fr: 'Vue partagée du projet', en: 'Shared project view' })}>

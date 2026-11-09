@@ -14,7 +14,7 @@
 import { tx } from '../i18n'
 import { appUpdate, hasApp, makeApp, TOOLS, wantedApp } from '../artifact/apps/catalog'
 import { people } from '../data/seed'
-import { canSee, GEMINI_ID, personById, roleIn, uid, useStore } from '../store'
+import { canOpen, canSee, GEMINI_ID, openSpaceOf, personById, roleIn, spaceVisibility, uid, useStore } from '../store'
 import type { AppId, Artifact, Block, EmailMessage, Message, Project, ProposalAction, ProposalMessage, TimelineItem, Todo, Txt, Visibility } from '../data/types'
 import { triageEmail } from './emailTriage'
 import { findMessage, firstName, mailAddress, mailName, MENTION_RE, snippet, stripMarkup, updateMessage } from './helpers'
@@ -86,7 +86,43 @@ const when = (t: number) => `${dayWord(t)} at ${timeOnly(t)}`
 
 /* ---------------- project facts ---------------- */
 /** A public answer must only draw on public messages: nothing private leaks through Gemini. */
-const readable = (ctx: Ctx, p: Project) => p.messages.filter((m) => (ctx.visibility.type === 'all' ? m.visibility.type === 'all' : canSee(m.visibility, ctx.viewer)))
+const readable = (ctx: Ctx, p: Project) => p.messages.filter((m) => {
+  const v = ctx.visibility
+  if (v.type === 'all') return m.visibility.type === 'all'
+  // a space reads itself; a confidential one also reads the team's thread, a partner one never does
+  if (v.type === 'space') return m.visibility.type === 'space' ? m.visibility.space === v.space : m.visibility.type === 'all' && spaceOf(p, v.space)?.kind === 'confidential'
+  // a private answer goes to someone who may not be in the viewer's spaces: spaces stay out of it
+  return m.visibility.type !== 'space' && canSee(m.visibility, ctx.viewer)
+})
+const spaceOf = (p: Project, id: string) => p.spaces?.find((x) => x.id === id)
+/** The project as this answer may see it: files of a confidential space only inside it, nothing private to the team in a partner space. */
+function scoped(ctx: Ctx, p: Project): Project {
+  const v = ctx.visibility
+  const artifacts = p.artifacts.filter((a) => {
+    if (!canOpen(p, a, ctx.viewer)) return false
+    const home = a.space ? spaceOf(p, a.space) : undefined
+    if (v.type === 'space') return spaceOf(p, v.space)?.kind === 'partner' ? a.space === v.space : true
+    return home?.kind !== 'confidential'
+  })
+  return { ...p, artifacts }
+}
+const CONFIDENTIAL = /\b(budget|cost\w*|price\w*|pricing|margin\w*|penalt\w*|contract\w*|plan b|backup|second (source|supplier)|orel|negotiat\w*|internal|confidential|money|cash|euro\w*|eur|leverage)\b|€/
+/** In a space shared with a partner, Gemini only works with that space: its thread and its files. */
+function partnerPlan(ctx: Ctx, p: Project, space: NonNullable<ReturnType<typeof spaceOf>>): Plan {
+  const n = ctx.norm
+  const org = space.org ?? en(space.name)
+  if (CONFIDENTIAL.test(n)) return { say: `That is not something I can talk about here. This space is shared with ${org}, and I only use what is shared with them: this thread and its files. Ask the team in the main thread.` }
+  const files = p.artifacts
+  if (/\b(files?|docs?|documents?|sheets?|shared)\b/.test(n)) {
+    return { say: files.length ? `${count(files.length, 'file')} shared with ${org}:\n${files.map((a) => `- ${docLink(a)}`).join('\n')}` : `Nothing is shared with ${org} yet.` }
+  }
+  const said = readable(ctx, p).filter((m) => m.authorId !== GEMINI_ID && (m.kind === 'text' || m.kind === 'file') && !m.streaming && !(m.kind === 'text' && en(m.text).includes(`](${GEMINI_ID})`))).slice(-4)
+  if (isRecapAsk(n) || isQuestion(n) || /\bsum\b.*\bup\b|\bstatus\b|\bnews?\b|\bupdate\b/.test(n)) {
+    if (!said.length) return { say: `Nothing has been said in this space yet.` }
+    return { say: `Here is what this space with ${org} says:\n${said.map((m) => `- ${firstName(m.authorId)}: ${oneLine(snippet(m, 'en'), 90)}`).join('\n')}` }
+  }
+  return { say: `Here I only work with what is shared with ${org}: this thread and ${count(files.length, 'file')}. I can sum it up or list the shared files.` }
+}
 const todosOf = (p: Project) => p.blocks.flatMap((b) => (b.type === 'todo' ? b.todos : []))
 const openTodos = (p: Project) => todosOf(p).filter((t) => !t.done)
 const overdueTodos = (p: Project) => openTodos(p).filter((t) => t.due && t.due < Date.now())
@@ -1067,7 +1103,11 @@ function planUpdateBlock(ctx: Ctx, p: Project): Plan | null {
   }
 }
 
-function decide(ctx: Ctx, p: Project): Plan {
+function decide(ctx: Ctx, full: Project): Plan {
+  const p = scoped(ctx, full)
+  const v = ctx.visibility
+  const partner = v.type === 'space' ? spaceOf(p, v.space) : undefined
+  if (partner?.kind === 'partner') return partnerPlan(ctx, p, partner)
   const n = ctx.norm
   const update = planUpdateBlock(ctx, p)
   if (update) return update
@@ -1156,7 +1196,9 @@ export function askGemini(projectId: string, text: string, opts: AskOptions = {}
     return name
   }).replace(/@gemini\b/gi, '').replace(/\s+/g, ' ').trim()
   const parent = opts.parentId ? findMessage(p, opts.parentId) : undefined
+  const space = !parent && !opts.privateTo ? openSpaceOf(p, viewer, s.spaceOpen[projectId]) : null
   const visibility: Visibility = parent ? parent.visibility
+    : space ? spaceVisibility(space)
     : opts.privateTo ? { type: 'private', with: uniq([viewer, opts.privateTo, GEMINI_ID]) }
     : { type: 'all' }
   const quoted = opts.quoteId ? findMessage(p, opts.quoteId) : undefined

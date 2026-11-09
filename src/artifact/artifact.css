@@ -1059,7 +1059,7 @@
 .rp-cal-ev.past{opacity:.82}
 .rp-cal-ev.live{box-shadow:0 0 0 2px var(--red)}
 .rp-cal-evtitle{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rp-cal-ev.tall .rp-cal-evtitle{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.rp-cal-ev.roomy .rp-cal-evtitle{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .rp-cal-evtime{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rp-cal-ev:not(.tall) .rp-cal-evtime{display:none}
 .rp-cal-evfaces{display:block;margin-top:3px}
@@ -1236,3 +1236,12 @@
 .rp-files-pop>.rp-files-search{flex:none}
 /* on a phone the paperclip lists every document: the row keeps its room for the parts */
 @media (max-width:599px){.rp-files-more{display:none}}
+
+/* who can open a file, when it is not the whole team */
+.rp-access{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;margin-left:auto;border-radius:50%;background:var(--surface-2);color:var(--text-2)}
+.rp-access.confidential{background:var(--private);color:var(--on-private)}
+.rp-access-txt{display:inline-flex;align-items:center;gap:3px;margin-right:4px;font-weight:500;color:var(--text-2)}
+.rp-access-txt.confidential{color:var(--on-private)}
+.rp-access-txt .ms{margin-right:1px}
+.rp-t-access{flex:none;display:inline-flex;margin-left:auto;color:var(--text-3)}
+.rp-t-access.confidential{color:var(--on-private)}

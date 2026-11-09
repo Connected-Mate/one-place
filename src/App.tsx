@@ -17,7 +17,7 @@ import { Splitter } from './shell/Splitter'
 import { ProjectBar } from './shell/ProjectBar'
 import { YouPane } from './shell/YouPane'
 import { useResponsiveShell } from './shell/viewport'
-import { mobileView, personById, ME_ID, useStore } from './store'
+import { inProject, mobileView, personById, ME_ID, useStore } from './store'
 import './shell/shell.css'
 import './chat/chat-responsive.css'
 
@@ -61,7 +61,7 @@ export default function App() {
   useEffect(() => {
     const s = useStore.getState()
     if (viewerId !== ME_ID) s.markTour('viewas')
-    const mine = s.projects.filter((p) => p.memberIds.includes(viewerId))
+    const mine = s.projects.filter((p) => inProject(p, viewerId))
     if (!mine.length || mine.some((p) => p.id === s.activeProjectId)) return
     if (s.home) useStore.setState({ activeProjectId: mine[0].id }) // stay on Home, and leave that project's unread alone
     else {

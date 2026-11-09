@@ -3,7 +3,7 @@
  * LinkedIn: https://www.linkedin.com/in/alex-cormeraie/
  * Google, or anyone else: you like this concept? Do not copy it. Hire me.
  */
-import type { Artifact, Block, L, Message, Project, ProjectScript, Todo, Visibility } from '../types'
+import type { Artifact, Block, L, Message, Project, ProjectScript, Space, Todo, Visibility } from '../types'
 import { DAY, dayAt, fmtDay, rel, week, weekday } from './time'
 import { filesFor } from './files'
 
@@ -167,7 +167,7 @@ export function aurora(): Project {
   ]
 
   /* ---------------- messages (3 business days, in order) ---------------- */
-  const t = (id: string, authorId: string, at: number, text: L, extra: Partial<Message> = {}): Message => ({ id, kind: 'text', authorId, at, visibility: all, text, ...extra } as Message)
+  const t = (id: string, authorId: string, at: number, text: L | string, extra: Partial<Message> = {}): Message => ({ id, kind: 'text', authorId, at, visibility: all, text, ...extra } as Message)
   const callDay = dayAt(-1, 10) // the "Lumen delay" call
 
   const messages: Message[] = [
@@ -374,6 +374,11 @@ export function aurora(): Project {
         { fr: 'Je mets à jour la feuille dans l’heure, les deux onglets restent tant que tu n’as pas tranché.', en: 'I’ll update the sheet within the hour, both tabs stay until you decide.' },
         { fr: 'Le shooting, on en reparle au prochain projet. Pas de 13 k€ surprise deux fois.', en: 'The shoot, we talk about it on the next project. No €13K surprise twice.' },
       ],
+      jun: [
+        'Noted. I will check with the press team and come back to you here before the end of the day.',
+        'Day 2 numbers look as good as day 1 so far. The sheet is updated tonight.',
+        'Tracking for the 20 test parts: it arrives at your office in two days.',
+      ],
       gemini: [
         { fr: 'Je peux rédiger l’annonce de la nouvelle date pour l’équipe, en deux lignes, prête si vous approuvez le décalage.', en: 'I can draft the new-date announcement for the team, two lines, ready if you approve the shift.' },
         { fr: 'Le scénario +7 touche trois jalons : lancement, levée d’embargo, premières expéditions. Je les décale ensemble si vous approuvez.', en: 'The +7 scenario touches three milestones: launch, embargo lift, first shipments. I’ll move them together if you approve.' },
@@ -381,11 +386,77 @@ export function aurora(): Project {
     },
   }
 
+  /* ---------------- sub-teams: a confidential space, and one shared with the factory ---------------- */
+  const internal: Space = {
+    id: 'aurora-internal', kind: 'confidential', icon: 'lock', name: 'Internal',
+    memberIds: ['alex', 'lea', 'karim', 'maya', 'gemini'],
+    description: 'Costs, contract and plan B. Only these four see it, and Lumen Works never does.',
+  }
+  const lumen: Space = {
+    id: 'aurora-lumen', kind: 'partner', icon: 'factory', name: 'Lumen Works', org: 'Lumen Works',
+    memberIds: ['alex', 'karim', 'maya', 'jun', 'gemini'],
+    description: 'Shared with the factory. Jun sees this thread and the files shared here, nothing else in Aurora.',
+  }
+  const inSpace = (sp: Space): Visibility => ({ type: 'space', space: sp.id, with: sp.memberIds })
+  const spaceArtifacts: Artifact[] = [
+    {
+      id: 'a-doc-planb', kind: 'doc', space: internal.id, title: 'Plan B: second diffuser supplier', ownerId: 'karim', updatedAt: dayAt(-1, 15, 0),
+      sections: [
+        { heading: 'Why', body: 'Lumen Works slipped twice in two months. We stay with them, but we want a second source ready before mass production.' },
+        { heading: 'Orel Optics', body: 'Quote: €12.40 a part against €11.50 at Lumen Works, 5-week lead time, same polycarbonate grade. Samples requested, due next week. If they pass the haze test, we qualify them for the second colorway.' },
+        { heading: 'Contract leverage', body: 'Lumen Works owes a late-delivery penalty of 2% of the batch value per week late: about €460 on batch 2. We keep it in reserve and do not raise it while we need their goodwill on the pilot run slot.' },
+        { heading: 'Who knows', body: 'Alex, Léa, Karim and Maya. Not shared with Lumen Works, not mentioned in the shared space.' },
+      ],
+    },
+    {
+      id: 'a-sheet-suppliers', kind: 'sheet', space: internal.id, title: 'Supplier price comparison', ownerId: 'lea', updatedAt: dayAt(-1, 15, 20),
+      columns: ['Supplier', 'Part', 'Price a part (€)', 'Lead time', 'Penalty clause', 'Status'],
+      rows: [
+        ['Lumen Works', 'Opal diffuser AUR-D2', 11.5, '3 weeks', '2% a week late', 'Current'],
+        ['Orel Optics', 'Opal diffuser AUR-D2', 12.4, '5 weeks', 'To negotiate', 'Samples requested'],
+        ['Kestrel Components', 'LED board', 18.2, '4 weeks', '1% a week late', 'Current'],
+        ['Papier Nord', 'Packaging', 3.1, '2 weeks', 'None', 'Current'],
+      ],
+    },
+    {
+      id: 'a-sheet-qc', kind: 'sheet', space: lumen.id, title: 'Batch 2 inspection, press 2', ownerId: 'jun', updatedAt: dayAt(-1, 17, 40),
+      columns: ['Day', 'Parts made', 'Haze average (%)', 'Pass rate (%)', 'Status'],
+      rows: [
+        ['Day 1', 640, 93.1, 99.4, 'Passed'],
+        ['Day 2', 0, '', '', 'Running'],
+        ['Day 3', 0, '', '', 'Planned'],
+      ],
+    },
+  ]
+  // the spec Jun sent is the factory's document: it lives in the shared space, the team still sees it
+  for (const a of artifacts) if (a.id === 'a-pdf-diffuser') a.space = lumen.id
+  const filesBlock = blocks.find((b) => b.type === 'files')
+  if (filesBlock?.type === 'files') filesBlock.artifactIds.push(...spaceArtifacts.map((a) => a.id))
+  const si = inSpace(internal)
+  const sl = inSpace(lumen)
+  messages.push(
+    t('a-s01', 'lea', dayAt(-2, 16, 10), 'Contract check: Lumen Works owes us a late-delivery penalty, 2% of the batch per week late. On batch 2 that is about €460. Not much, but it is leverage.', { visibility: si }),
+    t('a-s02', 'alex', dayAt(-2, 16, 25), 'Let’s keep it in our pocket. We need Jun’s goodwill on the pilot run slot more than €460.', { visibility: si }),
+    t('a-s03', 'karim', dayAt(-1, 15, 5), 'Plan B, quietly: Orel Optics quotes the diffusers at €12.40 a part against €11.50 at Lumen, 5 weeks lead time. Samples are on the way. Nothing of this goes in the Lumen Works space.', { visibility: si }),
+    { id: 'a-s04', kind: 'file', authorId: 'karim', at: dayAt(-1, 15, 6), visibility: si, artifactId: 'a-doc-planb', text: 'Written down, so we decide with facts.' },
+    { id: 'a-s05', kind: 'file', authorId: 'lea', at: dayAt(-1, 15, 21), visibility: si, artifactId: 'a-sheet-suppliers', text: 'And the prices side by side.' },
+    t('a-s06', 'gemini', dayAt(0, 9, 20), 'For the four of you only: the penalty clause is worth about €460 on batch 2 and stays in reserve. Orel Optics is the backup at €0.90 more a part, samples due next week. None of this is visible in the Lumen Works space, and Jun cannot open these two files.', { visibility: si }),
+
+    { id: 'a-p01', kind: 'system', authorId: 'alex', at: dayAt(-1, 8, 30), visibility: sl, icon: 'handshake', text: 'Alex opened a shared space with Lumen Works. Jun Park sees this thread and the files shared here, nothing else in Aurora.' },
+    t('a-p02', 'jun', dayAt(-1, 8, 45), 'Thanks, much easier than email. Press 2 has been running the batch 2 rerun since 6 this morning, with 100% inspection.', { visibility: sl }),
+    t('a-p03', 'karim', dayAt(-1, 9, 2), 'Great. Can you post the inspection numbers here every evening? One sheet, updated daily.', { visibility: sl }),
+    { id: 'a-p04', kind: 'file', authorId: 'jun', at: dayAt(-1, 17, 40), visibility: sl, artifactId: 'a-sheet-qc', text: 'Day 1: 640 parts, haze 93.1% on average, 99.4% pass. The mold temperature fix works.' },
+    t('a-p05', 'maya', dayAt(0, 8, 55), 'That is a relief. @[Jun Park](jun) could you send 20 parts by courier? I want to test them on the sunrise ramp before the pilot run.', { visibility: sl }),
+    t('a-p06', 'jun', dayAt(0, 9, 10), 'Yes, they leave today by express courier. I will post the tracking here.', { visibility: sl }),
+    t('a-p07', 'gemini', dayAt(0, 9, 30), `Where the factory side stands: day 1 of the rerun passed at 99.4%. At this pace batch 2 is done by ${en(diffusersNew)}, so the ${en(pilotRun)} pilot run holds. 20 test parts ship today.`, { visibility: sl }),
+  )
+
   const sorted = [...messages].sort((a, b) => a.at - b.at)
   return {
     id: 'aurora', name: { fr: 'Lancement Aurora', en: 'Aurora launch' }, icon: 'lightbulb', color: '#f29900',
     description: { fr: `Lampe de chevet qui réveille par la lumière. Lancement ${wd(launch).fr} ${d(launch).fr}.`, en: `Bedside lamp that wakes you with light. Launch on ${wd(launch).en}, ${d(launch).en}.` },
     ownerId: 'alex', memberIds: ['alex', 'maya', 'tom', 'sofia', 'karim', 'lea'], externalIds: ['jun', 'nora'],
-    unread: 0, mentions: 0, messages: sorted, blocks, artifacts: [...artifacts, ...filesFor('aurora')], script, address: 'aurora@oneplace.example',
+    unread: 0, mentions: 0, messages: sorted, blocks, artifacts: [...artifacts, ...spaceArtifacts, ...filesFor('aurora')], script, address: 'aurora@oneplace.example',
+    spaces: [internal, lumen],
   }
 }

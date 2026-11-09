@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CallState, MeetingMessage, Project, Txt } from '../data/types'
 import { fmtDay, fmtTime, useT } from '../i18n'
-import { personById, ME_ID, paneOf, useStore, useViewer } from '../store'
+import { filesFor, personById, ME_ID, paneOf, useStore, useViewer } from '../store'
 import { Avatar, AvatarStack, Button, Icon, Sparkle } from '../ui/kit'
 import { Logo } from '../ui/Logo'
 import { callAgain, endCall, expectedIds, guestAsPerson, joinParticipants, leaveNote, returnToCall, scriptFor, startCall, unansweredPeer, useCallUi } from './callActions'
@@ -92,7 +92,8 @@ function ProjectStage({ call, project }: { call: CallState; project: Project }) 
   const [inviting, setInviting] = useState(false)
   const closeInvite = useCallback(() => setInviting(false), [])
   const script = scriptFor(project, viewerId)
-  const doc = project.artifacts.find((a) => a.kind === 'doc') ?? project.artifacts[0]
+  const docs = filesFor(project, viewerId)
+  const doc = docs.find((a) => a.kind === 'doc') ?? docs[0]
 
   const people = useMemo<StagePerson[]>(() => {
     const ids = call.participantIds.includes(viewerId) ? call.participantIds : [viewerId, ...call.participantIds]

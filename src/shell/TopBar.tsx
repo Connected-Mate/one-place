@@ -8,7 +8,7 @@ import { Avatar, Button, Icon, IconButton, Menu, Sparkle } from '../ui/kit'
 import { Logo } from '../ui/Logo'
 import { appOf, WorkspaceIcon, type WorkspaceApp } from '../ui/WorkspaceIcon'
 import { askGemini } from '../chat/gemini'
-import { canSee, ME_ID, personById, useStore, useViewer } from '../store'
+import { canSee, filesFor, inProject, ME_ID, personById, useStore, useViewer } from '../store'
 import { AccountButton } from './AccountPanel'
 import { PERSONAS } from './personas'
 import { tx, useT } from '../i18n'
@@ -51,9 +51,9 @@ function Search({ lead, trail }: { lead?: React.ReactNode; trail?: React.ReactNo
     if (s.length < 2) return []
     const out: Hit[] = []
     const st = useStore.getState
-    for (const p of projects.filter((x) => x.memberIds.includes(viewerId))) {
+    for (const p of projects.filter((x) => inProject(x, viewerId))) {
       const pn = tx(p.name, lang)
-      for (const a of p.artifacts) if (tx(a.title, lang).toLowerCase().includes(s)) {
+      for (const a of filesFor(p, viewerId)) if (tx(a.title, lang).toLowerCase().includes(s)) {
         out.push({ key: a.id, app: appOf(a.kind) ?? undefined, icon: { doc: 'description', sheet: 'table_chart', slides: 'slideshow', pdf: 'picture_as_pdf', notebook: 'auto_stories', image: 'image', video: 'movie', file: 'draft' }[a.kind], title: tx(a.title, lang), sub: pn, run: () => { st().selectProject(p.id); st().setPane({ type: 'artifact', id: a.id }) } })
       }
       for (const b of p.blocks) if (b.type === 'todo') for (const x of b.todos) if (tx(x.text, lang).toLowerCase().includes(s)) {

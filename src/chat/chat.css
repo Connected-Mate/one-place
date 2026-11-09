@@ -338,3 +338,26 @@ button.file-card:active{background:var(--surface-3)}
 @keyframes shimmer{from{background-position:120% 0}to{background-position:-120% 0}}
 @keyframes caret{50%{opacity:0}}
 @keyframes typing{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-3px);opacity:1}}
+
+/* Sub-teams: the whole team's thread, then each space the viewer belongs to */
+.space-bar{display:flex;gap:6px;padding:0 16px 8px 20px;flex:none;overflow-x:auto;scrollbar-width:none;min-width:0}
+.space-bar::-webkit-scrollbar{display:none}
+.space-chip{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:200px;min-height:32px;padding:0 12px 0 10px;border-radius:var(--r-s);border:1px solid var(--outline);color:var(--text-2);font-size:13px;font-weight:500;transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.space-chip:hover{background:var(--hover)}
+.space-chip.on{background:var(--primary-soft);border-color:transparent;color:var(--on-primary-soft)}
+.space-chip.confidential.on{background:var(--private);color:var(--on-private)}
+.space-tag{flex:none;font-size:11px;line-height:16px;padding:0 6px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-2);font-weight:500}
+.space-chip.on .space-tag{background:var(--panel)}
+.space-intro{display:flex;flex-direction:column;gap:10px;margin:8px 0 16px;padding:14px 16px;border-radius:var(--r-l);background:var(--surface-1);min-width:0}
+.space-intro.confidential{background:var(--private);color:var(--on-private)}
+.space-intro-head{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.space-intro-icon{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--panel);color:var(--text-2)}
+.space-intro-text{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:13px;line-height:19px;color:var(--text-2)}
+.space-intro.confidential .space-intro-text{color:inherit}
+.space-intro-text strong{font-size:14px;color:var(--text);font-weight:500}
+.space-intro-meta{display:flex;align-items:center;gap:8px;min-width:0;font-size:12px;color:var(--text-2)}
+.space-intro.confidential .space-intro-meta{color:inherit}
+.space-intro-files{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.space-file{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:32px;padding:0 12px 0 10px;border-radius:var(--r-pill);background:var(--panel);color:var(--text);font-size:13px}
+.space-file:hover{background:var(--hover)}
+@media (hover:none){.space-chip,.space-file{min-height:40px}}
