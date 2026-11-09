@@ -370,17 +370,19 @@ body.resizing{cursor:col-resize;user-select:none}
   body:has(.rp-view:not([hidden]) .cv-stage) .toasts,body:has(.cv-guest-stage) .toasts{bottom:calc(92px + env(safe-area-inset-bottom))}
 }
 
-/* A project's threads, under it like folders: the whole team, then its sub-teams */
-.rail-spaces{position:relative;list-style:none;margin:2px 0 6px;padding:0}
-.rail-spaces::before{content:'';position:absolute;left:35px;top:4px;bottom:4px;width:1px;background:var(--outline)}
-.rail-item.rail-space{height:30px;padding-left:52px;gap:10px;font-size:13px;font-weight:400;color:var(--text-2)}
+/* A project's threads, under it like folders: the whole team, then its sub-teams, aligned with the project's name */
+.rail-spaces{list-style:none;margin:0 0 6px;padding:0}
+.rail-item.on.parent{background:none;color:var(--text);font-weight:600}
+.rail-item.rail-space{height:32px;padding-left:62px;gap:12px;font-size:13px;font-weight:400;color:var(--text-2)}
 .rail-item.rail-space .rail-icon{color:var(--text-3)}
-.rail-item.rail-space.here{background:var(--hover);color:var(--text);font-weight:500}
+.rail-item.rail-space:hover{background:var(--hover)}
+.rail-item.rail-space.here{background:var(--primary-soft);color:var(--on-primary-soft);font-weight:500}
 .rail-item.rail-space.here .rail-icon{color:var(--on-primary-soft)}
+.rail-item.rail-space.confidential.here{background:color-mix(in srgb,var(--private-line) 20%,transparent);color:var(--on-private)}
 .rail-item.rail-space.confidential.here .rail-icon{color:var(--on-private)}
-.rail-space-tag{flex:none;font-size:11px;line-height:16px;padding:0 6px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-2);font-weight:500}
+.rail-space-tag{flex:none;font-size:11px;line-height:16px;color:var(--text-3);font-weight:400}
+.rail-item.rail-space.here .rail-space-tag{color:inherit;opacity:.75}
 @media (min-width:1280px){
-  .rail-min .rail-spaces::before{display:none}
   .rail-min .rail-item.rail-space{padding-left:27px}
 }
 /* Tablet: the narrow rail has no room for them, the drawer does */
@@ -391,9 +393,7 @@ body.resizing{cursor:col-resize;user-select:none}
 /* Phone: the Projects screen lists them under the open project, big enough for a thumb */
 @media (max-width:599px){
   .rail-spaces{margin:0 0 8px}
-  .rail-spaces::before{left:36px}
-  .rail-item.rail-space,.rail-item.rail-space.rail-item{min-height:44px;padding:0 16px 0 60px;font-size:15px}
-  .rail-item.rail-space.here{background:var(--hover)}
+  .rail-item.rail-space,.rail-item.rail-space.rail-item{min-height:44px;padding:0 16px 0 70px;font-size:15px;border-radius:0}
 }
 @media (max-width:599px){
   .rail-item.rail-space .rail-icon{width:24px;height:24px;min-width:0;background:none;margin:0}

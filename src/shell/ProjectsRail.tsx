@@ -57,9 +57,11 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
         {mine.map((p) => {
           const name = t(p.name)
           const on = !home && p.id === activeId
+          // with threads under it, the open thread carries the highlight, the project only its weight
+          const parent = on && spacesOf(p, viewerId).length > 0
           return (
             <li key={p.id}>
-              <button type="button" className={`rail-item${on ? ' on' : ''}${p.unread ? ' unread' : ''}`} aria-current={on ? 'page' : undefined} onClick={() => select(p.id)} title={name}>
+              <button type="button" className={`rail-item${on ? ' on' : ''}${parent ? ' parent' : ''}${p.unread ? ' unread' : ''}`} aria-current={on ? 'page' : undefined} onClick={() => select(p.id)} title={name}>
                 <span className="rail-icon" style={{ color: p.color }}><Icon name={p.icon} fill={on} />{p.unread > 0 && <span className="rail-badge" aria-hidden="true" />}</span>
                 <span className="rail-label rail-text">
                   <span className="rail-name">{name}</span>
@@ -81,7 +83,7 @@ export function ProjectsRail({ drawer, onCloseDrawer }: { drawer?: boolean; onCl
                         <li key={sp?.id ?? 'team'}>
                           <button type="button" className={`rail-item rail-space${here ? ' here' : ''}${sp ? ` ${sp.kind}` : ''}`} aria-current={here ? 'true' : undefined}
                             title={sp ? t(sp.description) : t({ fr: 'Le fil de toute l’équipe', en: 'The whole team’s thread' })} onClick={() => setSpace(sp?.id ?? null)}>
-                            <span className="rail-icon"><Icon name={sp ? sp.icon : 'tag'} size={18} fill={here} /></span>
+                            <span className="rail-icon"><Icon name={sp ? sp.icon : 'groups'} size={18} fill={here} /></span>
                             <span className="rail-label rail-name">{label}</span>
                             {sp?.kind === 'partner' && <span className="rail-label rail-space-tag">{t({ fr: 'Partagé', en: 'Shared' })}</span>}
                           </button>

@@ -16,5 +16,5 @@ for f in list((root / "src").rglob("*.ts*")):
         words.update(w for w in m.groups() if w)
 icons = sorted(words & valid)
 css = get("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,300..400,0..1,0&icon_names=" + ",".join(icons)).decode()
-(root / "public/fonts/material-symbols.woff2").write_bytes(get(re.search(r"url\((.*?)\)", css)[1]))
-print(len(icons), "icons,", (root / "public/fonts/material-symbols.woff2").stat().st_size, "bytes")
+(root / "src/assets/material-symbols.woff2").write_bytes(get(re.search(r"url\((.*?)\)", css)[1]))
+print(len(icons), "icons,", (root / "src/assets/material-symbols.woff2").stat().st_size, "bytes")
